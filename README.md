@@ -7,6 +7,8 @@
 
 **Description**: This project is a local database interfacing with IPFS. It allows users to encrypt content and exposes an API for interacting with the database and IPFS.
 
+inspired by [this post](https://levelup.gitconnected.com/build-a-scalable-database-with-typescript-and-ipfs-11eceaf97e7d)
+
 ## Modules Overview
 
 - **db.ts**: Manages the local database logic.
