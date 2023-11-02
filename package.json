@@ -1,5 +1,5 @@
 {
-  "name": "mugu",
+  "name": "@scobru/mogu",
   "version": "1.0.0",
   "description": "Ipfs database written in ts",
   "main": "index.js",
@@ -21,7 +21,7 @@
     "decentralized"
   ],
   "author": "scobru",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/scobru/mugu/issues"
   },
@@ -42,5 +42,6 @@
     "tsc": "^2.0.4",
     "typescript": "^5.2.2",
     "ws": "^8.14.2"
-  }
+  },
+  "devDependencies": {}
 }
