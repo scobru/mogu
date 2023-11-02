@@ -1,111 +1,106 @@
-no# IPFS Database SDK
 
-## Overview
+# MUGU
 
-This SDK provides functionalities for creating a simple file system-like structure stored in a decentralized manner using IPFS and TypeScript.
+**Description**: This project is a local database interfacing with IPFS. It allows users to encrypt content and exposes an API for interacting with the database and IPFS.
 
-## Installation
+## Modules Overview
 
-First, make sure you have NodeJS and npm installed on your machine. Then, run:
+- **db.ts**: Manages the local database logic.
+- **api.ts**: Defines the API endpoints to interface with the database and IPFS.
+- **sdk.ts**: Provides software functionalities to interact with the system.
+- **pinataAPI.ts**: Handles interactions with Pinata, an IPFS pinning service.
+- **CIDRegistry.sol**: A Solidity smart contract to register CID on IPFS.
 
-\`\`\`
+## Installation and Configuration
+
+1. Clone the repository:
+
+```
+git clone REPOSITORY_URL
+```
+
+2. Install dependencies:
+
+```
 npm install
-\`\`\`
-
-## Initialize Database
-
-To initialize your database, you can use the `initializeDatabase` function.
-
-```typescript
-import { initializeDatabase } from "./db";
-
-const state = initializeDatabase();
 ```
 
-This will return a new `state` object, which represents the current state of your database.
+3. Start the server:
 
-## Add a Node
-
-You can add a node (either a file or directory) using the `addNode` function.
-
-```typescript
-import { addNode, Node, NodeType } from "./db";
-
-const newNode: Node = {
-  id: "1",
-  type: NodeType.FILE,
-  name: "my-file",
-  content: "Hello, World!",
-  children: [],
-};
-
-const newState = addNode(state, newNode);
+```
+npm start
 ```
 
-## Query the Database
+## API Usage
 
-You can query the database using various attributes like `name`, `type`, etc.
+### Add a Node
 
-```typescript
-import { query } from "./db";
+To add a node, make a POST request to the `/api/addNode` endpoint:
 
-const nameQuery = (name: string) => (node: Node) => node.name === name;
-const results = query(state, nameQuery("my-file"));
+```json
+POST http://localhost:3000/api/addNode
+Content-Type: application/json
+
+{
+  "id": "1",
+  "type": "FILE",
+  "name": "my-file1",
+  "parent": "0",
+  "children": [],
+  "content": "Hello World1!"
+}
 ```
 
-## Save Database to IPFS
+... (repeat for other nodes)
 
-To store your database state on IPFS, use the `storeDatabase` function.
+### Update a Node
 
-```typescript
-import { storeDatabase } from "./pinataAPI";
+To update an existing node:
 
-const hash = await storeDatabase(state);
+```json
+POST http://localhost:3000/api/updateNode
+Content-Type: application/json
+
+{
+  "id": "0",
+  "type": "DIRECTORY",
+  "name": "my-dir",
+  "parent": "",
+  "children": [],
+  "content": ""
+}
 ```
 
-## Retrieve Database from IPFS
+### Save the Database
 
-If you have the hash of a previously stored state, you can retrieve it using the `retrieveDatabase` function.
+To save the database:
 
-```typescript
-import { retrieveDatabase } from "./pinataAPI";
+```json
+POST http://localhost:3000/api/save
+Content-Type: application/json
 
-const hash = "your_database_hash_here";
-const state = await retrieveDatabase(hash);
+{
+  "key": "testkey"
+}
 ```
 
-## Remove a Node and Update the State
+### Retrieve All Nodes
 
-### Retrieve State from Database
+To retrieve all nodes:
 
-If you already have a hash of the database stored on IPFS, you can retrieve the current `state` using the `retrieveDatabase` function.
-
-```typescript
-import { retrieveDatabase } from "./pinataAPI";
-
-const hash = "your_database_hash_here";
-const state = await retrieveDatabase(hash);
+```
+GET http://localhost:3000/api/getAllNodes
+Content-Type: application/json
 ```
 
-### Remove a Node
+... (repeat for other API calls)
 
-Use the `removeNode` function to remove a specific node from the `state`. This function takes the current `state` and the ID of the node to be removed as inputs.
+### Load Existing CID
 
-```typescript
-import { removeNode } from "./db";
+Before loading an existing CID, ensure to load it into the state first:
 
-const nodeIdToRemove = "2";
-const newState = removeNode(state, nodeIdToRemove);
+```
+GET http://localhost:3000/api/load/:Cid
 ```
 
-### Update the State
-
-After removing the node, the `state` will be updated. You can use the `storeDatabase` function to store the new `state` on IPFS.
-
-```typescript
-import { storeDatabase } from "./pinataAPI";
-
-const newHash = await storeDatabase(newState);
-```
-
-Now, `newHash` represents the hash of your updated database on IPFS. You can use this for future retrieval operations.
+Then, you can use the loaded CID in subsequent API calls.
