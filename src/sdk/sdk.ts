@@ -146,10 +146,11 @@ export class Mugu {
 
 export class MuguOnChain extends Mugu {
   private contract: ethers.Contract;
+
   private abi: any[] = [
-    "event CIDRegistered(address indexed owner, string cid)",
-    "function registerCID(string memory _cid) public",
-    "function getCID(address _owner) public view returns (string)",
+    "event CIDRegistered(string cid)",
+    "function registerCID(string memory cidNew) public",
+    "function getCID() public view returns (string memory)",
   ];
 
   constructor(contractAddress: string, signer: ethers.Signer, initialState?: Map<string, Node>, key?: string) {
@@ -159,7 +160,7 @@ export class MuguOnChain extends Mugu {
 
   async registerCIDOnChain() {
     const hash = await this.store(); // Questo è il metodo store della classe padre (NodeDatabase)
-    const tx = await this.contract.registerCID(hash);
+    const tx = await this.contract.registerCID(ethers.utils.toUtf8Bytes(hash));
     await tx.wait();
   }
 

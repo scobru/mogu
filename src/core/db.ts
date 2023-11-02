@@ -2,6 +2,7 @@ import { pinJSONToIPFS, unpinFromIPFS, fetchFromIPFS } from "../ipfs/pinataAPI";
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import MecenateHelper from "@scobru/crypto-ipfs";
+import { ethers } from "ethers";
 
 export type NodeType = "FILE" | "DIRECTORY";
 
@@ -183,4 +184,40 @@ export const query = (state: Map<string, Node>, predicate: Query) => {
   const nodes = Array.from(state.values());
   const matches = nodes.filter(predicate);
   return matches;
+};
+
+export const storeOnChain = async (state: Map<string, Node>, key: Uint8Array, contract: any) => {
+  const abi: any[] = [
+    "event CIDRegistered(string cid)",
+    "function registerCID(string memory cidNew) public",
+    "function getCID() public view returns (string memory)",
+  ];
+
+  const signer = new ethers.Wallet(
+    process.env.PRIVATE_KEY as string,
+    new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL),
+  );
+
+  const instance = new ethers.Contract(contract, abi, signer).connect(signer);
+  const json = serializeDatabase(state, key);
+  const hash = await pinJSONToIPFS(JSON.parse(json));
+  const tx = await instance.registerCID(ethers.utils.toUtf8Bytes(hash));
+  await tx.wait();
+  return hash;
+};
+
+export const getCidOnChain = async (contract: any) => {
+  const abi: any[] = [
+    "event CIDRegistered(string cid)",
+    "function registerCID(string memory cidNew) public",
+    "function getCID() public view returns (string memory)",
+  ];
+
+  const signer = new ethers.Wallet(
+    process.env.PRIVATE_KEY as string,
+    new ethers.providers.JsonRpcProvider(process.env.PROVIDER_URL),
+  );
+  const instance = new ethers.Contract(contract, abi, signer).connect(signer);
+  const cidBytes = await instance.getCID();
+  return ethers.utils.toUtf8String(cidBytes);
 };

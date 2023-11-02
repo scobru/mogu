@@ -12,6 +12,8 @@ import {
   NodeType,
   deserializeDatabase,
   serializeDatabase,
+  storeOnChain,
+  getCidOnChain,
 } from "../core/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
 import { fetchFromIPFS } from "../ipfs/pinataAPI";
 
@@ -73,6 +75,38 @@ router.post("/save", async (req: Request, res: Response) => {
 
   const keyUint8Array = new TextEncoder().encode(key);
   const hash = await storeDatabase(state, keyUint8Array);
+  res.send(
+    JSON.stringify({
+      message: "databaseSaved",
+      params: { hash },
+    }),
+  );
+});
+
+router.post("/saveOnChain", async (req: Request, res: Response) => {
+  let key = req.body.key as string;
+  let contract = req.body.contract as string;
+
+  // Ensure the key is 32 characters long
+  if (key.length > 32) {
+    key = key.substring(0, 32);
+  } else if (key.length < 32) {
+    key = key.padEnd(32, "0");
+  }
+
+  const keyUint8Array = new TextEncoder().encode(key);
+  const hash = await storeOnChain(state, keyUint8Array, contract);
+  res.send(
+    JSON.stringify({
+      message: "databaseSaved",
+      params: { hash },
+    }),
+  );
+});
+
+router.post("/loadOnChain", async (req: Request, res: Response) => {
+  let contract = req.body.contract as string;
+  const hash = await getCidOnChain(contract);
   res.send(
     JSON.stringify({
       message: "databaseSaved",
