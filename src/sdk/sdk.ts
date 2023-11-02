@@ -30,7 +30,7 @@ const childrenQuery = (children: string[]) => (node: any) =>
 
 const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
 
-export class Mugu {
+export class Mogu {
   private state: Map<string, Node>;
   private key: Uint8Array;
 
@@ -144,7 +144,7 @@ export class Mugu {
   }
 }
 
-export class MuguOnChain extends Mugu {
+export class MoguOnChain extends Mugu {
   private contract: ethers.Contract;
 
   private abi: any[] = [
