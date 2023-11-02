@@ -1,3 +1,1 @@
-export * from "./sdk/sdk";
-export * from "./core/db";
-export * from "./ipfs/pinataAPI";
+export { Mogu, MoguOnChain } from "./sdk/sdk";

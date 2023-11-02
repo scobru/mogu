@@ -1,6 +1,6 @@
 {
   "name": "@scobru/mogu",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Ipfs database written in ts",
   "main": "dist/index.js",
   "scripts": {
