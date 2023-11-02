@@ -144,7 +144,7 @@ export class Mogu {
   }
 }
 
-export class MoguOnChain extends Mugu {
+export class MoguOnChain extends Mogu {
   private contract: ethers.Contract;
 
   private abi: any[] = [

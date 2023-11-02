@@ -1,8 +1,8 @@
 {
   "name": "@scobru/mogu",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Ipfs database written in ts",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "tsc && node dist/test/test.js",
     "start": "tsc && node dist/api/api.js",
