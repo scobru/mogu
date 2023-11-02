@@ -1,0 +1,101 @@
+POST http://localhost:3000/api/addNode
+Content-Type: application/json
+
+{
+  "id": "1",
+  "type": "FILE",
+  "name": "my-file1",
+  "parent": "0",
+  "children": [],
+  "content": "Hello World1!"
+}
+
+POST http://localhost:3000/api/addNode
+Content-Type: application/json
+
+{
+  "id": "2",
+  "type": "FILE",
+  "name": "my-file2",
+  "parent": "0",
+  "children": [],
+  "content": "Hello World2!"
+}
+
+POST http://localhost:3000/api/addNode
+Content-Type: application/json
+
+{
+  "id": "3",
+  "type": "FILE",
+  "name": "my-file3",
+  "parent": "0",
+  "children": [],
+  "content": "Hello World3!"
+}
+
+
+POST http://localhost:3000/api/addNode
+Content-Type: application/json
+
+{
+  "id": "0",
+  "type": "DIRECTORY",
+  "name": "my-dir",
+  "parent": "0",
+  "children": [],
+  "content": ""
+}
+
+POST http://localhost:3000/api/updateNode
+Content-Type: application/json
+
+{
+  "id": "0",
+  "type": "DIRECTORY",
+  "name": "my-dir",
+  "parent": "",
+  "children": [],
+  "content": ""
+}
+
+
+POST http://localhost:3000/api/save
+Content-Type: application/json
+
+{
+  "key": "testkey"
+}
+
+GET http://localhost:3000/api/getAllNodes
+Content-Type: application/json
+
+POST http://localhost:3000/api/load/QmSPehkX74rurddHiHjm9VX4NFdMRx4uEzt1NP2t9icbx9
+Content-Type: application/json
+
+{
+  "key": "testkey"
+}
+
+
+POST http://localhost:3000/api/queryByName
+Content-Type: application/json
+
+{
+  "name": "my-file1"
+}
+
+
+POST http://localhost:3000/api/queryByParent
+Content-Type: application/json
+
+{
+  "parent": "0"
+}
+
+POST http://localhost:3000/api/queryByChildren
+Content-Type: application/json
+
+{
+  "children": ["3"]
+}
