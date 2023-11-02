@@ -15,6 +15,7 @@ import {
   serializeDatabase,
   deserializeDatabase,
 } from "../core/db";
+import { setCredentials } from "../ipfs/pinataAPI";
 
 type Query = (node: Node) => boolean;
 
@@ -29,13 +30,12 @@ const childrenQuery = (children: string[]) => (node: any) =>
 
 const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
 
-export class NodeDatabase {
+export class Mugu {
   private state: Map<string, Node>;
   private key: Uint8Array;
 
-  constructor(initialState?: Map<string, Node>, key?: string) {
+  constructor(initialState?: Map<string, Node>, key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
     this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
-
     if (key && key?.length > 32) {
       key = key.substring(0, 32);
     } else if (key && key.length < 32) {
@@ -43,6 +43,7 @@ export class NodeDatabase {
     }
     const keyUint8Array = new TextEncoder().encode(key);
     this.key = keyUint8Array;
+    setCredentials(String(pinataApiKey), String(pinataApiSecret));
   }
 
   initializeDatabase(): Map<string, Node> {
@@ -143,7 +144,7 @@ export class NodeDatabase {
   }
 }
 
-export class OnChainNodeDatabase extends NodeDatabase {
+export class MuguOnChain extends Mugu {
   private contract: ethers.Contract;
   private abi: any[] = [
     "event CIDRegistered(address indexed owner, string cid)",

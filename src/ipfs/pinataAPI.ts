@@ -3,8 +3,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const apiKey = process.env.PINATA_API_KEY || "";
-const apiSecret = process.env.PINATA_API_SECRET || "";
+let apiKey = process.env.PINATA_API_KEY || "";
+let apiSecret = process.env.PINATA_API_SECRET || "";
+
+export const setCredentials = (_apiKey: string, _apiSecret: string) => {
+  apiKey = _apiKey;
+  apiSecret = _apiSecret;
+  console.log("Credentials set");
+};
 
 export const pinJSONToIPFS = async (JSONBody: any) => {
   const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;

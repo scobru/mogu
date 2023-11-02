@@ -16,7 +16,7 @@
 1. Clone the repository:
 
 ```
-git clone REPOSITORY_URL
+git clone https://github.com/scobru/mogu
 ```
 
 2. Install dependencies:
@@ -101,6 +101,9 @@ Before loading an existing CID, ensure to load it into the state first:
 
 ```
 GET http://localhost:3000/api/load/:Cid
+{
+  "key": "testkey"
+}
 ```
 
 Then, you can use the loaded CID in subsequent API calls.
