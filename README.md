@@ -1,5 +1,9 @@
 
-# MUGU
+# MOGU
+
+<p align="left">
+  <img src="./mogu.png" width="350" title="hover text">
+</p>
 
 **Description**: This project is a local database interfacing with IPFS. It allows users to encrypt content and exposes an API for interacting with the database and IPFS.
 
