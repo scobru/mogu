@@ -15,7 +15,7 @@ import {
   storeOnChain,
   getCidOnChain,
 } from "../core/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
-import { fetchFromIPFS } from "../ipfs/pinataAPI";
+import { fetchFromIPFS, unpinFromIPFS } from "../ipfs/pinataAPI";
 
 const router = Router();
 
@@ -32,6 +32,11 @@ const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
 let state = new Map<string, Node>();
 
 // Endpoint per aggiungere un nodo
+router.post("/unPinCID/:cid", async (req: Request, res: Response) => {
+  const { cid } = req.params;
+  const result = await unpinFromIPFS(cid);
+  res.status(200).send({ result });
+});
 
 router.post("/addNode", async (req: Request, res: Response) => {
   const node = req.body as Node;
@@ -182,6 +187,7 @@ router.get("/getAllNodes", (req: Request, res: Response) => {
 });
 
 const app = express();
+
 app.use(express.json());
 app.use("/api", router);
 

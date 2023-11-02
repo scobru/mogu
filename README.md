@@ -13,6 +13,14 @@
 
 ## Installation and Configuration
 
+### From NPM
+
+```
+npm install @scobru/mogu
+```
+
+### From Github
+
 1. Clone the repository:
 
 ```
