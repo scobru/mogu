@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from "express";
 import {
-  Node,
+  EncryptedNode,
   addNode,
   removeNode,
   storeDatabase,
@@ -19,17 +19,17 @@ import { fetchFromIPFS, unpinFromIPFS } from "../ipfs/pinataAPI";
 
 const router = Router();
 
-const nameQuery = (name: string) => (node: Node) => node.name === name;
+const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
 
-const typeQuery = (type: NodeType) => (node: Node) => node.type === type;
+const typeQuery = (type: NodeType) => (node: EncryptedNode) => node.type === type;
 
-const contentQuery = (content: string) => (node: Node) => node.content === content;
+const contentQuery = (content: string) => (node: EncryptedNode) => node.content === content;
 
 const childrenQuery = (children: string[]) => (node: any) =>
   Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
-const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
+const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
-let state = new Map<string, Node>();
+let state = new Map<string, EncryptedNode>();
 
 // Endpoint per aggiungere un nodo
 router.post("/unPinCID/:cid", async (req: Request, res: Response) => {
@@ -39,14 +39,14 @@ router.post("/unPinCID/:cid", async (req: Request, res: Response) => {
 });
 
 router.post("/addNode", async (req: Request, res: Response) => {
-  const node = req.body as Node;
+  const node = req.body as EncryptedNode;
   state = addNode(state, node);
   res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
 });
 
 router.post("/updateNode", async (req: Request, res: Response) => {
   try {
-    const node = req.body as Node;
+    const node = req.body as EncryptedNode;
     state = updateNode(state, node); // Re-assigning state
     res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
   } catch (e) {
@@ -134,12 +134,13 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
 
   const keyUint8Array = new TextEncoder().encode(key);
 
-  const json = await fetchFromIPFS(cid); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
-
+  const json = await fetchFromIPFS(cid);
   const result = await deserializeDatabase(JSON.stringify(json), keyUint8Array);
-  if (result instanceof Map) {
-    state = new Map<string, Node>(result);
 
+  console.log("Deserialized:", result);
+
+  if (result instanceof Map) {
+    state = new Map<string, EncryptedNode>(result);
     res.send({
       message: "databaseLoaded",
       params: [...state.values()],

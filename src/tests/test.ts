@@ -1,5 +1,5 @@
 import {
-  Node,
+  EncryptedNode,
   NodeType,
   addNode,
   removeNode,
@@ -38,21 +38,23 @@ async function run() {
   }
 }
 
-function initializeDatabase(): Map<string, Node> {
+function initializeDatabase(): Map<string, EncryptedNode> {
   console.log("Initializing database...");
-  return new Map<string, Node>();
+  return new Map<string, EncryptedNode>();
 }
 
-async function addSampleNodes(state: Map<string, Node>): Promise<Map<string, Node>> {
+async function addSampleNodes(state: Map<string, EncryptedNode>): Promise<Map<string, EncryptedNode>> {
   console.log("Adding sample nodes...");
 
-  const node: Node = {
+  const node: EncryptedNode = {
     id: "1",
     type: "DIRECTORY",
     name: "my-node",
     content: "testDir",
     children: [],
+    encrypted: false
   };
+
   state = addNode(state, node);
 
   console.log("Sample nodes added", Array.from(state.values()));
@@ -73,13 +75,13 @@ async function addSampleNodes(state: Map<string, Node>): Promise<Map<string, Nod
   console.log("Retrieved children", children);
 
   // Query the database
-  const nameQuery = (name: string) => (node: Node) => node.name === name;
+  const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
   const nodesWithName = query(state, nameQuery("my-node"));
   console.log("Nodes with name", nodesWithName);
 
   const nameIndex = new Map<string, string[]>();
 
-  const updateNameIndex = (state: Map<string, Node>) => {
+  const updateNameIndex = (state: Map<string, EncryptedNode>) => {
     nameIndex.clear();
     state.forEach((node, id) => {
       const name = node.name;
@@ -94,7 +96,7 @@ async function addSampleNodes(state: Map<string, Node>): Promise<Map<string, Nod
 
   const parentIndex = new Map<string, string[]>();
 
-  const updateParentIndex = (state: Map<string, Node>) => {
+  const updateParentIndex = (state: Map<string, EncryptedNode>) => {
     parentIndex.clear();
     state.forEach((node, id) => {
       if (!node.parent) return;
@@ -110,7 +112,7 @@ async function addSampleNodes(state: Map<string, Node>): Promise<Map<string, Nod
   return state;
 }
 
-async function performDatabaseOperations(state: Map<string, Node>, key: string): Promise<string> {
+async function performDatabaseOperations(state: Map<string, EncryptedNode>, key: string): Promise<string> {
   console.log("Performing database operations...");
   const keyUtf8 = new TextEncoder().encode(key);
   // Store and retrieve from IPFS
@@ -135,7 +137,7 @@ async function addFileAndStore(hash: string, key: string) {
 
   console.log("Unpin File IPFS", await unpinFromIPFS(hash));
 
-  const file: Node = {
+  const file: EncryptedNode = {
     id: "2",
     type: "FILE",
     name: "my-file",
@@ -151,19 +153,19 @@ async function addFileAndStore(hash: string, key: string) {
   return newHash;
 }
 
-function queryDatabase(state: Map<string, Node>) {
+function queryDatabase(state: Map<string, EncryptedNode>) {
   console.log("Querying database...");
 
-  const nameQuery = (name: string) => (node: Node) => node.name === name;
+  const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
 
-  const typeQuery = (type: NodeType) => (node: Node) => node.type === type;
+  const typeQuery = (type: NodeType) => (node: EncryptedNode) => node.type === type;
 
-  const contentQuery = (content: string) => (node: Node) => node.content === content;
+  const contentQuery = (content: string) => (node: EncryptedNode) => node.content === content;
 
   const childrenQuery = (children: string[]) => (node: any) =>
     Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 
-  const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
+  const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
   const allNodes = getAllNodes(state);
 
@@ -178,7 +180,7 @@ function queryDatabase(state: Map<string, Node>) {
   console.log("All nodes", allNodes);
 }
 
-async function serializeAndDeserializeDatabase(state: Map<string, Node>, key: string) {
+async function serializeAndDeserializeDatabase(state: Map<string, EncryptedNode>, key: string) {
   console.log("Serializing and deserializing database...");
   const keyUtf8 = new TextEncoder().encode(key);
 
@@ -189,11 +191,11 @@ async function serializeAndDeserializeDatabase(state: Map<string, Node>, key: st
   console.log("Deserialized:", deserialized);
 }
 
-async function addFileToDirectory(state: Map<string, Node>): Promise<Map<string, Node>> {
+async function addFileToDirectory(state: Map<string, EncryptedNode>): Promise<Map<string, EncryptedNode>> {
   console.log("Adding a file to an existing directory...");
 
   // Creiamo un nuovo file con l'ID "2" e impostiamo il suo parent alla directory con ID "1"
-  const newFile: Node = {
+  const newFile: EncryptedNode = {
     id: "2",
     type: "FILE",
     name: "my-file",
@@ -216,11 +218,11 @@ async function addFileToDirectory(state: Map<string, Node>): Promise<Map<string,
   return state;
 }
 
-async function addAnotherFileAndList(state: Map<string, Node>): Promise<Map<string, Node>> {
+async function addAnotherFileAndList(state: Map<string, EncryptedNode>): Promise<Map<string, EncryptedNode>> {
   console.log("Adding another file to the existing directory...");
 
   // Creiamo un altro nuovo file con l'ID "3" e impostiamo il suo parent alla directory con ID "1"
-  const anotherFile: Node = {
+  const anotherFile: EncryptedNode = {
     id: "3",
     type: "FILE",
     name: "another-file",

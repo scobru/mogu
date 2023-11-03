@@ -116,8 +116,9 @@ router.post("/load/:cid", async (req, res) => {
         key = key.padEnd(32, "0");
     }
     const keyUint8Array = new TextEncoder().encode(key);
-    const json = await (0, pinataAPI_1.fetchFromIPFS)(cid); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
+    const json = await (0, pinataAPI_1.fetchFromIPFS)(cid);
     const result = await (0, db_1.deserializeDatabase)(JSON.stringify(json), keyUint8Array);
+    console.log("Deserialized:", result);
     if (result instanceof Map) {
         state = new Map(result);
         res.send({

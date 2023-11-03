@@ -1,9 +1,9 @@
-import { addNode, removeNode, getNode, getChildren, updateNode, Node } from "../core/db";
+import { addNode, removeNode, getNode, getChildren, updateNode, EncryptedNode } from "../core/db";
 import WebSocket from "ws";
 
 const wss = new WebSocket.Server({ port: 3002 });
 
-const state = new Map<string, Node>();
+const state = new Map<string, EncryptedNode>();
 
 wss.on(
   "connection",
@@ -13,7 +13,7 @@ wss.on(
       switch (method) {
         case "addNode":
           addNode(state, params as any);
-          ws.send(JSON.stringify({ method: "nodeAdded", params: params as Node }));
+          ws.send(JSON.stringify({ method: "nodeAdded", params: params as EncryptedNode }));
           break;
         case "removeNode":
           removeNode(state, params.id as string);

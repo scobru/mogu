@@ -7,7 +7,7 @@ const db_1 = require("../core/db");
 const pinataAPI_2 = require("../ipfs/pinataAPI");
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
-const contentQuery = (content) => (node) => node.content === content;
+const contentQuery = (content) => (node) => String(node.content) === content;
 const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent) => (node) => node.parent === parent;
 class Mogu {
@@ -15,9 +15,11 @@ class Mogu {
         this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
         if (key && (key === null || key === void 0 ? void 0 : key.length) > 32) {
             key = key.substring(0, 32);
+            console.log("Key truncated to 32 characters:", key);
         }
         else if (key && key.length < 32) {
             key = key.padEnd(32, "0");
+            console.log("Key padded to 32 characters:", key);
         }
         const keyUint8Array = new TextEncoder().encode(key);
         this.key = keyUint8Array;
@@ -28,54 +30,79 @@ class Mogu {
         return new Map();
     }
     serialize() {
+        console.log("Serialize");
         const serialized = (0, db_1.serializeDatabase)(this.state, this.key);
         console.log("Serialized:", serialized);
+        return serialized;
     }
     deserialize(json) {
+        console.log("Deserialize");
         const deserialized = (0, db_1.deserializeDatabase)(json, this.key);
         console.log("Deserialized:", deserialized);
+        return deserialized;
     }
     async store() {
-        // Store and retrieve from IPFS
-        const hash = await (0, db_1.storeDatabase)(this.state, this.key);
-        console.log("Database stored with hash:", hash);
-        return hash;
+        console.log("Store");
+        return await (0, db_1.storeDatabase)(this.state, this.key);
     }
     async retrieve(hash) {
-        const retrieved = await (0, db_1.retrieveDatabase)(hash, this.key);
-        console.log("Retrieved:", retrieved);
-        return retrieved;
+        console.log("Retrieve");
+        return await (0, db_1.retrieveDatabase)(hash, this.key);
+    }
+    async load(hash, nonce) {
+        console.log("Load");
+        const json = await (0, pinataAPI_1.fetchFromIPFS)(hash); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
+        const deserialized = await (0, db_1.deserializeDatabaseSdk)(JSON.stringify(json), this.key, String(nonce));
+        if (deserialized instanceof Map) {
+            this.state = new Map(deserialized);
+        }
+        else {
+            console.log("Deserialized is not a Map");
+        }
+        console.log("Deserialized:", deserialized);
+        return deserialized;
     }
     addNode(node) {
+        console.log("Add Node");
         const state = (0, db_1.addNode)(this.state, node);
         this.state = state;
+        return state;
     }
     removeNode(id) {
         return (0, db_1.removeNode)(this.state, id);
     }
     getNode(id) {
-        return this.state.get(id);
+        console.log("Get Node");
+        return (0, db_1.getNode)(this.state, id);
     }
     getAllNodes() {
-        return Array.from(this.state.values());
+        console.log("Get All Node");
+        return (0, db_1.getAllNodes)(this.state);
     }
     getParent(id) {
+        console.log("Get Parent");
         const node = this.state.get(id);
         if (node && node.parent) {
             return this.state.get(node.parent);
         }
+        console.log("No Parent");
         return null;
     }
     updateNode(node) {
-        this.state.set(node.id, node);
+        console.log("Update Node");
+        const result = (0, db_1.updateNode)(this.state, node);
+        console.log("Update Complete!", result);
+        return node;
     }
     getChildren(id) {
+        console.log("Get Children");
         const node = this.state.get(id);
         if (!node || !node.children)
             return [];
         return node.children.map(childId => this.state.get(childId)).filter(Boolean);
     }
     query(predicate) {
+        console.log("Query");
         const nodes = this.getAllNodes();
         return nodes.filter(predicate);
     }
@@ -87,18 +114,23 @@ class Mogu {
         await (0, pinataAPI_1.unpinFromIPFS)(hash);
     }
     queryByName(name) {
+        console.log("Query by Name");
         return this.query(nameQuery(name));
     }
     queryByType(type) {
+        console.log("Query by Type");
         return this.query(typeQuery(type));
     }
     queryByContent(content) {
+        console.log("Query by Content");
         return this.query(contentQuery(content));
     }
     queryByChildren(children) {
+        console.log("Query by Children");
         return this.query(childrenQuery(children));
     }
     queryByParent(parent) {
+        console.log("Query by Parent");
         return this.query(parentQuery(parent));
     }
 }

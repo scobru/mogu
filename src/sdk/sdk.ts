@@ -1,8 +1,8 @@
 import { pinJSONToIPFS, unpinFromIPFS, fetchFromIPFS } from "../ipfs/pinataAPI";
 import { ethers } from "ethers";
 import {
-  Node,
   NodeType,
+  EncryptedNode,
   addNode,
   removeNode,
   updateNode,
@@ -14,32 +14,35 @@ import {
   getAllNodes,
   serializeDatabase,
   deserializeDatabase,
+  deserializeDatabaseSdk
 } from "../core/db";
 import { setCredentials } from "../ipfs/pinataAPI";
 
-type Query = (node: Node) => boolean;
+type Query = (node: EncryptedNode) => boolean;
 
-const nameQuery = (name: string) => (node: Node) => node.name === name;
+const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
 
-const typeQuery = (type: NodeType) => (node: Node) => node.type === type;
+const typeQuery = (type: NodeType) => (node: EncryptedNode) => node.type === type;
 
-const contentQuery = (content: string) => (node: Node) => node.content === content;
+const contentQuery = (content: string) => (node: EncryptedNode) => String(node.content) === content;
 
 const childrenQuery = (children: string[]) => (node: any) =>
   Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 
-const parentQuery = (parent: string) => (node: Node) => node.parent === parent;
+const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
 export class Mogu {
-  private state: Map<string, Node>;
+  private state: Map<string, EncryptedNode>;
   private key: Uint8Array;
 
-  constructor(initialState?: Map<string, Node>, key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
+  constructor(initialState?: Map<string, EncryptedNode>, key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
     this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
     if (key && key?.length > 32) {
       key = key.substring(0, 32);
+      console.log("Key truncated to 32 characters:", key)
     } else if (key && key.length < 32) {
       key = key.padEnd(32, "0");
+      console.log("Key padded to 32 characters:", key)
     }
     const keyUint8Array = new TextEncoder().encode(key);
     this.key = keyUint8Array;
@@ -52,31 +55,50 @@ export class Mogu {
   }
 
   serialize() {
+    console.log("Serialize");
     const serialized = serializeDatabase(this.state, this.key);
     console.log("Serialized:", serialized);
+    return serialized;
   }
 
   deserialize(json: string) {
+    console.log("Deserialize");
     const deserialized = deserializeDatabase(json, this.key);
     console.log("Deserialized:", deserialized);
+    return deserialized;
   }
 
   async store() {
-    // Store and retrieve from IPFS
-    const hash = await storeDatabase(this.state, this.key);
-    console.log("Database stored with hash:", hash);
-    return hash;
+    console.log("Store");
+    return await storeDatabase(this.state, this.key);
   }
 
   async retrieve(hash: string) {
-    const retrieved = await retrieveDatabase(hash, this.key);
-    console.log("Retrieved:", retrieved);
-    return retrieved;
+    console.log("Retrieve");
+    return await retrieveDatabase(hash, this.key);
   }
 
-  addNode(node: Node) {
+  async load(hash: string, nonce: string) {
+    console.log("Load");
+    const json = await fetchFromIPFS(hash); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
+    const deserialized = await deserializeDatabaseSdk(JSON.stringify(json), this.key, String(nonce));
+
+    if (deserialized instanceof Map) {
+      this.state = new Map<string, EncryptedNode>(deserialized);
+    } else {
+      console.log("Deserialized is not a Map");
+    }
+
+    console.log("Deserialized:", deserialized);
+
+    return deserialized;
+  }
+
+  addNode(node: EncryptedNode) {
+    console.log("Add Node");
     const state = addNode(this.state, node);
     this.state = state;
+    return state;
   }
 
   removeNode(id: string) {
@@ -84,34 +106,44 @@ export class Mogu {
   }
 
   getNode(id: string) {
-    return this.state.get(id);
+    console.log("Get Node");
+    return getNode(this.state, id)
   }
 
-  getAllNodes(): Node[] {
-    return Array.from(this.state.values());
+  getAllNodes(): EncryptedNode[] {
+    console.log("Get All Node");
+    return getAllNodes(this.state)
   }
 
   getParent(id: string) {
+    console.log("Get Parent");
     const node = this.state.get(id);
     if (node && node.parent) {
       return this.state.get(node.parent);
     }
+    console.log("No Parent")
     return null;
   }
 
-  updateNode(node: Node) {
-    this.state.set(node.id, node);
+  updateNode(node: EncryptedNode) {
+    console.log("Update Node");
+    const result = updateNode(this.state, node);
+    console.log("Update Complete!", result)
+    return node
   }
 
   getChildren(id: string) {
+    console.log("Get Children");
     const node = this.state.get(id);
     if (!node || !node.children) return [];
     return node.children.map(childId => this.state.get(childId)).filter(Boolean);
   }
 
   query(predicate: Query) {
+    console.log("Query");
     const nodes = this.getAllNodes();
     return nodes.filter(predicate);
+
   }
 
   async pin() {
@@ -124,22 +156,32 @@ export class Mogu {
   }
 
   queryByName(name: string) {
+    console.log("Query by Name");
+
     return this.query(nameQuery(name));
   }
 
   queryByType(type: NodeType) {
+    console.log("Query by Type");
+
     return this.query(typeQuery(type));
   }
 
   queryByContent(content: string) {
+    console.log("Query by Content");
+
     return this.query(contentQuery(content));
   }
 
   queryByChildren(children: string[]) {
+    console.log("Query by Children");
+
     return this.query(childrenQuery(children));
   }
 
   queryByParent(parent: string) {
+    console.log("Query by Parent");
+
     return this.query(parentQuery(parent));
   }
 }
@@ -153,7 +195,7 @@ export class MoguOnChain extends Mogu {
     "function getCID() public view returns (string memory)",
   ];
 
-  constructor(contractAddress: string, signer: ethers.Signer, initialState?: Map<string, Node>, key?: string) {
+  constructor(contractAddress: string, signer: ethers.Signer, initialState?: Map<string, EncryptedNode>, key?: string) {
     super(initialState, key as string);
     this.contract = new ethers.Contract(contractAddress, this.abi, signer).connect(signer);
   }

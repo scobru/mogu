@@ -3,13 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCidOnChain = exports.storeOnChain = exports.query = exports.getChildren = exports.updateNode = exports.getParent = exports.getAllNodes = exports.getNode = exports.removeNode = exports.addNode = exports.retrieveDatabase = exports.storeDatabase = exports.deserializeDatabase = exports.serializeDatabase = void 0;
+exports.getCidOnChain = exports.storeOnChain = exports.query = exports.getChildren = exports.updateNode = exports.getParent = exports.getAllNodes = exports.getNode = exports.removeNode = exports.addNode = exports.retrieveDatabase = exports.storeDatabase = exports.deserializeDatabaseSdk = exports.deserializeDatabase = exports.serializeDatabase = void 0;
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 const fs_1 = require("fs");
 const path_1 = require("path");
 const crypto_ipfs_1 = __importDefault(require("@scobru/crypto-ipfs"));
 const ethers_1 = require("ethers");
 const serializeDatabase = (state, key) => {
+    console.log("Serializing DB...");
     const nodes = Array.from(state.values());
     const nonce = crypto_ipfs_1.default.crypto.asymmetric.generateNonce();
     const noncePath = (0, path_1.join)(__dirname, "nonces.json");
@@ -26,14 +27,7 @@ function objectToUint8Array(obj) {
     return new Uint8Array(arr);
 }
 const deserializeDatabase = async (json, key) => {
-    if (typeof key === "string") {
-        key = Buffer.from(key, "hex");
-    }
-    else if (!(key instanceof Uint8Array)) {
-        throw new Error("Invalid key type");
-        return;
-    }
-    // Recupera il nonce dal file JSON localmente
+    console.log("Deserializing DB...");
     const noncePath = (0, path_1.join)(__dirname, "nonces.json");
     const storedNonce = JSON.parse((0, fs_1.readFileSync)(noncePath, "utf-8"));
     const nonce = Buffer.from(storedNonce.nonce, "hex");
@@ -49,6 +43,10 @@ const deserializeDatabase = async (json, key) => {
                 content = new Uint8Array();
             }
             else {
+                console.log("Decrypting content");
+                console.log("Nonce:", nonce);
+                console.log("Key:", key);
+                console.log("Content:", content);
                 content = await crypto_ipfs_1.default.crypto.asymmetric.secretBox.decryptMessage(content, nonce, key);
             }
         }
@@ -71,7 +69,50 @@ const deserializeDatabase = async (json, key) => {
     }
 };
 exports.deserializeDatabase = deserializeDatabase;
+const deserializeDatabaseSdk = async (json, key, nonce) => {
+    console.log("Deserializing DB in SDK...");
+    const nonceBuffer = Buffer.from(nonce, "hex");
+    const nonceBuffer2 = new Uint8Array(nonceBuffer);
+    const encryptedNodes = JSON.parse(json);
+    const nodes = await Promise.all(encryptedNodes.map(async (node) => {
+        let content = node.content;
+        if (node.encrypted) {
+            if (content && typeof content === "object" && !Array.isArray(content)) {
+                content = objectToUint8Array(content);
+            }
+            if (content === undefined) {
+                console.error("Content is undefined for node:", node);
+                content = new Uint8Array();
+            }
+            else {
+                console.log("Decrypting content");
+                console.log("Nonce:", nonceBuffer);
+                console.log("Key:", key);
+                console.log("Content:", content);
+                content = await crypto_ipfs_1.default.crypto.asymmetric.secretBox.decryptMessage(content, nonceBuffer2, key);
+            }
+        }
+        return Object.assign(Object.assign({}, node), { content });
+    }));
+    const state = new Map();
+    if (nodes) {
+        nodes.forEach((node) => {
+            if (node) {
+                state.set(node.id, node);
+            }
+            else {
+                console.log("Undefined node found");
+            }
+        });
+        return state;
+    }
+    else {
+        console.log("No nodes found");
+    }
+};
+exports.deserializeDatabaseSdk = deserializeDatabaseSdk;
 const storeDatabase = async (state, key) => {
+    console.log("Storing DB...");
     const json = (0, exports.serializeDatabase)(state, key);
     //const buffer = Buffer.from(json);
     const hash = await (0, pinataAPI_1.pinJSONToIPFS)(JSON.parse(json));
@@ -79,12 +120,14 @@ const storeDatabase = async (state, key) => {
 };
 exports.storeDatabase = storeDatabase;
 const retrieveDatabase = async (hash, key) => {
+    console.log("Retrieving DB...");
     const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
     const state = (0, exports.deserializeDatabase)(json, key);
     return state;
 };
 exports.retrieveDatabase = retrieveDatabase;
 const addNode = (state, node) => {
+    console.log("Adding Node...");
     const newState = new Map(state);
     // Aggiungi il nodo allo stato
     newState.set(node.id, node);
@@ -100,6 +143,7 @@ const addNode = (state, node) => {
 };
 exports.addNode = addNode;
 const removeNode = (state, id) => {
+    console.log("Removing Node...");
     const newState = new Map(state);
     // Rimuovi il nodo dallo stato
     const node = newState.get(id);
@@ -118,14 +162,17 @@ const removeNode = (state, id) => {
 };
 exports.removeNode = removeNode;
 const getNode = (state, id) => {
+    console.log("Getting Nodes..");
     return state.get(id);
 };
 exports.getNode = getNode;
 const getAllNodes = (state) => {
+    console.log("Getting All Nodes..");
     return Array.from(state.values());
 };
 exports.getAllNodes = getAllNodes;
 const getParent = (state, id) => {
+    console.log("Getting Parent..");
     const node = state.get(id);
     if (node && node.parent) {
         return state.get(node.parent);
@@ -134,10 +181,12 @@ const getParent = (state, id) => {
 };
 exports.getParent = getParent;
 const updateNode = (state, node) => {
+    console.log("Updating Node...");
     return new Map(state).set(node.id, node);
 };
 exports.updateNode = updateNode;
 const getChildren = (state, id) => {
+    console.log("Getting Children...");
     const node = state.get(id);
     if (!node || !node.children)
         return [];
@@ -145,12 +194,14 @@ const getChildren = (state, id) => {
 };
 exports.getChildren = getChildren;
 const query = (state, predicate) => {
+    console.log("Execute Query...");
     const nodes = Array.from(state.values());
     const matches = nodes.filter(predicate);
     return matches;
 };
 exports.query = query;
 const storeOnChain = async (state, key, contract) => {
+    console.log("Storing on chain...");
     const abi = [
         "event CIDRegistered(string cid)",
         "function registerCID(string memory cidNew) public",
@@ -166,6 +217,7 @@ const storeOnChain = async (state, key, contract) => {
 };
 exports.storeOnChain = storeOnChain;
 const getCidOnChain = async (contract) => {
+    console.log("Getting CID on chain...");
     const abi = [
         "event CIDRegistered(string cid)",
         "function registerCID(string memory cidNew) public",

@@ -31,6 +31,7 @@ async function addSampleNodes(state) {
         name: "my-node",
         content: "testDir",
         children: [],
+        encrypted: false
     };
     state = (0, db_1.addNode)(state, node);
     console.log("Sample nodes added", Array.from(state.values()));

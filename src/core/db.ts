@@ -6,14 +6,6 @@ import { ethers } from "ethers";
 
 export type NodeType = "FILE" | "DIRECTORY";
 
-export type Node = {
-  id: string;
-  type: NodeType;
-  name: string;
-  parent?: string;
-  children?: string[];
-  content?: string;
-};
 
 export type EncryptedNode = {
   id: string;
@@ -21,13 +13,15 @@ export type EncryptedNode = {
   name: string;
   parent?: string;
   children?: string[];
-  content?: Uint8Array;
+  content?: Uint8Array | String
   encrypted?: boolean;
 };
 
-type Query = (node: Node) => boolean;
+type Query = (node: EncryptedNode) => boolean;
 
-export const serializeDatabase = (state: Map<string, Node>, key: Uint8Array) => {
+export const serializeDatabase = (state: Map<string, EncryptedNode>, key: Uint8Array) => {
+  console.log("Serializing DB...")
+
   const nodes = Array.from(state.values());
   const nonce = MecenateHelper.crypto.asymmetric.generateNonce();
   const noncePath = join(__dirname, "nonces.json");
@@ -50,19 +44,14 @@ function objectToUint8Array(obj: any): Uint8Array {
   return new Uint8Array(arr);
 }
 
-export const deserializeDatabase = async (json: string, key: Uint8Array) => {
-  if (typeof key === "string") {
-    key = Buffer.from(key, "hex");
-  } else if (!(key instanceof Uint8Array)) {
-    throw new Error("Invalid key type");
-    return;
-  }
+export const deserializeDatabase = async (json: string, key: Uint8Array,) => {
+  console.log("Deserializing DB...")
 
-  // Recupera il nonce dal file JSON localmente
   const noncePath = join(__dirname, "nonces.json");
   const storedNonce = JSON.parse(readFileSync(noncePath, "utf-8"));
   const nonce = Buffer.from(storedNonce.nonce, "hex");
   const encryptedNodes = JSON.parse(json) as EncryptedNode[];
+
   const nodes = await Promise.all(
     encryptedNodes.map(async node => {
       let content = node.content;
@@ -75,6 +64,10 @@ export const deserializeDatabase = async (json: string, key: Uint8Array) => {
           console.error("Content is undefined for node:", node);
           content = new Uint8Array();
         } else {
+          console.log("Decrypting content")
+          console.log("Nonce:", nonce)
+          console.log("Key:", key)
+          console.log("Content:", content)
           content = await MecenateHelper.crypto.asymmetric.secretBox.decryptMessage(content as Uint8Array, nonce, key);
         }
       }
@@ -85,7 +78,7 @@ export const deserializeDatabase = async (json: string, key: Uint8Array) => {
     }),
   );
 
-  const state = new Map<string, Node>();
+  const state = new Map<string, EncryptedNode>();
 
   if (nodes) {
     nodes.forEach((node: any) => {
@@ -101,7 +94,59 @@ export const deserializeDatabase = async (json: string, key: Uint8Array) => {
   }
 };
 
-export const storeDatabase = async (state: Map<string, Node>, key: Uint8Array) => {
+export const deserializeDatabaseSdk = async (json: string, key: Uint8Array, nonce: any) => {
+  console.log("Deserializing DB in SDK...")
+
+  const nonceBuffer = Buffer.from(nonce, "hex");
+
+  const nonceBuffer2 = new Uint8Array(nonceBuffer);
+
+  const encryptedNodes = JSON.parse(json) as EncryptedNode[];
+
+  const nodes = await Promise.all(
+    encryptedNodes.map(async node => {
+      let content = node.content;
+      if (node.encrypted) {
+        if (content && typeof content === "object" && !Array.isArray(content)) {
+          content = objectToUint8Array(content);
+        }
+
+        if (content === undefined) {
+          console.error("Content is undefined for node:", node);
+          content = new Uint8Array();
+        } else {
+          console.log("Decrypting content")
+          console.log("Nonce:", nonceBuffer)
+          console.log("Key:", key)
+          console.log("Content:", content)
+          content = await MecenateHelper.crypto.asymmetric.secretBox.decryptMessage(content, nonceBuffer2, key);
+        }
+      }
+      return {
+        ...node,
+        content,
+      };
+    }),
+  );
+
+  const state = new Map<string, EncryptedNode>();
+
+  if (nodes) {
+    nodes.forEach((node: any) => {
+      if (node) {
+        state.set(node.id, node);
+      } else {
+        console.log("Undefined node found");
+      }
+    });
+    return state;
+  } else {
+    console.log("No nodes found");
+  }
+};
+
+export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
+  console.log("Storing DB...")
   const json = serializeDatabase(state, key);
   //const buffer = Buffer.from(json);
   const hash = await pinJSONToIPFS(JSON.parse(json));
@@ -109,13 +154,17 @@ export const storeDatabase = async (state: Map<string, Node>, key: Uint8Array) =
 };
 
 export const retrieveDatabase = async (hash: string, key: Uint8Array) => {
+  console.log("Retrieving DB...")
+
   const json = await fetchFromIPFS(hash);
   const state = deserializeDatabase(json, key);
 
   return state;
 };
 
-export const addNode = (state: Map<string, Node>, node: Node) => {
+export const addNode = (state: Map<string, EncryptedNode>, node: EncryptedNode) => {
+  console.log("Adding Node...")
+
   const newState = new Map(state);
 
   // Aggiungi il nodo allo stato
@@ -133,7 +182,9 @@ export const addNode = (state: Map<string, Node>, node: Node) => {
   return newState;
 };
 
-export const removeNode = (state: Map<string, Node>, id: string) => {
+export const removeNode = (state: Map<string, EncryptedNode>, id: string) => {
+  console.log("Removing Node...")
+
   const newState = new Map(state);
 
   // Rimuovi il nodo dallo stato
@@ -154,15 +205,18 @@ export const removeNode = (state: Map<string, Node>, id: string) => {
   return newState;
 };
 
-export const getNode = (state: Map<string, Node>, id: string) => {
+export const getNode = (state: Map<string, EncryptedNode>, id: string) => {
+  console.log("Getting Nodes..")
   return state.get(id);
 };
 
-export const getAllNodes = (state: Map<string, Node>): Node[] => {
+export const getAllNodes = (state: Map<string, EncryptedNode>): EncryptedNode[] => {
+  console.log("Getting All Nodes..")
   return Array.from(state.values());
 };
 
-export const getParent = (state: Map<string, Node>, id: string) => {
+export const getParent = (state: Map<string, EncryptedNode>, id: string) => {
+  console.log("Getting Parent..")
   const node = state.get(id);
   if (node && node.parent) {
     return state.get(node.parent);
@@ -170,23 +224,30 @@ export const getParent = (state: Map<string, Node>, id: string) => {
   return null;
 };
 
-export const updateNode = (state: Map<string, Node>, node: Node) => {
+export const updateNode = (state: Map<string, EncryptedNode>, node: EncryptedNode) => {
+  console.log("Updating Node...")
   return new Map(state).set(node.id, node);
 };
 
-export const getChildren = (state: Map<string, Node>, id: string) => {
+export const getChildren = (state: Map<string, EncryptedNode>, id: string) => {
+  console.log("Getting Children...")
+
   const node = state.get(id);
   if (!node || !node.children) return [];
   return node.children.map(childId => state.get(childId)).filter(Boolean);
 };
 
-export const query = (state: Map<string, Node>, predicate: Query) => {
+export const query = (state: Map<string, EncryptedNode>, predicate: Query) => {
+  console.log("Execute Query...")
+
   const nodes = Array.from(state.values());
   const matches = nodes.filter(predicate);
   return matches;
 };
 
-export const storeOnChain = async (state: Map<string, Node>, key: Uint8Array, contract: any) => {
+export const storeOnChain = async (state: Map<string, EncryptedNode>, key: Uint8Array, contract: any) => {
+  console.log("Storing on chain...")
+
   const abi: any[] = [
     "event CIDRegistered(string cid)",
     "function registerCID(string memory cidNew) public",
@@ -207,6 +268,8 @@ export const storeOnChain = async (state: Map<string, Node>, key: Uint8Array, co
 };
 
 export const getCidOnChain = async (contract: any) => {
+  console.log("Getting CID on chain...")
+
   const abi: any[] = [
     "event CIDRegistered(string cid)",
     "function registerCID(string memory cidNew) public",
