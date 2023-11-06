@@ -1,4 +1,4 @@
-import { addNode, removeNode, getNode, getChildren, updateNode, EncryptedNode } from "../core/db";
+import { addNode, removeNode, getNode, getChildren, updateNode, EncryptedNode } from "../db/db";
 import WebSocket from "ws";
 
 const wss = new WebSocket.Server({ port: 3002 });

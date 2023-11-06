@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MoguOnChain = exports.Mogu = void 0;
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 const ethers_1 = require("ethers");
-const db_1 = require("../core/db");
+const db_1 = require("../db/db");
 const pinataAPI_2 = require("../ipfs/pinataAPI");
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
@@ -11,7 +11,7 @@ const contentQuery = (content) => (node) => String(node.content) === content;
 const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent) => (node) => node.parent === parent;
 class Mogu {
-    constructor(initialState, key, pinataApiKey, pinataApiSecret) {
+    constructor(initialState, key, nonce, pinataApiKey, pinataApiSecret) {
         this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
         if (key && (key === null || key === void 0 ? void 0 : key.length) > 32) {
             key = key.substring(0, 32);
@@ -22,6 +22,9 @@ class Mogu {
             console.log("Key padded to 32 characters:", key);
         }
         const keyUint8Array = new TextEncoder().encode(key);
+        const nonceBuffer = Buffer.from(String(nonce), "hex");
+        const nonceUint8Array = new Uint8Array(nonceBuffer);
+        this.nonce = nonceUint8Array;
         this.key = keyUint8Array;
         (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret));
     }
@@ -42,17 +45,17 @@ class Mogu {
         return deserialized;
     }
     async store() {
-        console.log("Store");
-        return await (0, db_1.storeDatabase)(this.state, this.key);
+        console.log("Store SDK");
+        return await (0, db_1.storeDatabaseSDK)(this.state, this.key, this.nonce);
     }
     async retrieve(hash) {
         console.log("Retrieve");
         return await (0, db_1.retrieveDatabase)(hash, this.key);
     }
-    async load(hash, nonce) {
+    async load(hash) {
         console.log("Load");
-        const json = await (0, pinataAPI_1.fetchFromIPFS)(hash); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
-        const deserialized = await (0, db_1.deserializeDatabaseSdk)(JSON.stringify(json), this.key, String(nonce));
+        const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
+        const deserialized = await (0, db_1.deserializeDatabaseSdk)(JSON.stringify(json), this.key, this.nonce);
         if (deserialized instanceof Map) {
             this.state = new Map(deserialized);
         }

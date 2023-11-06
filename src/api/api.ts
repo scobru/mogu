@@ -14,7 +14,7 @@ import {
   serializeDatabase,
   storeOnChain,
   getCidOnChain,
-} from "../core/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
+} from "../db/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
 import { fetchFromIPFS, unpinFromIPFS } from "../ipfs/pinataAPI";
 
 const router = Router();

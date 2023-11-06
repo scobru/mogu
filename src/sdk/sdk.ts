@@ -7,45 +7,50 @@ import {
   removeNode,
   updateNode,
   getNode,
-  getChildren,
-  query,
-  storeDatabase,
+  storeDatabaseSDK,
   retrieveDatabase,
   getAllNodes,
-  serializeDatabase,
-  deserializeDatabase,
-  deserializeDatabaseSdk
-} from "../core/db";
+  deserializeDatabaseSdk,
+  serializeDatabaseSdk,
+} from "../db/db";
 import { setCredentials } from "../ipfs/pinataAPI";
 
 type Query = (node: EncryptedNode) => boolean;
 
 const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
-
 const typeQuery = (type: NodeType) => (node: EncryptedNode) => node.type === type;
-
 const contentQuery = (content: string) => (node: EncryptedNode) => String(node.content) === content;
-
 const childrenQuery = (children: string[]) => (node: any) =>
   Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
-
 const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
 export class Mogu {
   private state: Map<string, EncryptedNode>;
   private key: Uint8Array;
+  private nonce: Uint8Array;
 
-  constructor(initialState?: Map<string, EncryptedNode>, key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
+  constructor(
+    initialState?: Map<string, EncryptedNode>,
+    key?: string,
+    nonce?: string,
+    pinataApiKey?: string,
+    pinataApiSecret?: string,
+  ) {
     this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
     if (key && key?.length > 32) {
       key = key.substring(0, 32);
-      console.log("Key truncated to 32 characters:", key)
+      console.log("Key truncated to 32 characters:", key);
     } else if (key && key.length < 32) {
       key = key.padEnd(32, "0");
-      console.log("Key padded to 32 characters:", key)
+      console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
+    const nonceBuffer = Buffer.from(String(nonce), "hex");
+    // const nonceUint8Array = new Uint8Array(nonceBuffer);
+
+    this.nonce = nonceBuffer;
     this.key = keyUint8Array;
+
     setCredentials(String(pinataApiKey), String(pinataApiSecret));
   }
 
@@ -56,21 +61,21 @@ export class Mogu {
 
   serialize() {
     console.log("Serialize");
-    const serialized = serializeDatabase(this.state, this.key);
+    const serialized = serializeDatabaseSdk(this.state, this.key, this.nonce);
     console.log("Serialized:", serialized);
     return serialized;
   }
 
   deserialize(json: string) {
     console.log("Deserialize");
-    const deserialized = deserializeDatabase(json, this.key);
+    const deserialized = deserializeDatabaseSdk(json, this.key, this.nonce);
     console.log("Deserialized:", deserialized);
     return deserialized;
   }
 
   async store() {
-    console.log("Store");
-    return await storeDatabase(this.state, this.key);
+    console.log("Store SDK");
+    return await storeDatabaseSDK(this.state, this.key, this.nonce);
   }
 
   async retrieve(hash: string) {
@@ -78,10 +83,10 @@ export class Mogu {
     return await retrieveDatabase(hash, this.key);
   }
 
-  async load(hash: string, nonce: string) {
+  async load(hash: string) {
     console.log("Load");
-    const json = await fetchFromIPFS(hash); // Assumendo che fetchFromIPFS restituisca i dati come stringa JSON
-    const deserialized = await deserializeDatabaseSdk(JSON.stringify(json), this.key, String(nonce));
+    const json = await fetchFromIPFS(hash);
+    const deserialized = await deserializeDatabaseSdk(JSON.stringify(json), this.key, this.nonce);
 
     if (deserialized instanceof Map) {
       this.state = new Map<string, EncryptedNode>(deserialized);
@@ -90,7 +95,6 @@ export class Mogu {
     }
 
     console.log("Deserialized:", deserialized);
-
     return deserialized;
   }
 
@@ -107,12 +111,12 @@ export class Mogu {
 
   getNode(id: string) {
     console.log("Get Node");
-    return getNode(this.state, id)
+    return getNode(this.state, id);
   }
 
   getAllNodes(): EncryptedNode[] {
     console.log("Get All Node");
-    return getAllNodes(this.state)
+    return getAllNodes(this.state);
   }
 
   getParent(id: string) {
@@ -121,15 +125,16 @@ export class Mogu {
     if (node && node.parent) {
       return this.state.get(node.parent);
     }
-    console.log("No Parent")
+    console.log("No Parent");
     return null;
   }
 
   updateNode(node: EncryptedNode) {
     console.log("Update Node");
     const result = updateNode(this.state, node);
-    console.log("Update Complete!", result)
-    return node
+    this.state = result;
+    console.log("Update Complete!", result);
+    return node;
   }
 
   getChildren(id: string) {
@@ -143,7 +148,6 @@ export class Mogu {
     console.log("Query");
     const nodes = this.getAllNodes();
     return nodes.filter(predicate);
-
   }
 
   async pin() {

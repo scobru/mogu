@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const db_1 = require("../core/db");
+const db_1 = require("../db/db");
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 async function run() {
     try {
@@ -31,7 +31,7 @@ async function addSampleNodes(state) {
         name: "my-node",
         content: "testDir",
         children: [],
-        encrypted: false
+        encrypted: false,
     };
     state = (0, db_1.addNode)(state, node);
     console.log("Sample nodes added", Array.from(state.values()));

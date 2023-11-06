@@ -24,7 +24,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
-const db_1 = require("../core/db"); // Assumendo che queste funzioni vengano dal tuo db.ts
+const db_1 = require("../db/db"); // Assumendo che queste funzioni vengano dal tuo db.ts
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 const router = (0, express_1.Router)();
 const nameQuery = (name) => (node) => node.name === name;

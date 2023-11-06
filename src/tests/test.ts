@@ -12,7 +12,7 @@ import {
   getAllNodes,
   serializeDatabase,
   deserializeDatabase,
-} from "../core/db";
+} from "../db/db";
 import { unpinFromIPFS } from "../ipfs/pinataAPI";
 
 async function run() {
@@ -52,7 +52,7 @@ async function addSampleNodes(state: Map<string, EncryptedNode>): Promise<Map<st
     name: "my-node",
     content: "testDir",
     children: [],
-    encrypted: false
+    encrypted: false,
   };
 
   state = addNode(state, node);
