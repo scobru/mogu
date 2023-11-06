@@ -23,8 +23,8 @@ class Mogu {
         }
         const keyUint8Array = new TextEncoder().encode(key);
         const nonceBuffer = Buffer.from(String(nonce), "hex");
-        const nonceUint8Array = new Uint8Array(nonceBuffer);
-        this.nonce = nonceUint8Array;
+        // const nonceUint8Array = new Uint8Array(nonceBuffer);
+        this.nonce = nonceBuffer;
         this.key = keyUint8Array;
         (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret));
     }
@@ -34,13 +34,13 @@ class Mogu {
     }
     serialize() {
         console.log("Serialize");
-        const serialized = (0, db_1.serializeDatabase)(this.state, this.key);
+        const serialized = (0, db_1.serializeDatabaseSdk)(this.state, this.key, this.nonce);
         console.log("Serialized:", serialized);
         return serialized;
     }
     deserialize(json) {
         console.log("Deserialize");
-        const deserialized = (0, db_1.deserializeDatabase)(json, this.key);
+        const deserialized = (0, db_1.deserializeDatabaseSdk)(json, this.key, this.nonce);
         console.log("Deserialized:", deserialized);
         return deserialized;
     }
@@ -94,6 +94,7 @@ class Mogu {
     updateNode(node) {
         console.log("Update Node");
         const result = (0, db_1.updateNode)(this.state, node);
+        this.state = result;
         console.log("Update Complete!", result);
         return node;
     }
