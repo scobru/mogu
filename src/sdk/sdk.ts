@@ -63,6 +63,7 @@ export class Mogu {
     console.log("Deserialize");
     const deserialized = deserializeDatabase(json, this.key);
     console.log("Deserialized:", deserialized);
+
     return deserialized;
   }
 
@@ -77,25 +78,18 @@ export class Mogu {
   }
 
   async load(hash: string) {
-    console.log("--Load--");
+    console.log("Load");
     const json = await fetchFromIPFS(hash);
     const deserialized = await deserializeDatabase(JSON.stringify(json), this.key);
-
-    if (deserialized instanceof Map) {
-      this.state = new Map<string, EncryptedNode>(deserialized);
-    } else {
-      console.log("Deserialized is not a Map");
-    }
+    this.state = deserialized as any;
     console.log("Deserialized:", deserialized);
-
     return deserialized;
   }
 
   addNode(node: EncryptedNode) {
     console.log("Add Node");
-    const state = addNode(this.state, node);
-    this.state = state;
-    return state;
+    this.state = addNode(this.state, node);
+    return this.state;
   }
 
   removeNode(id: string) {
@@ -115,10 +109,13 @@ export class Mogu {
   getParent(id: string) {
     console.log("Get Parent");
     const node = this.state.get(id);
+
     if (node && node.parent) {
       return this.state.get(node.parent);
     }
+
     console.log("No Parent");
+
     return null;
   }
 
@@ -140,6 +137,7 @@ export class Mogu {
   query(predicate: Query) {
     console.log("Query");
     const nodes = this.getAllNodes();
+    console.log("Nodes:", nodes);
     return nodes.filter(predicate);
   }
 
@@ -154,31 +152,26 @@ export class Mogu {
 
   queryByName(name: string) {
     console.log("Query by Name");
-
     return this.query(nameQuery(name));
   }
 
   queryByType(type: NodeType) {
     console.log("Query by Type");
-
     return this.query(typeQuery(type));
   }
 
   queryByContent(content: string) {
     console.log("Query by Content");
-
     return this.query(contentQuery(content));
   }
 
   queryByChildren(children: string[]) {
     console.log("Query by Children");
-
     return this.query(childrenQuery(children));
   }
 
   queryByParent(parent: string) {
     console.log("Query by Parent");
-
     return this.query(parentQuery(parent));
   }
 }

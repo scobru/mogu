@@ -64,25 +64,25 @@ POST http://localhost:3000/api/save
 Content-Type: application/json
 
 {
-  "key": "testkey"
+  "key": "mecenateBeta"
 }
 
 GET http://localhost:3000/api/getAllNodes
 Content-Type: application/json
 
-POST http://localhost:3000/api/load/QmSPehkX74rurddHiHjm9VX4NFdMRx4uEzt1NP2t9icbx9
+POST http://localhost:3001/api/load/QmPoUpg8MgmjXvGiWDyvYmciTa76UHtoQEAavYv5BZyQbN
 Content-Type: application/json
 
 {
-  "key": "testkey"
+  "key": "mecenateBeta"
 }
 
 
-POST http://localhost:3000/api/queryByName
+POST http://localhost:3001/api/queryByName
 Content-Type: application/json
 
 {
-  "name": "my-file1"
+  "name": "0x8aA5F726d9F868a21a8bd748E2f1E43bA31eb670"
 }
 
 

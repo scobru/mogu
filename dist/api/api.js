@@ -129,11 +129,11 @@ router.post("/load/:cid", async (req, res) => {
     const json = await (0, pinataAPI_1.fetchFromIPFS)(cid);
     const result = await (0, db_1.deserializeDatabase)(JSON.stringify(json), keyUint8Array);
     console.log("Deserialized:", result);
-    if (result instanceof Map) {
-        state = new Map(result);
+    state = result;
+    if (result) {
         res.send({
             message: "databaseLoaded",
-            params: [...state.values()],
+            params: [...result.values()],
         });
     }
     else {
@@ -174,6 +174,6 @@ router.get("/getAllNodes", (req, res) => {
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use("/api", router);
-app.listen(3000, () => {
+app.listen(3001, () => {
     console.log("Server running on http://localhost:3000");
 });

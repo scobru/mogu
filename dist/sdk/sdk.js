@@ -53,23 +53,17 @@ class Mogu {
         return await (0, db_1.retrieveDatabase)(hash, this.key);
     }
     async load(hash) {
-        console.log("--Load--");
+        console.log("Load");
         const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
         const deserialized = await (0, db_1.deserializeDatabase)(JSON.stringify(json), this.key);
-        if (deserialized instanceof Map) {
-            this.state = new Map(deserialized);
-        }
-        else {
-            console.log("Deserialized is not a Map");
-        }
+        this.state = deserialized;
         console.log("Deserialized:", deserialized);
         return deserialized;
     }
     addNode(node) {
         console.log("Add Node");
-        const state = (0, db_1.addNode)(this.state, node);
-        this.state = state;
-        return state;
+        this.state = (0, db_1.addNode)(this.state, node);
+        return this.state;
     }
     removeNode(id) {
         return (0, db_1.removeNode)(this.state, id);
@@ -108,6 +102,7 @@ class Mogu {
     query(predicate) {
         console.log("Query");
         const nodes = this.getAllNodes();
+        console.log("Nodes:", nodes);
         return nodes.filter(predicate);
     }
     async pin() {

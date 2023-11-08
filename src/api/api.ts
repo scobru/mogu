@@ -4,14 +4,11 @@ import {
   addNode,
   removeNode,
   storeDatabase,
-  retrieveDatabase,
   updateNode,
   query,
   getAllNodes,
-  getNode,
   NodeType,
   deserializeDatabase,
-  serializeDatabase,
   storeOnChain,
   getCidOnChain,
 } from "../db/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
@@ -68,8 +65,7 @@ router.post("/removeNode", (req: Request, res: Response) => {
 // Endpoint per salvare lo stato attuale su IPFS
 router.post("/save", async (req: Request, res: Response) => {
   // Hash the key string
-  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(req.body.key as string))
-
+  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(req.body.key as string));
   let key;
 
   if (hashedKey && hashedKey?.length > 32) {
@@ -81,7 +77,6 @@ router.post("/save", async (req: Request, res: Response) => {
   }
 
   const keyUint8Array = new TextEncoder().encode(key);
-
   const hash = await storeDatabase(state, keyUint8Array);
 
   res.send(
@@ -96,7 +91,7 @@ router.post("/saveOnChain", async (req: Request, res: Response) => {
   let key = req.body.key as string;
   const contract = req.body.contract as string;
   // Ensure the key is 32 characters long
-  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string))
+  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
   if (hashedKey && hashedKey?.length > 32) {
     key = hashedKey.substring(0, 32);
@@ -108,6 +103,7 @@ router.post("/saveOnChain", async (req: Request, res: Response) => {
 
   const keyUint8Array = new TextEncoder().encode(key);
   const hash = await storeOnChain(state, keyUint8Array, contract);
+
   res.send(
     JSON.stringify({
       message: "databaseSaved",
@@ -119,6 +115,7 @@ router.post("/saveOnChain", async (req: Request, res: Response) => {
 router.post("/loadOnChain", async (req: Request, res: Response) => {
   let contract = req.body.contract as string;
   const hash = await getCidOnChain(contract);
+
   res.send(
     JSON.stringify({
       message: "databaseSaved",
@@ -130,7 +127,7 @@ router.post("/loadOnChain", async (req: Request, res: Response) => {
 router.post("/load/:cid", async (req: Request, res: Response) => {
   const { cid } = req.params;
   let key = req.body.key as string;
-  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string))
+  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
   if (hashedKey && hashedKey?.length > 32) {
     key = hashedKey.substring(0, 32);
@@ -145,11 +142,12 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
   const result = await deserializeDatabase(JSON.stringify(json), keyUint8Array);
   console.log("Deserialized:", result);
 
-  if (result instanceof Map) {
-    state = new Map<string, EncryptedNode>(result);
+  state = result as any;
+
+  if (result) {
     res.send({
       message: "databaseLoaded",
-      params: [...state.values()],
+      params: [...result.values()],
     });
   } else {
     res.status(500).send({
@@ -198,6 +196,6 @@ const app = express();
 app.use(express.json());
 app.use("/api", router);
 
-app.listen(3000, () => {
+app.listen(3001, () => {
   console.log("Server running on http://localhost:3000");
 });
