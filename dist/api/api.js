@@ -49,7 +49,8 @@ router.post("/addNode", async (req, res) => {
 router.post("/updateNode", async (req, res) => {
     try {
         const node = req.body;
-        state = (0, db_1.updateNode)(state, node); // Re-assigning state
+        state = new Map((0, db_1.updateNode)(state, node));
+        console.log(state);
         res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
     }
     catch (e) {

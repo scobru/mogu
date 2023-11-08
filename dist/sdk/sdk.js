@@ -87,8 +87,7 @@ class Mogu {
     }
     updateNode(node) {
         console.log("Update Node");
-        const result = (0, db_1.updateNode)(this.state, node);
-        this.state = result;
+        this.state = (0, db_1.updateNode)(this.state, node);
         console.log("Update Complete!");
         return node;
     }

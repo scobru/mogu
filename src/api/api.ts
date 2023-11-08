@@ -42,7 +42,8 @@ router.post("/addNode", async (req: Request, res: Response) => {
 router.post("/updateNode", async (req: Request, res: Response) => {
   try {
     const node = req.body as EncryptedNode;
-    state = updateNode(state, node); // Re-assigning state
+    state = new Map<string, EncryptedNode>(updateNode(state, node) as any)
+    console.log(state)
     res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
   } catch (e) {
     console.log(e);

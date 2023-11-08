@@ -28,9 +28,9 @@ export const serializeDatabase = async (state: Map<string, EncryptedNode>, key: 
     ...node,
     content: node.content
       ? Buffer.concat([
-          Buffer.from(nonce),
-          Buffer.from(MecenateHelper.crypto.asymmetric.secretBox.encryptMessage(node.content, nonce, key)),
-        ])
+        Buffer.from(nonce),
+        Buffer.from(MecenateHelper.crypto.asymmetric.secretBox.encryptMessage(node.content, nonce, key)),
+      ])
       : undefined,
     encrypted: true,
   }));
@@ -83,6 +83,7 @@ function objectToUint8Array(obj: any): Uint8Array {
 
 export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
   console.log("---Storing DB---");
+  console.log("State Stored:", state)
   const json = await serializeDatabase(state, key);
   const hash = await pinJSONToIPFS(JSON.parse(json));
   return hash;
@@ -155,9 +156,17 @@ export const getParent = (state: Map<string, EncryptedNode>, id: string) => {
   return null;
 };
 
-export const updateNode = (state: Map<string, EncryptedNode>, node: EncryptedNode) => {
+export const updateNode = (state: Map<string, EncryptedNode>, updatedNode: EncryptedNode) => {
   console.log("Updating Node...");
-  return new Map(state).set(node.id, node);
+
+  if (!state.has(updatedNode.id)) {
+    console.error("Error: Node with ID does not exist", updatedNode.id);
+    return state; // Return the original state if the node ID does not exist
+  }
+
+  const newState = new Map(state);
+  newState.set(updatedNode.id, updatedNode);
+  return newState;
 };
 
 export const getChildren = (state: Map<string, EncryptedNode>, id: string) => {

@@ -1,4 +1,4 @@
-POST http://localhost:3000/api/addNode
+POST http://localhost:3001/api/addNode
 Content-Type: application/json
 
 {
@@ -47,20 +47,30 @@ Content-Type: application/json
   "content": ""
 }
 
-POST http://localhost:3000/api/updateNode
+POST http://localhost:3001/api/updateNode
 Content-Type: application/json
 
 {
-  "id": "0",
+      "id": "1",
+      "type": "FILE",
+      "name": "my-file1",
+      "parent": "0",
+      "children": [],
+      "content": "Hello World2!",
+      "encrypted": true
+    }
+
+{
+  "id": "0xe8fc0E176Ea899a2296F5C4AD4DC49Ec324793Bd",
   "type": "DIRECTORY",
-  "name": "my-dir",
+  "name": "0xe8fc0E176Ea899a2296F5C4AD4DC49Ec324793Bd",
   "parent": "",
   "children": [],
-  "content": ""
+  "content": "test"
 }
 
 
-POST http://localhost:3000/api/save
+POST http://localhost:3001/api/save
 Content-Type: application/json
 
 {
@@ -70,7 +80,7 @@ Content-Type: application/json
 GET http://localhost:3000/api/getAllNodes
 Content-Type: application/json
 
-POST http://localhost:3001/api/load/QmPoUpg8MgmjXvGiWDyvYmciTa76UHtoQEAavYv5BZyQbN
+POST http://localhost:3001/api/load/QmTgjbKzTHbWCbNYATsWijYdX8mH62RyPnYcDdjX5bSq8V
 Content-Type: application/json
 
 {
