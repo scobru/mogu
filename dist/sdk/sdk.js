@@ -5,26 +5,26 @@ const pinataAPI_1 = require("../ipfs/pinataAPI");
 const ethers_1 = require("ethers");
 const db_1 = require("../db/db");
 const pinataAPI_2 = require("../ipfs/pinataAPI");
+const utils_1 = require("ethers/lib/utils");
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
 const contentQuery = (content) => (node) => String(node.content) === content;
 const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent) => (node) => node.parent === parent;
 class Mogu {
-    constructor(initialState, key, nonce, pinataApiKey, pinataApiSecret) {
-        this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
-        if (key && (key === null || key === void 0 ? void 0 : key.length) > 32) {
-            key = key.substring(0, 32);
+    constructor(key, pinataApiKey, pinataApiSecret) {
+        this.state = this.initializeDatabase();
+        // Hash the key string
+        const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
+        if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
+            key = hashedKey.substring(0, 32);
             console.log("Key truncated to 32 characters:", key);
         }
-        else if (key && key.length < 32) {
-            key = key.padEnd(32, "0");
+        else if (hashedKey && hashedKey.length < 32) {
+            key = hashedKey.padEnd(32, "0");
             console.log("Key padded to 32 characters:", key);
         }
         const keyUint8Array = new TextEncoder().encode(key);
-        const nonceBuffer = Buffer.from(String(nonce), "hex");
-        // const nonceUint8Array = new Uint8Array(nonceBuffer);
-        this.nonce = nonceBuffer;
         this.key = keyUint8Array;
         (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret));
     }
@@ -34,28 +34,28 @@ class Mogu {
     }
     serialize() {
         console.log("Serialize");
-        const serialized = (0, db_1.serializeDatabaseSdk)(this.state, this.key, this.nonce);
+        const serialized = (0, db_1.serializeDatabase)(this.state, this.key);
         console.log("Serialized:", serialized);
         return serialized;
     }
     deserialize(json) {
         console.log("Deserialize");
-        const deserialized = (0, db_1.deserializeDatabaseSdk)(json, this.key, this.nonce);
+        const deserialized = (0, db_1.deserializeDatabase)(json, this.key);
         console.log("Deserialized:", deserialized);
         return deserialized;
     }
     async store() {
         console.log("Store SDK");
-        return await (0, db_1.storeDatabaseSDK)(this.state, this.key, this.nonce);
+        return await (0, db_1.storeDatabase)(this.state, this.key);
     }
     async retrieve(hash) {
         console.log("Retrieve");
         return await (0, db_1.retrieveDatabase)(hash, this.key);
     }
     async load(hash) {
-        console.log("Load");
+        console.log("--Load--");
         const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
-        const deserialized = await (0, db_1.deserializeDatabaseSdk)(JSON.stringify(json), this.key, this.nonce);
+        const deserialized = await (0, db_1.deserializeDatabase)(JSON.stringify(json), this.key);
         if (deserialized instanceof Map) {
             this.state = new Map(deserialized);
         }
@@ -95,7 +95,7 @@ class Mogu {
         console.log("Update Node");
         const result = (0, db_1.updateNode)(this.state, node);
         this.state = result;
-        console.log("Update Complete!", result);
+        console.log("Update Complete!");
         return node;
     }
     getChildren(id) {
@@ -141,7 +141,7 @@ class Mogu {
 exports.Mogu = Mogu;
 class MoguOnChain extends Mogu {
     constructor(contractAddress, signer, initialState, key) {
-        super(initialState, key);
+        super(key);
         this.abi = [
             "event CIDRegistered(string cid)",
             "function registerCID(string memory cidNew) public",

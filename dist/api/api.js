@@ -26,6 +26,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
 const db_1 = require("../db/db"); // Assumendo che queste funzioni vengano dal tuo db.ts
 const pinataAPI_1 = require("../ipfs/pinataAPI");
+const ethers_1 = require("ethers");
+const utils_1 = require("ethers/lib/utils");
 const router = (0, express_1.Router)();
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
@@ -65,13 +67,16 @@ router.post("/removeNode", (req, res) => {
 });
 // Endpoint per salvare lo stato attuale su IPFS
 router.post("/save", async (req, res) => {
-    let key = req.body.key;
-    // Ensure the key is 32 characters long
-    if (key.length > 32) {
-        key = key.substring(0, 32);
+    // Hash the key string
+    const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(req.body.key));
+    let key;
+    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
+        key = hashedKey.substring(0, 32);
+        console.log("Key truncated to 32 characters:", key);
     }
-    else if (key.length < 32) {
-        key = key.padEnd(32, "0");
+    else if (hashedKey && hashedKey.length < 32) {
+        key = hashedKey.padEnd(32, "0");
+        console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
     const hash = await (0, db_1.storeDatabase)(state, keyUint8Array);
@@ -82,13 +87,16 @@ router.post("/save", async (req, res) => {
 });
 router.post("/saveOnChain", async (req, res) => {
     let key = req.body.key;
-    let contract = req.body.contract;
+    const contract = req.body.contract;
     // Ensure the key is 32 characters long
-    if (key.length > 32) {
-        key = key.substring(0, 32);
+    const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
+    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
+        key = hashedKey.substring(0, 32);
+        console.log("Key truncated to 32 characters:", key);
     }
-    else if (key.length < 32) {
-        key = key.padEnd(32, "0");
+    else if (hashedKey && hashedKey.length < 32) {
+        key = hashedKey.padEnd(32, "0");
+        console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
     const hash = await (0, db_1.storeOnChain)(state, keyUint8Array, contract);
@@ -108,12 +116,14 @@ router.post("/loadOnChain", async (req, res) => {
 router.post("/load/:cid", async (req, res) => {
     const { cid } = req.params;
     let key = req.body.key;
-    // Ensure the key is 32 characters long
-    if (key.length > 32) {
-        key = key.substring(0, 32);
+    const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
+    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
+        key = hashedKey.substring(0, 32);
+        console.log("Key truncated to 32 characters:", key);
     }
-    else if (key.length < 32) {
-        key = key.padEnd(32, "0");
+    else if (hashedKey && hashedKey.length < 32) {
+        key = hashedKey.padEnd(32, "0");
+        console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
     const json = await (0, pinataAPI_1.fetchFromIPFS)(cid);

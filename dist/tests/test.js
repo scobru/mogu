@@ -127,9 +127,9 @@ function queryDatabase(state) {
 async function serializeAndDeserializeDatabase(state, key) {
     console.log("Serializing and deserializing database...");
     const keyUtf8 = new TextEncoder().encode(key);
-    const serialized = (0, db_1.serializeDatabase)(state, keyUtf8);
+    const serialized = await (0, db_1.serializeDatabase)(state, keyUtf8);
     console.log("Serialized:", serialized);
-    const deserialized = (0, db_1.deserializeDatabase)(serialized, keyUtf8);
+    const deserialized = await (0, db_1.deserializeDatabase)(serialized, keyUtf8);
     console.log("Deserialized:", deserialized);
 }
 async function addFileToDirectory(state) {

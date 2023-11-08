@@ -6,6 +6,8 @@ import { ethers } from "ethers";
 
 export type NodeType = "FILE" | "DIRECTORY";
 
+const NONCE_LENGTH = 24;
+
 export type EncryptedNode = {
   id: string;
   type: NodeType;
@@ -18,16 +20,15 @@ export type EncryptedNode = {
 
 type Query = (node: EncryptedNode) => boolean;
 
-export const serializeDatabase = (state: Map<string, EncryptedNode>, key: Uint8Array) => {
-  console.log("Serializing DB...");
+export const serializeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
+  console.log("---Serializing DB---");
   const nodes = Array.from(state.values());
-  const nonce = MecenateHelper.crypto.asymmetric.generateNonce();
-  const noncePath = join(__dirname, "nonces.json");
-  writeFileSync(noncePath, JSON.stringify({ nonce: Buffer.from(nonce).toString("hex") }));
+  const nonce = await MecenateHelper.crypto.asymmetric.generateNonce();
+  console.log("Nonce:", String(nonce));
   const encryptedNodes = nodes.map(node => ({
     ...node,
     content: node.content
-      ? MecenateHelper.crypto.asymmetric.secretBox.encryptMessage(node.content, nonce, key)
+      ? String(nonce)?.concat(MecenateHelper.crypto.asymmetric.secretBox.encryptMessage(node.content, nonce, key))
       : undefined,
     encrypted: true,
   }));
@@ -36,19 +37,53 @@ export const serializeDatabase = (state: Map<string, EncryptedNode>, key: Uint8A
   return json;
 };
 
-export const serializeDatabaseSdk = async (state: Map<string, EncryptedNode>, key: Uint8Array, nonce: Uint8Array) => {
-  console.log("Serializing DB SDK...");
-  const nodes = Array.from(state.values());
-  const encryptedNodes = nodes.map(node => ({
-    ...node,
-    content: node.content
-      ? MecenateHelper.crypto.asymmetric.secretBox.encryptMessage(node.content, nonce, key)
-      : undefined,
-    encrypted: true,
-  }));
-  const json = JSON.stringify(encryptedNodes);
+export const deserializeDatabase = async (json: string, key: Uint8Array) => {
+  console.log("---Deserializing DB---");
+  const encryptedNodes = JSON.parse(json) as EncryptedNode[];
+  const nodes = await Promise.all(
+    encryptedNodes.map(async node => {
+      let content = node.content;
+      if (node.encrypted) {
+        if (content && typeof content === "object" && !Array.isArray(content)) {
+          content = objectToUint8Array(content);
+        }
 
-  return json;
+        if (content === undefined) {
+          console.error("Content is undefined for node:", node);
+          content = new Uint8Array();
+        } else {
+          const nonce = content.slice(0, NONCE_LENGTH);
+          console.log("Nonce:", String(nonce));
+          const nonceUintArray = new Uint8Array(nonce);
+          const ciphertext = content.slice(NONCE_LENGTH);
+          content = await MecenateHelper.crypto.asymmetric.secretBox.decryptMessage(
+            ciphertext as Uint8Array,
+            nonceUintArray,
+            key,
+          );
+        }
+      }
+      return {
+        ...node,
+        content,
+      };
+    }),
+  );
+
+  const state = new Map<string, EncryptedNode>();
+
+  if (nodes) {
+    nodes.forEach((node: any) => {
+      if (node) {
+        state.set(node.id, node);
+      } else {
+        console.log("Undefined node found");
+      }
+    });
+    return state;
+  } else {
+    console.log("No nodes found");
+  }
 };
 
 function objectToUint8Array(obj: any): Uint8Array {
@@ -56,113 +91,10 @@ function objectToUint8Array(obj: any): Uint8Array {
   return new Uint8Array(arr);
 }
 
-export const deserializeDatabase = async (json: string, key: Uint8Array) => {
-  console.log("Deserializing DB...");
-  const noncePath = join(__dirname, "nonces.json");
-  const storedNonce = JSON.parse(readFileSync(noncePath, "utf-8"));
-  const nonce = Buffer.from(storedNonce.nonce, "hex");
-  const encryptedNodes = JSON.parse(json) as EncryptedNode[];
-
-  const nodes = await Promise.all(
-    encryptedNodes.map(async node => {
-      let content = node.content;
-      if (node.encrypted) {
-        if (content && typeof content === "object" && !Array.isArray(content)) {
-          content = objectToUint8Array(content);
-        }
-
-        if (content === undefined) {
-          console.error("Content is undefined for node:", node);
-          content = new Uint8Array();
-        } else {
-          console.log("Decrypting content");
-          console.log("Nonce:", nonce);
-          console.log("Key:", key);
-          console.log("Content:", content);
-          content = await MecenateHelper.crypto.asymmetric.secretBox.decryptMessage(content as Uint8Array, nonce, key);
-        }
-      }
-      return {
-        ...node,
-        content,
-      };
-    }),
-  );
-
-  const state = new Map<string, EncryptedNode>();
-
-  if (nodes) {
-    nodes.forEach((node: any) => {
-      if (node) {
-        state.set(node.id, node);
-      } else {
-        console.log("Undefined node found");
-      }
-    });
-    return state;
-  } else {
-    console.log("No nodes found");
-  }
-};
-
-export const deserializeDatabaseSdk = async (json: string, key: Uint8Array, nonce: Uint8Array) => {
-  console.log("Deserializing DB in SDK...");
-  const encryptedNodes = JSON.parse(json) as EncryptedNode[];
-
-  const nodes = await Promise.all(
-    encryptedNodes.map(async node => {
-      let content = node.content;
-      if (node.encrypted) {
-        if (content && typeof content === "object" && !Array.isArray(content)) {
-          content = objectToUint8Array(content);
-        }
-
-        if (content === undefined) {
-          console.error("Content is undefined for node:", node);
-          content = new Uint8Array();
-        } else {
-          console.log("Decrypting content");
-          console.log("Nonce:", nonce);
-          console.log("Key:", key);
-          console.log("Content:", content);
-          content = await MecenateHelper.crypto.asymmetric.secretBox.decryptMessage(content, nonce, key);
-        }
-      }
-      return {
-        ...node,
-        content,
-      };
-    }),
-  );
-
-  const state = new Map<string, EncryptedNode>();
-
-  if (nodes) {
-    nodes.forEach((node: any) => {
-      if (node) {
-        state.set(node.id, node);
-      } else {
-        console.log("Undefined node found");
-      }
-    });
-    return state;
-  } else {
-    console.log("No nodes found");
-  }
-};
-
 export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
-  console.log("Storing DB...");
+  console.log("---Storing DB---");
   const json = await serializeDatabase(state, key);
   //const buffer = Buffer.from(json);
-  const hash = await pinJSONToIPFS(JSON.parse(json));
-  return hash;
-};
-
-export const storeDatabaseSDK = async (state: Map<string, EncryptedNode>, key: Uint8Array, nonce: Uint8Array) => {
-  console.log("Storing DB...");
-  const json = await serializeDatabaseSdk(state, key, nonce);
-  // const buffer = Buffer.from(json);
   const hash = await pinJSONToIPFS(JSON.parse(json));
   return hash;
 };
@@ -272,7 +204,7 @@ export const storeOnChain = async (state: Map<string, EncryptedNode>, key: Uint8
   );
 
   const instance = new ethers.Contract(contract, abi, signer).connect(signer);
-  const json = serializeDatabase(state, key);
+  const json = await serializeDatabase(state, key);
   const hash = await pinJSONToIPFS(JSON.parse(json));
   const tx = await instance.registerCID(ethers.utils.toUtf8Bytes(hash));
   await tx.wait();

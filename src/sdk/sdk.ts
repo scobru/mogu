@@ -7,13 +7,14 @@ import {
   removeNode,
   updateNode,
   getNode,
-  storeDatabaseSDK,
+  storeDatabase,
+  serializeDatabase,
+  deserializeDatabase,
   retrieveDatabase,
   getAllNodes,
-  deserializeDatabaseSdk,
-  serializeDatabaseSdk,
 } from "../db/db";
 import { setCredentials } from "../ipfs/pinataAPI";
+import { toUtf8Bytes } from "ethers/lib/utils";
 
 type Query = (node: EncryptedNode) => boolean;
 
@@ -27,55 +28,47 @@ const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent ===
 export class Mogu {
   private state: Map<string, EncryptedNode>;
   private key: Uint8Array;
-  private nonce: Uint8Array;
 
-  constructor(
-    initialState?: Map<string, EncryptedNode>,
-    key?: string,
-    nonce?: string,
-    pinataApiKey?: string,
-    pinataApiSecret?: string,
-  ) {
-    this.state = initialState == null ? initialState || new Map() : this.initializeDatabase();
-    if (key && key?.length > 32) {
-      key = key.substring(0, 32);
+  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
+    this.state = this.initializeDatabase();
+    // Hash the key string
+    const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
+
+    if (hashedKey && hashedKey?.length > 32) {
+      key = hashedKey.substring(0, 32);
       console.log("Key truncated to 32 characters:", key);
-    } else if (key && key.length < 32) {
-      key = key.padEnd(32, "0");
+    } else if (hashedKey && hashedKey.length < 32) {
+      key = hashedKey.padEnd(32, "0");
       console.log("Key padded to 32 characters:", key);
     }
+
     const keyUint8Array = new TextEncoder().encode(key);
-    const nonceBuffer = Buffer.from(String(nonce), "hex");
-    // const nonceUint8Array = new Uint8Array(nonceBuffer);
-
-    this.nonce = nonceBuffer;
     this.key = keyUint8Array;
-
     setCredentials(String(pinataApiKey), String(pinataApiSecret));
   }
 
-  initializeDatabase(): Map<string, Node> {
+  initializeDatabase(): Map<string, EncryptedNode> {
     console.log("Initializing database...");
-    return new Map<string, Node>();
+    return new Map<string, EncryptedNode>();
   }
 
   serialize() {
     console.log("Serialize");
-    const serialized = serializeDatabaseSdk(this.state, this.key, this.nonce);
+    const serialized = serializeDatabase(this.state, this.key);
     console.log("Serialized:", serialized);
     return serialized;
   }
 
   deserialize(json: string) {
     console.log("Deserialize");
-    const deserialized = deserializeDatabaseSdk(json, this.key, this.nonce);
+    const deserialized = deserializeDatabase(json, this.key);
     console.log("Deserialized:", deserialized);
     return deserialized;
   }
 
   async store() {
     console.log("Store SDK");
-    return await storeDatabaseSDK(this.state, this.key, this.nonce);
+    return await storeDatabase(this.state, this.key);
   }
 
   async retrieve(hash: string) {
@@ -84,17 +77,17 @@ export class Mogu {
   }
 
   async load(hash: string) {
-    console.log("Load");
+    console.log("--Load--");
     const json = await fetchFromIPFS(hash);
-    const deserialized = await deserializeDatabaseSdk(JSON.stringify(json), this.key, this.nonce);
+    const deserialized = await deserializeDatabase(JSON.stringify(json), this.key);
 
     if (deserialized instanceof Map) {
       this.state = new Map<string, EncryptedNode>(deserialized);
     } else {
       console.log("Deserialized is not a Map");
     }
-
     console.log("Deserialized:", deserialized);
+
     return deserialized;
   }
 
@@ -133,7 +126,7 @@ export class Mogu {
     console.log("Update Node");
     const result = updateNode(this.state, node);
     this.state = result;
-    console.log("Update Complete!", result);
+    console.log("Update Complete!");
     return node;
   }
 
@@ -200,7 +193,7 @@ export class MoguOnChain extends Mogu {
   ];
 
   constructor(contractAddress: string, signer: ethers.Signer, initialState?: Map<string, EncryptedNode>, key?: string) {
-    super(initialState, key as string);
+    super(key as string);
     this.contract = new ethers.Contract(contractAddress, this.abi, signer).connect(signer);
   }
 

@@ -184,10 +184,10 @@ async function serializeAndDeserializeDatabase(state: Map<string, EncryptedNode>
   console.log("Serializing and deserializing database...");
   const keyUtf8 = new TextEncoder().encode(key);
 
-  const serialized = serializeDatabase(state, keyUtf8);
+  const serialized = await serializeDatabase(state, keyUtf8);
   console.log("Serialized:", serialized);
 
-  const deserialized = deserializeDatabase(serialized, keyUtf8);
+  const deserialized = await deserializeDatabase(serialized, keyUtf8);
   console.log("Deserialized:", deserialized);
 }
 
