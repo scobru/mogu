@@ -8,9 +8,9 @@ import {
   query,
   getAllNodes,
   NodeType,
-  deserializeDatabase,
   storeOnChain,
   getCidOnChain,
+  retrieveDatabase,
 } from "../db/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
 import { fetchFromIPFS, unpinFromIPFS } from "../ipfs/pinataAPI";
 import { ethers } from "ethers";
@@ -29,20 +29,24 @@ let state = new Map<string, EncryptedNode>();
 // Endpoint per aggiungere un nodo
 router.post("/unPinCID/:cid", async (req: Request, res: Response) => {
   const { cid } = req.params;
+
   const result = await unpinFromIPFS(cid);
+
   res.status(200).send({ result });
 });
 
 router.post("/addNode", async (req: Request, res: Response) => {
   const node = req.body as EncryptedNode;
+
   state = addNode(state, node);
+
   res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
 });
 
 router.post("/updateNode", async (req: Request, res: Response) => {
   try {
     const node = req.body as EncryptedNode;
-    state = new Map<string, EncryptedNode>(updateNode(state, node) as any)
+    state = updateNode(state, node) as any;
     console.log(state)
     res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
   } catch (e) {
@@ -67,6 +71,7 @@ router.post("/removeNode", (req: Request, res: Response) => {
 router.post("/save", async (req: Request, res: Response) => {
   // Hash the key string
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(req.body.key as string));
+
   let key;
 
   if (hashedKey && hashedKey?.length > 32) {
@@ -90,15 +95,19 @@ router.post("/save", async (req: Request, res: Response) => {
 
 router.post("/saveOnChain", async (req: Request, res: Response) => {
   let key = req.body.key as string;
+
   const contract = req.body.contract as string;
+
   // Ensure the key is 32 characters long
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
   if (hashedKey && hashedKey?.length > 32) {
     key = hashedKey.substring(0, 32);
+
     console.log("Key truncated to 32 characters:", key);
   } else if (hashedKey && hashedKey.length < 32) {
     key = hashedKey.padEnd(32, "0");
+
     console.log("Key padded to 32 characters:", key);
   }
 
@@ -115,6 +124,7 @@ router.post("/saveOnChain", async (req: Request, res: Response) => {
 
 router.post("/loadOnChain", async (req: Request, res: Response) => {
   let contract = req.body.contract as string;
+
   const hash = await getCidOnChain(contract);
 
   res.send(
@@ -127,7 +137,9 @@ router.post("/loadOnChain", async (req: Request, res: Response) => {
 
 router.post("/load/:cid", async (req: Request, res: Response) => {
   const { cid } = req.params;
+
   let key = req.body.key as string;
+
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
   if (hashedKey && hashedKey?.length > 32) {
@@ -139,16 +151,17 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
   }
 
   const keyUint8Array = new TextEncoder().encode(key);
-  const json = await fetchFromIPFS(cid);
-  const result = await deserializeDatabase(JSON.stringify(json), keyUint8Array);
-  console.log("Deserialized:", result);
 
-  state = result as any;
+  const newState = await retrieveDatabase(cid, keyUint8Array);
+  console.log("New State:", newState);
 
-  if (result) {
+  state = new Map(newState.entries()) as any;
+  console.log("Deserialized:", state);
+
+  if (newState) {
     res.send({
       message: "databaseLoaded",
-      params: [...result.values()],
+      params: [...state.values()],
     });
   } else {
     res.status(500).send({
@@ -159,36 +172,47 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
 
 router.post("/queryByName", (req: Request, res: Response) => {
   const { name } = req.body;
+
   const result = query(state, nameQuery(name));
+
   res.status(200).send({ result });
 });
 
 router.post("/queryByType", (req: Request, res: Response) => {
   const { type } = req.body;
+
   const result = query(state, typeQuery(type));
+
   res.status(200).send({ result });
 });
 
 router.post("/queryByContent", (req: Request, res: Response) => {
   const { content } = req.body;
+
   const result = query(state, contentQuery(content));
+
   res.status(200).send({ result });
 });
 
 router.post("/queryByChildren", (req: Request, res: Response) => {
   const { children } = req.body;
+
   const result = query(state, childrenQuery(children));
+
   res.status(200).send({ result });
 });
 
 router.post("/queryByParent", (req: Request, res: Response) => {
   const { parent } = req.body;
+
   const result = query(state, parentQuery(parent));
+
   res.status(200).send({ result });
 });
 
 router.get("/getAllNodes", (req: Request, res: Response) => {
   const result = getAllNodes(state);
+
   res.status(200).send({ result });
 });
 

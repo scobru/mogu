@@ -45,7 +45,7 @@ class Mogu {
         return deserialized;
     }
     async store() {
-        console.log("Store SDK");
+        console.log("Store");
         return await (0, db_1.storeDatabase)(this.state, this.key);
     }
     async retrieve(hash) {
@@ -54,11 +54,9 @@ class Mogu {
     }
     async load(hash) {
         console.log("Load");
-        const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
-        const deserialized = await (0, db_1.deserializeDatabase)(JSON.stringify(json), this.key);
-        this.state = deserialized;
-        console.log("Deserialized:", deserialized);
-        return deserialized;
+        const state = await (0, db_1.retrieveDatabase)(hash, this.key);
+        this.state = new Map(JSON.parse(state));
+        return this.state;
     }
     addNode(node) {
         console.log("Add Node");

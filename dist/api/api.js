@@ -127,14 +127,14 @@ router.post("/load/:cid", async (req, res) => {
         console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
-    const json = await (0, pinataAPI_1.fetchFromIPFS)(cid);
-    const result = await (0, db_1.deserializeDatabase)(JSON.stringify(json), keyUint8Array);
-    console.log("Deserialized:", result);
-    state = result;
-    if (result) {
+    const newState = await (0, db_1.retrieveDatabase)(cid, keyUint8Array);
+    console.log("New State:", newState);
+    state = new Map(newState.entries());
+    console.log("Deserialized:", state);
+    if (newState) {
         res.send({
             message: "databaseLoaded",
-            params: [...result.values()],
+            params: [...state.values()],
         });
     }
     else {

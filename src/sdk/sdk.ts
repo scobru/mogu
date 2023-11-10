@@ -68,7 +68,7 @@ export class Mogu {
   }
 
   async store() {
-    console.log("Store SDK");
+    console.log("Store");
     return await storeDatabase(this.state, this.key);
   }
 
@@ -79,11 +79,12 @@ export class Mogu {
 
   async load(hash: string) {
     console.log("Load");
-    const json = await fetchFromIPFS(hash);
-    const deserialized = await deserializeDatabase(JSON.stringify(json), this.key);
-    this.state = deserialized as any;
-    console.log("Deserialized:", deserialized);
-    return deserialized;
+
+    const state = await retrieveDatabase(hash, this.key);
+
+    this.state = new Map<string, EncryptedNode>(JSON.parse(state as any));
+
+    return this.state;
   }
 
   addNode(node: EncryptedNode) {
