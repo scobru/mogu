@@ -28,8 +28,9 @@ const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent ===
 export class Mogu {
   private state: Map<string, EncryptedNode>;
   private key: Uint8Array;
+  private dbName: string;
 
-  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string) {
+  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string) {
     this.state = this.initializeDatabase();
     // Hash the key string
     const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
@@ -38,7 +39,8 @@ export class Mogu {
 
     const keyUint8Array = new TextEncoder().encode(key);
     this.key = keyUint8Array;
-    setCredentials(String(pinataApiKey), String(pinataApiSecret));
+    this.dbName = dbName as string;
+    setCredentials(String(pinataApiKey), String(pinataApiSecret), this.dbName);
   }
 
   initializeDatabase(): Map<string, EncryptedNode> {

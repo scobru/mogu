@@ -9,9 +9,11 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 let apiKey = process.env.PINATA_API_KEY || "";
 let apiSecret = process.env.PINATA_API_SECRET || "";
-const setCredentials = (_apiKey, _apiSecret) => {
+let dbName = process.env.DB_NAME || "";
+const setCredentials = (_apiKey, _apiSecret, _dbName) => {
     apiKey = _apiKey;
     apiSecret = _apiSecret;
+    dbName = _dbName;
     console.log("Credentials set");
 };
 exports.setCredentials = setCredentials;
@@ -21,7 +23,7 @@ const pinJSONToIPFS = async (JSONBody) => {
     const requestBody = {
         pinataContent: JSONBody,
         pinataMetadata: {
-            name: process.env.DB_NAME
+            name: dbName
         }
     };
     return await axios_1.default

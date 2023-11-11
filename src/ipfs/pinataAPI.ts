@@ -5,10 +5,12 @@ dotenv.config();
 
 let apiKey = process.env.PINATA_API_KEY || "";
 let apiSecret = process.env.PINATA_API_SECRET || "";
+let dbName = process.env.DB_NAME || "";
 
-export const setCredentials = (_apiKey: string, _apiSecret: string) => {
+export const setCredentials = (_apiKey: string, _apiSecret: string, _dbName: string) => {
   apiKey = _apiKey;
   apiSecret = _apiSecret;
+  dbName = _dbName;
   console.log("Credentials set");
 };
 
@@ -19,7 +21,7 @@ export const pinJSONToIPFS = async (JSONBody: any) => {
   const requestBody = {
     pinataContent: JSONBody,
     pinataMetadata: {
-      name: process.env.DB_NAME
+      name: dbName
     }
   };
 
