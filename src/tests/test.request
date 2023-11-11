@@ -55,19 +55,25 @@ Content-Type: application/json
 GET http://localhost:3001/api/getAllNodes
 Content-Type: application/json
 
-POST http://localhost:3001/api/load/QmenrYYeJoWXBd4ocGj7c9b7s8qTQjQ3xXX8E2ELxhhZnv
+POST http://localhost:3001/api/load/QmQ189K4b4YNRVRAnky4gq3GvZjW1Bhpg1WtDqPEJrzLLi
 Content-Type: application/json
 
 {
-  "key": "testKey"
+  "key": "testKeyNew"
 }
 
 POST http://localhost:3001/api/migrate
 Content-Type: application/json
 
 {
-  "oldKey": "testKey",
   "newKey": "testKeyNew"
+}
+
+POST http://localhost:3001/api/serialize
+Content-Type: application/json
+
+{
+  "key": "testKey"
 }
 
 POST http://localhost:3001/api/queryByName
