@@ -28,6 +28,7 @@ const db_1 = require("../db/db"); // Assumendo che queste funzioni vengano dal t
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 const ethers_1 = require("ethers");
 const utils_1 = require("ethers/lib/utils");
+const morgan = require('morgan');
 const router = (0, express_1.Router)();
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
@@ -35,29 +36,51 @@ const contentQuery = (content) => (node) => node.content === content;
 const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent) => (node) => node.parent === parent;
 let state = new Map();
-// Endpoint per aggiungere un nodo
 router.post("/unPinCID/:cid", async (req, res) => {
-    const { cid } = req.params;
-    const result = await (0, pinataAPI_1.unpinFromIPFS)(cid);
-    res.status(200).send({ result });
+    try {
+        const { cid } = req.params;
+        const result = await (0, pinataAPI_1.unpinFromIPFS)(cid);
+        res.status(200).send({ result });
+    }
+    catch (error) {
+        res.status(500).send({ error: error });
+    }
 });
 router.post("/addNode", async (req, res) => {
     const node = req.body;
+    console.log("Received node for adding:", node);
+    if (!node || !node.id || !node.type) {
+        // Aggiungi qui ulteriori controlli se necessario
+        res.status(400).send({ error: "Invalid node data" });
+        return;
+    }
     state = (0, db_1.addNode)(state, node);
-    res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
+    res.send({ message: "nodeAdded", params: node });
 });
 router.post("/updateNode", async (req, res) => {
+    const node = req.body;
+    console.log("Received node for updating:", node);
     try {
         const node = req.body;
-        state = new Map((0, db_1.updateNode)(state, node));
-        console.log(state);
-        res.send(JSON.stringify({ message: "nodeAdded", params: JSON.stringify(node) }));
+        if (!node || !node.id || !node.type || typeof node.id !== 'string') {
+            res.status(400).send({ error: "Invalid node data" });
+            return;
+        }
+        console.log("Attempting to update node with ID:", node.id);
+        console.log("Current state:", state);
+        if (!state.has(node.id)) {
+            console.log("Node with ID not found in state:", node.id);
+            res.status(404).send({ error: "Node not found" });
+            return;
+        }
+        state = await (0, db_1.updateNode)(state, node); // Ensure the global state is updated
+        console.log("State updated:", state);
+        res.send({ message: "nodeUpdated", params: node });
     }
     catch (e) {
-        console.log(e);
+        res.status(500).send({ error: e });
     }
 });
-// Endpoint per rimuovere un nodo
 router.post("/removeNode", (req, res) => {
     const id = req.body.id;
     (0, db_1.removeNode)(state, id);
@@ -66,7 +89,6 @@ router.post("/removeNode", (req, res) => {
         params: { state },
     }));
 });
-// Endpoint per salvare lo stato attuale su IPFS
 router.post("/save", async (req, res) => {
     // Hash the key string
     const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(req.body.key));
@@ -80,11 +102,9 @@ router.post("/save", async (req, res) => {
         console.log("Key padded to 32 characters:", key);
     }
     const keyUint8Array = new TextEncoder().encode(key);
+    console.log("Current state before serialization:", state);
     const hash = await (0, db_1.storeDatabase)(state, keyUint8Array);
-    res.send(JSON.stringify({
-        message: "databaseSaved",
-        params: { hash },
-    }));
+    res.send({ message: "databaseSaved", params: { hash } });
 });
 router.post("/saveOnChain", async (req, res) => {
     let key = req.body.key;
@@ -128,19 +148,33 @@ router.post("/load/:cid", async (req, res) => {
     }
     const keyUint8Array = new TextEncoder().encode(key);
     const newState = await (0, db_1.retrieveDatabase)(cid, keyUint8Array);
-    console.log("New State:", newState);
-    state = new Map(newState.entries());
-    console.log("Deserialized:", state);
     if (newState) {
-        res.send({
-            message: "databaseLoaded",
-            params: [...state.values()],
-        });
+        state = new Map(newState.map(node => [node.id, node]));
+        console.log("State updated after loading:", state);
+        res.send({ message: "databaseLoaded", params: [...state.values()] });
     }
     else {
-        res.status(500).send({
-            message: "Failed to load database",
-        });
+        res.status(500).send({ message: "Failed to load database" });
+    }
+});
+router.post("/serialize", async (req, res) => {
+    let key = req.body.key;
+    const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
+    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
+        key = hashedKey.substring(0, 32);
+        console.log("Key truncated to 32 characters:", key);
+    }
+    else if (hashedKey && hashedKey.length < 32) {
+        key = hashedKey.padEnd(32, "0");
+        console.log("Key padded to 32 characters:", key);
+    }
+    const keyUint8Array = new TextEncoder().encode(key);
+    const serializedState = (0, db_1.serializeDatabase)(state, keyUint8Array);
+    if (serializedState) {
+        res.send({ message: "databaseSerialized", params: serializedState });
+    }
+    else {
+        res.status(500).send({ message: "Failed to serialize database" });
     }
 });
 router.post("/queryByName", (req, res) => {
@@ -174,7 +208,8 @@ router.get("/getAllNodes", (req, res) => {
 });
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+app.use(morgan('combined'));
 app.use("/api", router);
 app.listen(3001, () => {
-    console.log("Server running on http://localhost:3000");
+    console.log("Server running on http://localhost:3001");
 });

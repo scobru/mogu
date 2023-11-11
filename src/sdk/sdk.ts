@@ -122,7 +122,7 @@ export class Mogu {
 
   updateNode(node: EncryptedNode) {
     console.log("Update Node");
-    this.state = updateNode(this.state, node);
+    this.state = updateNode(this.state, node) as any;
     console.log("Update Complete!");
     return node;
   }

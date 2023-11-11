@@ -8,7 +8,7 @@ async function run() {
         state = await addSampleNodes(state);
         state = await addFileToDirectory(state);
         state = await addAnotherFileAndList(state);
-        const key = "my-key";
+        const key = "mecenateBeta";
         const cid = await performDatabaseOperations(state, key);
         console.log("CID:", cid);
         queryDatabase(state);

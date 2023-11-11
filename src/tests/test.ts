@@ -23,7 +23,7 @@ async function run() {
     state = await addFileToDirectory(state);
     state = await addAnotherFileAndList(state);
 
-    const key = "my-key";
+    const key = "mecenateBeta";
 
     const cid = await performDatabaseOperations(state, key);
     console.log("CID:", cid);
@@ -211,7 +211,7 @@ async function addFileToDirectory(state: Map<string, EncryptedNode>): Promise<Ma
   const parentDir = getNode(state, "1");
   if (parentDir && Array.isArray(parentDir.children)) {
     parentDir.children.push("2");
-    state = updateNode(state, parentDir);
+    state = updateNode(state, parentDir) as any;
   }
 
   console.log("File added to directory", Array.from(state.values()));
@@ -238,7 +238,7 @@ async function addAnotherFileAndList(state: Map<string, EncryptedNode>): Promise
   const parentDir = getNode(state, "1");
   if (parentDir && Array.isArray(parentDir.children)) {
     parentDir.children.push("3");
-    state = updateNode(state, parentDir);
+    state = updateNode(state, parentDir) as any;
   }
 
   console.log("Another file added to directory", Array.from(state.values()));

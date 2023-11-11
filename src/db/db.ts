@@ -19,7 +19,6 @@ export type EncryptedNode = {
 
 type Query = (node: EncryptedNode) => boolean;
 
-
 /**
  * Serialize the database
  * @param {Map<string, EncryptedNode>} state - The state of the database
@@ -27,7 +26,7 @@ type Query = (node: EncryptedNode) => boolean;
  * @returns
  */
 export const serializeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
-    console.log("---Serializing DB---");
+    console.log("Serializing DB");
 
     const nodes = Array.from(state.values());
 
@@ -61,7 +60,7 @@ export const serializeDatabase = async (state: Map<string, EncryptedNode>, key: 
  * @returns
  */
 export const deserializeDatabase = async (json: string, key: Uint8Array): Promise<EncryptedNode[]> => {
-    console.log("---Deserializing DB---");
+    console.log("Deserializing DB");
 
     const encryptedNodes = JSON.parse(JSON.stringify(json)) as EncryptedNode[];
 
@@ -109,7 +108,7 @@ function objectToUint8Array(obj: any): Uint8Array {
 }
 
 export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint8Array) => {
-    console.log("---Storing DB---");
+    console.log("Store DB");
 
     const json = await serializeDatabase(state, key);
 
@@ -119,59 +118,79 @@ export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint
 };
 
 export const retrieveDatabase = async (hash: string, key: Uint8Array) => {
-    console.log("---Retrieving DB---");
+    console.log("Retrieve DB");
 
     const json = await fetchFromIPFS(hash);
 
-    const state = deserializeDatabase(json, key);
+    const state = await deserializeDatabase(json, key);
 
     return state;
 };
 
 export const addNode = (state: Map<string, EncryptedNode>, node: EncryptedNode) => {
-    console.log("Adding Node...");
+    console.log("Adding Node");
 
-    const newState = new Map(state)
+    // Verifica se il nodo esiste già
+    if (state.has(node.id)) {
+        console.log("Node already exists, updating instead");
+        const existingNode = state.get(node.id);
 
-    // Aggiungi il nodo allo stato
-    newState.set(node.id, node);
+        // Aggiorna il nodo esistente con i nuovi valori
+        const updatedNode = {
+            ...existingNode,
+            ...node,
+        };
 
-    // Se il nodo ha un genitore, aggiungi questo nodo all'elenco dei figli del genitore
+        state.set(node.id, updatedNode);
+    } else {
+        console.log("Node does not exist, adding new node");
+        state.set(node.id, node);
+    }
+
+    // Gestione genitore e figli se necessario
     if (node.parent) {
-        const parent = newState.get(node.parent);
+        const parent = state.get(node.parent);
         if (parent && parent.children) {
-            parent.children.push(node.id);
-            newState.set(node.parent, parent); // Aggiorna il nodo genitore nello stato
+            // Aggiorna l'elenco dei figli del genitore per includere questo nodo
+            if (!parent.children.includes(node.id)) {
+                parent.children.push(node.id);
+            }
+            state.set(node.parent, parent);
         }
     }
 
-    return newState;
+    return state;
 };
 
+
 export const removeNode = (state: Map<string, EncryptedNode>, id: string) => {
-    console.log("Removing Node...");
+    console.log("Removing Node");
 
-    const newState = new Map(state);
+    const node = state.get(id);
+    console.log("Node", node)
 
-    // Rimuovi il nodo dallo stato
-    const node = newState.get(id);
+    if (!node) {
+        console.error("Node not found with id:", id);
+        return state; // or throw an error
+    }
 
-    newState.delete(id);
+    // Handle children of the node if necessary
+    // For example, delete children or reassign them
 
-    if (node && node.parent) {
-        const parent = newState.get(node.parent);
+    state.delete(id);
 
+    if (node.parent) {
+        const parent = state.get(node.parent);
         if (parent && parent.children) {
             const index = parent.children.indexOf(id);
-
             if (index > -1) {
                 parent.children.splice(index, 1);
-                newState.set(node.parent, parent); // Aggiorna il nodo genitore nello stato
+                state.set(node.parent, parent);
             }
         }
     }
 
-    return newState;
+    return state;
 };
 
 export const getNode = (state: Map<string, EncryptedNode>, id: string) => {
@@ -198,12 +217,25 @@ export const getParent = (state: Map<string, EncryptedNode>, id: string) => {
     return null;
 };
 
-export const updateNode = (state: Map<string, EncryptedNode>, updatedNode: EncryptedNode) => {
-    console.log("Updating Node...");
+export const updateNode = async (state: Map<string, EncryptedNode>, updatedNode: EncryptedNode) => {
+    if (state.has(updatedNode.id)) {
+        console.log("Node exists, updating");
 
-    const newState = new Map(Object.entries(state))
-    newState.set(updatedNode.id, updatedNode);
-    return newState;
+        // Aggiorna il nodo esistente con i nuovi valori
+        const existingNode = state.get(updatedNode.id);
+        const newNode = {
+            ...existingNode,
+            ...updatedNode,
+        };
+
+        state.set(updatedNode.id, newNode);
+    } else {
+        console.error("Node not found, cannot update");
+        // Qui puoi gestire l'errore come preferisci
+        // Ad esempio, potresti lanciare un'eccezione o semplicemente non fare nulla
+    }
+
+    return state;
 };
 
 export const getChildren = (state: Map<string, EncryptedNode>, id: string) => {
