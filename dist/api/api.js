@@ -73,7 +73,7 @@ router.post("/updateNode", async (req, res) => {
             res.status(404).send({ error: "Node not found" });
             return;
         }
-        state = await (0, db_1.updateNode)(state, node); // Ensure the global state is updated
+        state = (0, db_1.updateNode)(state, node); // Ensure the global state is updated
         console.log("State updated:", state);
         res.send({ message: "nodeUpdated", params: node });
     }
@@ -93,14 +93,7 @@ router.post("/save", async (req, res) => {
     // Hash the key string
     const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(req.body.key));
     let key;
-    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
-        key = hashedKey.substring(0, 32);
-        console.log("Key truncated to 32 characters:", key);
-    }
-    else if (hashedKey && hashedKey.length < 32) {
-        key = hashedKey.padEnd(32, "0");
-        console.log("Key padded to 32 characters:", key);
-    }
+    key = processKey(hashedKey);
     const keyUint8Array = new TextEncoder().encode(key);
     console.log("Current state before serialization:", state);
     const hash = await (0, db_1.storeDatabase)(state, keyUint8Array);
@@ -111,14 +104,7 @@ router.post("/saveOnChain", async (req, res) => {
     const contract = req.body.contract;
     // Ensure the key is 32 characters long
     const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
-    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
-        key = hashedKey.substring(0, 32);
-        console.log("Key truncated to 32 characters:", key);
-    }
-    else if (hashedKey && hashedKey.length < 32) {
-        key = hashedKey.padEnd(32, "0");
-        console.log("Key padded to 32 characters:", key);
-    }
+    key = processKey(hashedKey);
     const keyUint8Array = new TextEncoder().encode(key);
     const hash = await (0, db_1.storeOnChain)(state, keyUint8Array, contract);
     res.send(JSON.stringify({
@@ -138,14 +124,7 @@ router.post("/load/:cid", async (req, res) => {
     const { cid } = req.params;
     let key = req.body.key;
     const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
-    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
-        key = hashedKey.substring(0, 32);
-        console.log("Key truncated to 32 characters:", key);
-    }
-    else if (hashedKey && hashedKey.length < 32) {
-        key = hashedKey.padEnd(32, "0");
-        console.log("Key padded to 32 characters:", key);
-    }
+    key = processKey(hashedKey);
     const keyUint8Array = new TextEncoder().encode(key);
     const newState = await (0, db_1.retrieveDatabase)(cid, keyUint8Array);
     if (newState) {
@@ -160,14 +139,7 @@ router.post("/load/:cid", async (req, res) => {
 router.post("/serialize", async (req, res) => {
     let key = req.body.key;
     const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
-    if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
-        key = hashedKey.substring(0, 32);
-        console.log("Key truncated to 32 characters:", key);
-    }
-    else if (hashedKey && hashedKey.length < 32) {
-        key = hashedKey.padEnd(32, "0");
-        console.log("Key padded to 32 characters:", key);
-    }
+    key = processKey(hashedKey);
     const keyUint8Array = new TextEncoder().encode(key);
     const serializedState = (0, db_1.serializeDatabase)(state, keyUint8Array);
     if (serializedState) {
@@ -206,6 +178,15 @@ router.get("/getAllNodes", (req, res) => {
     const result = (0, db_1.getAllNodes)(state);
     res.status(200).send({ result });
 });
+function processKey(key) {
+    const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
+    if (hashedKey.length > 32) {
+        return hashedKey.substring(0, 32);
+    }
+    else {
+        return hashedKey.padEnd(32, '0');
+    }
+}
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use(morgan('combined'));

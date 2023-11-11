@@ -7,6 +7,8 @@ export type NodeType = "FILE" | "DIRECTORY";
 
 const NONCE_LENGTH = 24;
 
+let tempCID: string;
+
 export type EncryptedNode = {
     id: string;
     type: NodeType;
@@ -114,11 +116,16 @@ export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint
 
     const hash = await pinJSONToIPFS(JSON.parse(json));
 
+    unpinFromIPFS(tempCID);
+    tempCID = hash;
+
     return hash;
 };
 
 export const retrieveDatabase = async (hash: string, key: Uint8Array) => {
     console.log("Retrieve DB");
+
+    tempCID = hash;
 
     const json = await fetchFromIPFS(hash);
 
@@ -217,7 +224,7 @@ export const getParent = (state: Map<string, EncryptedNode>, id: string) => {
     return null;
 };
 
-export const updateNode = async (state: Map<string, EncryptedNode>, updatedNode: EncryptedNode) => {
+export const updateNode = (state: Map<string, EncryptedNode>, updatedNode: EncryptedNode) => {
     if (state.has(updatedNode.id)) {
         console.log("Node exists, updating");
 
@@ -303,3 +310,5 @@ export const getCidOnChain = async (contract: any) => {
 
     return ethers.utils.toUtf8String(cidBytes);
 };
+
+

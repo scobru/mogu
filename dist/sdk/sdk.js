@@ -16,14 +16,7 @@ class Mogu {
         this.state = this.initializeDatabase();
         // Hash the key string
         const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
-        if (hashedKey && (hashedKey === null || hashedKey === void 0 ? void 0 : hashedKey.length) > 32) {
-            key = hashedKey.substring(0, 32);
-            console.log("Key truncated to 32 characters:", key);
-        }
-        else if (hashedKey && hashedKey.length < 32) {
-            key = hashedKey.padEnd(32, "0");
-            console.log("Key padded to 32 characters:", key);
-        }
+        key = this.processKey(hashedKey);
         const keyUint8Array = new TextEncoder().encode(key);
         this.key = keyUint8Array;
         (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret));
@@ -46,7 +39,34 @@ class Mogu {
     }
     async store() {
         console.log("Store");
-        return await (0, db_1.storeDatabase)(this.state, this.key);
+        let newState;
+        if (this.state instanceof Map) {
+            // Additional check: Ensure all keys are strings and all values are EncryptedNode
+            for (let [key, value] of this.state) {
+                if (typeof key !== 'string' || !this.isEncryptedNode(value)) {
+                    console.error("Invalid state: All keys must be strings and all values must be EncryptedNode");
+                    return;
+                }
+            }
+            return await (0, db_1.storeDatabase)(this.state, this.key);
+        }
+        else {
+            newState = await (0, db_1.serializeDatabase)(this.state, this.key);
+            return await (0, db_1.storeDatabase)(this.state, this.key);
+        }
+    }
+    // Helper function to check if a value is an EncryptedNode
+    isEncryptedNode(value) {
+        // Replace this with your actual check
+        return value && typeof value === 'object' && 'id' in value && 'type' in value && 'name' in value && 'parent' in value && 'children' in value && 'content' in value && 'encrypted' in value;
+    }
+    processKey(hashedKey) {
+        if (hashedKey.length > 32) {
+            return hashedKey.substring(0, 32);
+        }
+        else {
+            return hashedKey.padEnd(32, '0');
+        }
     }
     async retrieve(hash) {
         console.log("Retrieve");
@@ -55,7 +75,7 @@ class Mogu {
     async load(hash) {
         console.log("Load");
         const state = await (0, db_1.retrieveDatabase)(hash, this.key);
-        this.state = new Map(JSON.parse(state));
+        this.state = new Map(state.map(node => [node.id, node]));
         return this.state;
     }
     addNode(node) {
@@ -85,6 +105,10 @@ class Mogu {
     }
     updateNode(node) {
         console.log("Update Node");
+        if (!this.state.has(node.id)) {
+            console.log("Node with ID not found in state:", node.id);
+            return;
+        }
         this.state = (0, db_1.updateNode)(this.state, node);
         console.log("Update Complete!");
         return node;

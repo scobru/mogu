@@ -15,8 +15,16 @@ export const setCredentials = (_apiKey: string, _apiSecret: string) => {
 export const pinJSONToIPFS = async (JSONBody: any) => {
   const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
 
+  // Preparazione del corpo della richiesta
+  const requestBody = {
+    pinataContent: JSONBody,
+    pinataMetadata: {
+      name: process.env.DB_NAME
+    }
+  };
+
   return await axios
-    .post(url, JSONBody, {
+    .post(url, requestBody, {
       headers: {
         pinata_api_key: apiKey,
         pinata_secret_api_key: apiSecret,

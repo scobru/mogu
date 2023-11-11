@@ -11,7 +11,7 @@ import {
   storeOnChain,
   getCidOnChain,
   retrieveDatabase,
-  serializeDatabase,
+  serializeDatabase
 } from "../db/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
 import { unpinFromIPFS } from "../ipfs/pinataAPI";
 import { ethers } from "ethers";
@@ -74,7 +74,7 @@ router.post("/updateNode", async (req: Request, res: Response) => {
       return;
     }
 
-    state = await updateNode(state, node);  // Ensure the global state is updated
+    state = updateNode(state, node);  // Ensure the global state is updated
     console.log("State updated:", state)
     res.send({ message: "nodeUpdated", params: node });
   } catch (e) {
@@ -99,18 +99,12 @@ router.post("/save", async (req: Request, res: Response) => {
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(req.body.key as string));
 
   let key;
-
-  if (hashedKey && hashedKey?.length > 32) {
-    key = hashedKey.substring(0, 32);
-    console.log("Key truncated to 32 characters:", key);
-  } else if (hashedKey && hashedKey.length < 32) {
-    key = hashedKey.padEnd(32, "0");
-    console.log("Key padded to 32 characters:", key);
-  }
+  key = processKey(hashedKey);
 
   const keyUint8Array = new TextEncoder().encode(key);
 
   console.log("Current state before serialization:", state);
+
   const hash = await storeDatabase(state, keyUint8Array);
 
   res.send({ message: "databaseSaved", params: { hash } });
@@ -124,15 +118,7 @@ router.post("/saveOnChain", async (req: Request, res: Response) => {
   // Ensure the key is 32 characters long
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
-  if (hashedKey && hashedKey?.length > 32) {
-    key = hashedKey.substring(0, 32);
-
-    console.log("Key truncated to 32 characters:", key);
-  } else if (hashedKey && hashedKey.length < 32) {
-    key = hashedKey.padEnd(32, "0");
-
-    console.log("Key padded to 32 characters:", key);
-  }
+  key = processKey(hashedKey);
 
   const keyUint8Array = new TextEncoder().encode(key);
   const hash = await storeOnChain(state, keyUint8Array, contract);
@@ -165,13 +151,7 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
 
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
-  if (hashedKey && hashedKey?.length > 32) {
-    key = hashedKey.substring(0, 32);
-    console.log("Key truncated to 32 characters:", key);
-  } else if (hashedKey && hashedKey.length < 32) {
-    key = hashedKey.padEnd(32, "0");
-    console.log("Key padded to 32 characters:", key);
-  }
+  key = processKey(hashedKey);
 
   const keyUint8Array = new TextEncoder().encode(key);
 
@@ -192,15 +172,10 @@ router.post("/serialize", async (req: Request, res: Response) => {
 
   const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
 
-  if (hashedKey && hashedKey?.length > 32) {
-    key = hashedKey.substring(0, 32);
-    console.log("Key truncated to 32 characters:", key);
-  } else if (hashedKey && hashedKey.length < 32) {
-    key = hashedKey.padEnd(32, "0");
-    console.log("Key padded to 32 characters:", key);
-  }
+  key = processKey(hashedKey);
 
   const keyUint8Array = new TextEncoder().encode(key);
+
   const serializedState = serializeDatabase(state, keyUint8Array);
 
   if (serializedState) {
@@ -256,6 +231,15 @@ router.get("/getAllNodes", (req: Request, res: Response) => {
 
   res.status(200).send({ result });
 });
+
+function processKey(key: string): string {
+  const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key));
+  if (hashedKey.length > 32) {
+    return hashedKey.substring(0, 32);
+  } else {
+    return hashedKey.padEnd(32, '0');
+  }
+}
 
 const app = express();
 
