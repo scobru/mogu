@@ -8,8 +8,6 @@
     "build": "tsc",
     "test": "tsc && node dist/test/test.js",
     "start": "tsc && node dist/api/api.js",
-    "nostr-api": "tsc && node dist/example/nostr/nostr-store-api.js",
-    "nostr-run": "tsc && node dist/example/nostr/nostr-store-run.js",
     "ws": "tsc && node dist/api/websocket.js",
     "format": "prettier --write . '!node_module/**/*'"
   },
