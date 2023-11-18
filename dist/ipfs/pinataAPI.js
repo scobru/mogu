@@ -23,8 +23,8 @@ const pinJSONToIPFS = async (JSONBody) => {
     const requestBody = {
         pinataContent: JSONBody,
         pinataMetadata: {
-            name: dbName
-        }
+            name: dbName,
+        },
     };
     return await axios_1.default
         .post(url, requestBody, {

@@ -62,12 +62,6 @@ Content-Type: application/json
   "key": "testKeyNew"
 }
 
-POST http://localhost:3001/api/migrate
-Content-Type: application/json
-
-{
-  "newKey": "testKeyNew"
-}
 
 POST http://localhost:3001/api/serialize
 Content-Type: application/json

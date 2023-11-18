@@ -28,7 +28,7 @@ const db_1 = require("../db/db"); // Assumendo che queste funzioni vengano dal t
 const pinataAPI_1 = require("../ipfs/pinataAPI");
 const ethers_1 = require("ethers");
 const utils_1 = require("ethers/lib/utils");
-const morgan = require('morgan');
+const morgan = require("morgan");
 const router = (0, express_1.Router)();
 const nameQuery = (name) => (node) => node.name === name;
 const typeQuery = (type) => (node) => node.type === type;
@@ -62,7 +62,7 @@ router.post("/updateNode", async (req, res) => {
     console.log("Received node for updating:", node);
     try {
         const node = req.body;
-        if (!node || !node.id || !node.type || typeof node.id !== 'string') {
+        if (!node || !node.id || !node.type || typeof node.id !== "string") {
             res.status(400).send({ error: "Invalid node data" });
             return;
         }
@@ -184,12 +184,12 @@ function processKey(key) {
         return hashedKey.substring(0, 32);
     }
     else {
-        return hashedKey.padEnd(32, '0');
+        return hashedKey.padEnd(32, "0");
     }
 }
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use("/api", router);
 app.listen(3001, () => {
     console.log("Server running on http://localhost:3001");

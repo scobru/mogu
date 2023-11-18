@@ -2,119 +2,157 @@
 
 <img src="./mogu.png" alt="image" width="300" height="300">
 
-**Description**: This project is a local database interfacing with IPFS. It allows users to encrypt content and exposes an API for interacting with the database and IPFS.
-
 inspired by [this post](https://levelup.gitconnected.com/build-a-scalable-database-with-typescript-and-ipfs-11eceaf97e7d)
-
-## Modules Overview
-
-- **db.ts**: Manages the local database logic.
-- **api.ts**: Defines the API endpoints to interface with the database and IPFS.
-- **sdk.ts**: Provides software functionalities to interact with the system.
-- **pinataAPI.ts**: Handles interactions with Pinata, an IPFS pinning service.
-- **CIDRegistry.sol**: A Solidity smart contract to register CID on IPFS.
-
-## Installation and Configuration
-
-### From NPM
-
-```
-npm install @scobru/mogu
-```
-
-### From Github
-
-1. Clone the repository:
-
-```
-git clone https://github.com/scobru/mogu
-```
-
-2. Install dependencies:
-
-```
-npm install
-```
-
-3. Start the server:
-
-```
-npm start
-```
 
 ## API Usage
 
-### Add a Node
+**Description**: Mogu is a TypeScript-based system that integrates a local database with the InterPlanetary File System (IPFS) and Ethereum blockchain. It enables secure storage, management, and retrieval of encrypted data nodes, leveraging blockchain and IPFS for enhanced data integrity and decentralization.
 
-To add a node, make a POST request to the `/api/addNode` endpoint:
+## Features
 
-```json
-POST http://localhost:3000/api/addNode
-Content-Type: application/json
+- Encrypted local database management.
+- IPFS integration via PinataAPI for decentralized storage.
+- Ethereum blockchain interaction for Content Identifier (CID) management.
+- Flexible and customizable node queries.
 
-{
-  "id": "1",
-  "type": "FILE",
-  "name": "my-file1",
-  "parent": "0",
-  "children": [],
-  "content": "Hello World1!"
-}
+## Modules
+
+- **db.ts**: Logic for local database management.
+- **api.ts**: API endpoint definitions for database and IPFS interaction.
+- **sdk.ts**: Software Development Kit for interacting with the Mogu system.
+- **pinataAPI.ts**: Interface with the Pinata service for IPFS operations.
+- **CIDRegistry.sol**: Ethereum smart contract for managing CIDs.
+
+## Installation
+
+### Via NPM
+
+```bash
+npm install @scobru/mogu
 ```
 
-... (repeat for other nodes)
+### Via GitHub
 
-### Update a Node
+1. Clone the repository:
 
-To update an existing node:
+   ```bash
+   git clone https://github.com/scobru/mogu.git
+   ```
 
-```json
-POST http://localhost:3000/api/updateNode
-Content-Type: application/json
+2. Install dependencies:
 
-{
-  "id": "0",
-  "type": "DIRECTORY",
-  "name": "my-dir",
-  "parent": "",
-  "children": [],
-  "content": ""
-}
+   ```bash
+   npm install
+   ```
+
+3. Start the server:
+
+   ```bash
+   npm start
+   ```
+
+## Usage
+
+### Initializing Mogu
+
+```typescript
+import { Mogu } from "@scobru/mogu";
+const mogu = new Mogu("your-key", "pinataApiKey", "pinataApiSecret", "dbName");
 ```
 
-### Save the Database
+### Adding a Node
 
-To save the database:
+```typescript
+const newNode: EncryptedNode = {
+  id: "0",
+  type: "FILE",
+  name: "my-file",
+  parent: "",
+  children: [],
+  content: "Hello World!",
+};
 
-```json
-POST http://localhost:3000/api/save
-Content-Type: application/json
+const newNode: EncryptedNode = {
+  id: "0",
+  type: "DIRECTORY",
+  name: "my-directory",
+  parent: "",
+  children: [],
+  content: "",
+};
 
-{
-  "key": "testkey"
-}
+mogu.addNode(newNode);
 ```
 
-### Retrieve All Nodes
+### Querying Nodes
 
-To retrieve all nodes:
+```typescript
+// Query by name
+const nodesByName = mogu.queryByName("nodeName");
 
-```
-GET http://localhost:3000/api/getAllNodes
-Content-Type: application/json
-```
-
-... (repeat for other API calls)
-
-### Load Existing CID
-
-Before loading an existing CID, ensure to load it into the state first:
-
-```
-GET http://localhost:3000/api/load/:Cid
-{
-  "key": "testkey"
-}
+// Query by type
+const nodesByType = mogu.queryByType(NodeType.FILE);
 ```
 
-Then, you can use the loaded CID in subsequent API calls.
+### Loading a Database
+
+```typescript
+// Load from local storage
+mogu.load("cid");
+```
+
+### Saving a Database
+
+```typescript
+// Save to local storage
+mogu.store();
+```
+
+### Blockchain Integration
+
+```typescript
+import { MoguOnChain } from "@scobru/mogu";
+const moguOnChain = new MoguOnChain("contractAddress", signer);
+```
+
+## API Reference
+
+- **Add Node**: Send a POST request to `/api/addNode` with the node data in the request body. The node data should be an object that matches the `EncryptedNode` type.
+
+- **Update Node**: Send a POST request to `/api/updateNode` with the updated node data in the request body.
+
+- **Remove Node**: Send a POST request to `/api/removeNode` with the ID of the node to remove in the request body.
+
+- **Save Database**: Send a POST request to `/api/save` with the encryption key in the request body.
+
+- **Save Database On Chain**: Send a POST request to `/api/saveOnChain` with the encryption key and the contract address in the request body.
+
+- **Load Database From Chain**: Send a POST request to `/api/loadOnChain` with the contract address in the request body.
+
+- **Load Database**: Send a POST request to `/api/load/:cid` with the encryption key in the request body and the CID in the URL.
+
+- **Serialize Database**: Send a POST request to `/api/serialize` with the encryption key in the request body.
+
+- **Query By Name**: Send a POST request to `/api/queryByName` with the name to query in the request body.
+
+- **Query By Type**: Send a POST request to `/api/queryByType` with the type to query in the request body.
+
+- **Query By Content**: Send a POST request to `/api/queryByContent` with the content to query in the request body.
+
+- **Query By Children**: Send a POST request to `/api/queryByChildren` with the children to query in the request body.
+
+- **Query By Parent**: Send a POST request to `/api/queryByParent` with the parent to query in the request body.
+
+- **Get All Nodes**: Send a GET request to `/api/getAllNodes` to retrieve all nodes in the database.
+
+- **Unpin CID**: Send a POST request to `/api/unPinCID/:cid` to unpin a CID from IPFS.
+
+Remember to replace `:cid` with the actual CID when making requests to `/api/load/:cid` and `/api/unPinCID/:cid`.
+
+## Contributing
+
+- Guidelines for contributing to the Mogu project.
+
+## License
+
+- Information about the project's licensing.

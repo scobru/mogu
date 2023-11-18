@@ -11,13 +11,13 @@ import {
   storeOnChain,
   getCidOnChain,
   retrieveDatabase,
-  serializeDatabase
+  serializeDatabase,
 } from "../db/db"; // Assumendo che queste funzioni vengano dal tuo db.ts
 import { unpinFromIPFS } from "../ipfs/pinataAPI";
 import { ethers } from "ethers";
 import { toUtf8Bytes } from "ethers/lib/utils";
 
-const morgan = require('morgan');
+const morgan = require("morgan");
 const router = Router();
 
 const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
@@ -60,7 +60,7 @@ router.post("/updateNode", async (req: Request, res: Response) => {
   try {
     const node = req.body as EncryptedNode;
 
-    if (!node || !node.id || !node.type || typeof node.id !== 'string') {
+    if (!node || !node.id || !node.type || typeof node.id !== "string") {
       res.status(400).send({ error: "Invalid node data" });
       return;
     }
@@ -74,14 +74,13 @@ router.post("/updateNode", async (req: Request, res: Response) => {
       return;
     }
 
-    state = updateNode(state, node);  // Ensure the global state is updated
-    console.log("State updated:", state)
+    state = updateNode(state, node); // Ensure the global state is updated
+    console.log("State updated:", state);
     res.send({ message: "nodeUpdated", params: node });
   } catch (e) {
     res.status(500).send({ error: e });
   }
 });
-
 
 router.post("/removeNode", (req: Request, res: Response) => {
   const id = req.body.id as string;
@@ -159,13 +158,12 @@ router.post("/load/:cid", async (req: Request, res: Response) => {
 
   if (newState) {
     state = new Map(newState.map(node => [node.id, node]));
-    console.log("State updated after loading:", state)
+    console.log("State updated after loading:", state);
     res.send({ message: "databaseLoaded", params: [...state.values()] });
   } else {
     res.status(500).send({ message: "Failed to load database" });
   }
 });
-
 
 router.post("/serialize", async (req: Request, res: Response) => {
   let key = req.body.key as string;
@@ -184,7 +182,6 @@ router.post("/serialize", async (req: Request, res: Response) => {
     res.status(500).send({ message: "Failed to serialize database" });
   }
 });
-
 
 router.post("/queryByName", (req: Request, res: Response) => {
   const { name } = req.body;
@@ -237,14 +234,14 @@ function processKey(key: string): string {
   if (hashedKey.length > 32) {
     return hashedKey.substring(0, 32);
   } else {
-    return hashedKey.padEnd(32, '0');
+    return hashedKey.padEnd(32, "0");
   }
 }
 
 const app = express();
 
 app.use(express.json());
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use("/api", router);
 
 app.listen(3001, () => {

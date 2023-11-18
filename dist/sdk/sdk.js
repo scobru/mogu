@@ -44,7 +44,7 @@ class Mogu {
         if (this.state instanceof Map) {
             // Additional check: Ensure all keys are strings and all values are EncryptedNode
             for (let [key, value] of this.state) {
-                if (typeof key !== 'string' || !this.isEncryptedNode(value)) {
+                if (typeof key !== "string" || !this.isEncryptedNode(value)) {
                     console.error("Invalid state: All keys must be strings and all values must be EncryptedNode");
                     return;
                 }
@@ -59,14 +59,22 @@ class Mogu {
     // Helper function to check if a value is an EncryptedNode
     isEncryptedNode(value) {
         // Replace this with your actual check
-        return value && typeof value === 'object' && 'id' in value && 'type' in value && 'name' in value && 'parent' in value && 'children' in value && 'content' in value && 'encrypted' in value;
+        return (value &&
+            typeof value === "object" &&
+            "id" in value &&
+            "type" in value &&
+            "name" in value &&
+            "parent" in value &&
+            "children" in value &&
+            "content" in value &&
+            "encrypted" in value);
     }
     processKey(hashedKey) {
         if (hashedKey.length > 32) {
             return hashedKey.substring(0, 32);
         }
         else {
-            return hashedKey.padEnd(32, '0');
+            return hashedKey.padEnd(32, "0");
         }
     }
     async retrieve(hash) {

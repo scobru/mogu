@@ -11,7 +11,7 @@ import {
   serializeDatabase,
   deserializeDatabase,
   retrieveDatabase,
-  getAllNodes
+  getAllNodes,
 } from "../db/db";
 import { setCredentials } from "../ipfs/pinataAPI";
 import { toUtf8Bytes } from "ethers/lib/utils";
@@ -25,10 +25,14 @@ const childrenQuery = (children: string[]) => (node: any) =>
   Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
+export { EncryptedNode, NodeType };
 export class Mogu {
   private state: Map<string, EncryptedNode>;
   private key: Uint8Array;
   private dbName: string;
+
+  // export EncryptedNode type
+  public static NodeType: NodeType;
 
   constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string) {
     this.state = this.initializeDatabase();
@@ -70,7 +74,7 @@ export class Mogu {
     if (this.state instanceof Map) {
       // Additional check: Ensure all keys are strings and all values are EncryptedNode
       for (let [key, value] of this.state) {
-        if (typeof key !== 'string' || !this.isEncryptedNode(value)) {
+        if (typeof key !== "string" || !this.isEncryptedNode(value)) {
           console.error("Invalid state: All keys must be strings and all values must be EncryptedNode");
           return;
         }
@@ -82,20 +86,27 @@ export class Mogu {
       return await storeDatabase(this.state, this.key);
     }
   }
-
-
-
   // Helper function to check if a value is an EncryptedNode
   isEncryptedNode(value: any): value is EncryptedNode {
     // Replace this with your actual check
-    return value && typeof value === 'object' && 'id' in value && 'type' in value && 'name' in value && 'parent' in value && 'children' in value && 'content' in value && 'encrypted' in value;
+    return (
+      value &&
+      typeof value === "object" &&
+      "id" in value &&
+      "type" in value &&
+      "name" in value &&
+      "parent" in value &&
+      "children" in value &&
+      "content" in value &&
+      "encrypted" in value
+    );
   }
 
   processKey(hashedKey: string): string {
     if (hashedKey.length > 32) {
       return hashedKey.substring(0, 32);
     } else {
-      return hashedKey.padEnd(32, '0');
+      return hashedKey.padEnd(32, "0");
     }
   }
 
