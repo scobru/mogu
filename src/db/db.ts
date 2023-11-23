@@ -7,8 +7,6 @@ export type NodeType = "FILE" | "DIRECTORY";
 
 const NONCE_LENGTH = 24;
 
-let tempCID: string;
-
 export type EncryptedNode = {
   id: string;
   type: NodeType;
@@ -116,18 +114,11 @@ export const storeDatabase = async (state: Map<string, EncryptedNode>, key: Uint
 
   const hash = await pinJSONToIPFS(JSON.parse(json));
 
-  if (tempCID) {
-    unpinFromIPFS(tempCID);
-    tempCID = hash;
-  }
-
   return hash;
 };
 
 export const retrieveDatabase = async (hash: string, key: Uint8Array) => {
   console.log("Retrieve DB");
-
-  tempCID = hash;
 
   const json = await fetchFromIPFS(hash);
 
