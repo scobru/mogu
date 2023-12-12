@@ -7,7 +7,7 @@ export declare class Mogu {
     private key;
     private dbName;
     static NodeType: NodeType;
-    constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string);
+    constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string, pinataGateway?: string);
     initializeDatabase(): Map<string, EncryptedNode>;
     serialize(): Promise<string>;
     deserialize(json: string): Promise<EncryptedNode[]>;

@@ -34,7 +34,7 @@ export class Mogu {
   // export EncryptedNode type
   public static NodeType: NodeType;
 
-  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string) {
+  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string, pinataGateway?: string) {
     this.state = this.initializeDatabase();
     // Hash the key string
     const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
@@ -44,7 +44,7 @@ export class Mogu {
     const keyUint8Array = new TextEncoder().encode(key);
     this.key = keyUint8Array;
     this.dbName = dbName as string;
-    setCredentials(String(pinataApiKey), String(pinataApiSecret), this.dbName);
+    setCredentials(String(pinataApiKey), String(pinataApiSecret), this.dbName, String(pinataGateway));
   }
 
   initializeDatabase(): Map<string, EncryptedNode> {

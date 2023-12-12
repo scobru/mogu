@@ -8,7 +8,6 @@ const pinataAPI_1 = require("../ipfs/pinataAPI");
 const crypto_ipfs_1 = __importDefault(require("@scobru/crypto-ipfs"));
 const ethers_1 = require("ethers");
 const NONCE_LENGTH = 24;
-let tempCID;
 /**
  * Serialize the database
  * @param {Map<string, EncryptedNode>} state - The state of the database
@@ -73,16 +72,11 @@ const storeDatabase = async (state, key) => {
     console.log("Store DB");
     const json = await (0, exports.serializeDatabase)(state, key);
     const hash = await (0, pinataAPI_1.pinJSONToIPFS)(JSON.parse(json));
-    if (tempCID) {
-        (0, pinataAPI_1.unpinFromIPFS)(tempCID);
-        tempCID = hash;
-    }
     return hash;
 };
 exports.storeDatabase = storeDatabase;
 const retrieveDatabase = async (hash, key) => {
     console.log("Retrieve DB");
-    tempCID = hash;
     const json = await (0, pinataAPI_1.fetchFromIPFS)(hash);
     const state = await (0, exports.deserializeDatabase)(json, key);
     return state;

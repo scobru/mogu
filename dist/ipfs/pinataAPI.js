@@ -10,10 +10,12 @@ dotenv_1.default.config();
 let apiKey = process.env.PINATA_API_KEY || "";
 let apiSecret = process.env.PINATA_API_SECRET || "";
 let dbName = process.env.DB_NAME || "";
-const setCredentials = (_apiKey, _apiSecret, _dbName) => {
+let apiGateway = process.env.PINATA_GATEWAY || "";
+const setCredentials = (_apiKey, _apiSecret, _dbName, _apiGateway) => {
     apiKey = _apiKey;
     apiSecret = _apiSecret;
     dbName = _dbName;
+    apiGateway = _apiGateway;
     console.log("Credentials set");
 };
 exports.setCredentials = setCredentials;
@@ -62,7 +64,7 @@ const unpinFromIPFS = async (hashToUnpin) => {
 exports.unpinFromIPFS = unpinFromIPFS;
 const fetchFromIPFS = async (cid) => {
     try {
-        const url = `https://sapphire-financial-fish-885.mypinata.cloud/ipfs/${cid}`;
+        const url = apiGateway + `/ipfs/${cid}`;
         const response = await axios_1.default.get(url);
         if (response.status === 200) {
             return response.data;

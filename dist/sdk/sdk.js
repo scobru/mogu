@@ -12,7 +12,7 @@ const contentQuery = (content) => (node) => String(node.content) === content;
 const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
 const parentQuery = (parent) => (node) => node.parent === parent;
 class Mogu {
-    constructor(key, pinataApiKey, pinataApiSecret, dbName) {
+    constructor(key, pinataApiKey, pinataApiSecret, dbName, pinataGateway) {
         this.state = this.initializeDatabase();
         // Hash the key string
         const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
@@ -20,7 +20,7 @@ class Mogu {
         const keyUint8Array = new TextEncoder().encode(key);
         this.key = keyUint8Array;
         this.dbName = dbName;
-        (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret), this.dbName);
+        (0, pinataAPI_2.setCredentials)(String(pinataApiKey), String(pinataApiSecret), this.dbName, String(pinataGateway));
     }
     initializeDatabase() {
         console.log("Initializing database...");
