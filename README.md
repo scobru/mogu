@@ -1,158 +1,390 @@
-# MOGU
+# MOGU - Decentralized Database with GunDB and IPFS
 
 <img src="./mogu.png" alt="image" width="300" height="300">
 
-inspired by [this post](https://levelup.gitconnected.com/build-a-scalable-database-with-typescript-and-ipfs-11eceaf97e7d)
+Mogu è un wrapper semplificato per GunDB che aggiunge:
+- Storage persistente su IPFS 
+- Crittografia opzionale
+- API REST
+- Interfaccia semplificata
 
-## API Usage
+## 🔄 Confronto con GunDB puro
 
-**Description**: Mogu is a TypeScript-based system that integrates a local database with the InterPlanetary File System (IPFS) and Ethereum blockchain. It enables secure storage, management, and retrieval of encrypted data nodes, leveraging blockchain and IPFS for enhanced data integrity and decentralization.
+### GunDB puro:
+```typescript
+// GunDB puro
+const gun = Gun();
+const user = gun.user();
 
-## Features
+// Autenticazione
+user.create('username', 'password');
+user.auth('username', 'password');
 
-- Encrypted local database management.
-- IPFS integration via PinataAPI for decentralized storage.
-- Ethereum blockchain interaction for Content Identifier (CID) management.
-- Flexible and customizable node queries.
+// Salvataggio dati
+gun.get('nodes').get('123').put({
+  data: 'Hello World'
+});
 
-## Modules
+// Lettura dati
+gun.get('nodes').get('123').on(data => {
+  console.log(data);
+});
 
-- **db.ts**: Logic for local database management.
-- **api.ts**: API endpoint definitions for database and IPFS interaction.
-- **sdk.ts**: Software Development Kit for interacting with the Mogu system.
-- **pinataAPI.ts**: Interface with the Pinata service for IPFS operations.
-- **CIDRegistry.sol**: Ethereum smart contract for managing CIDs.
+// Crittografia manuale con SEA
+const encrypted = await SEA.encrypt(data, pair);
+const decrypted = await SEA.decrypt(encrypted, pair);
+```
 
-## Installation
+### Con Mogu:
+```typescript
+// Mogu semplifica tutto
+const mogu = new Mogu(
+  ['http://localhost:8765'],
+  'encryption-key',  // Opzionale - se vuoto non cripta
+  'PINATA',
+  {
+    apiKey: process.env.PINATA_API_KEY,
+    apiSecret: process.env.PINATA_API_SECRET
+  }
+);
 
-### Via NPM
+// Autenticazione semplificata
+await mogu.login('username', 'password');
+
+// Operazioni CRUD con tipi
+const node = await mogu.addNode({
+  id: "1",
+  type: "NODE",
+  name: "My Node",
+  content: "Hello World"
+});
+
+// Lettura con decrittazione automatica
+const myNode = await mogu.getNode("1");
+
+// Backup automatico su IPFS
+const hash = await mogu.store();
+await mogu.pin();
+```
+
+## 🌟 Caratteristiche
+
+- ⚡ **Real-time Sync** ereditato da GunDB
+- 🔐 **Crittografia Opzionale** - attiva solo se fornisci una chiave
+- 📦 **Storage Persistente** su IPFS
+- 🌐 **API REST** pronte all'uso
+- 🔍 **Query Semplificate**
+
+## 🚀 Installazione
 
 ```bash
 npm install @scobru/mogu
+# o
+yarn add @scobru/mogu
 ```
 
-### Via GitHub
+## ⚙️ Configurazione
 
-1. Clone the repository:
+1. Crea un file `.env`:
+```env
+PINATA_API_KEY=your_pinata_key
+PINATA_API_SECRET=your_pinata_secret
+```
 
-   ```bash
-   git clone https://github.com/scobru/mogu.git
-   ```
+2. Avvia il server:
+```bash
+npm start
+```
 
-2. Install dependencies:
+## 💻 Utilizzo
 
-   ```bash
-   npm install
-   ```
-
-3. Start the server:
-
-   ```bash
-   npm start
-   ```
-
-## Usage
-
-### Initializing Mogu
+### Come SDK
 
 ```typescript
-import { Mogu } from "@scobru/mogu";
-const mogu = new Mogu("your-key", "pinataApiKey", "pinataApiSecret", "dbName");
+import { Mogu } from '@scobru/mogu';
+
+// Senza crittografia
+const mogu = new Mogu(
+  ['http://localhost:8765'],
+  '',  // chiave vuota = no crittografia
+  'PINATA',
+  config
+);
+
+// Con crittografia
+const secureDb = new Mogu(
+  ['http://localhost:8765'],
+  'my-secret-key',  // con chiave = crittografia attiva
+  'PINATA',
+  config
+);
+
+// Operazioni base
+await mogu.login('username', 'password');
+
+const node = await mogu.addNode({
+  id: "1",
+  type: "NODE",
+  name: "My Node",
+  content: "Hello World"
+});
+
+// Query
+const nodes = mogu.queryByName("My Node");
+
+// Real-time Updates
+mogu.onNodeChange((node) => {
+  console.log('Node updated:', node);
+});
+
+// Backup su IPFS
+const hash = await mogu.store();
+await mogu.pin();
 ```
 
-### Adding a Node
+### Come API REST
 
+```bash
+# Crea un nodo
+curl -X POST http://localhost:3001/api/addNode \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "1",
+    "type": "NODE",
+    "name": "My Node",
+    "content": "Hello World"
+  }'
+
+# Recupera tutti i nodi
+curl http://localhost:3001/api/getAllNodes
+
+# Backup su IPFS
+curl -X POST http://localhost:3001/api/save
+```
+
+## 🏗️ Architettura
+
+```
+src/
+├── api/            # API REST e WebSocket
+├── config/         # Configurazioni GunDB
+├── db/            
+│   ├── adapters/   # Storage Adapters
+│   └── types/      # Definizioni tipi
+├── ipfs/          # Integrazione IPFS
+└── sdk/           # SDK principale
+```
+
+## 🔒 Sicurezza
+
+- **Crittografia Opzionale**: Attiva solo se fornisci una chiave
+- **Autenticazione**: Sistema di login integrato
+- **Storage**: Dati distribuiti su IPFS
+
+## 🔍 Query Disponibili
+
+- `queryByName(name)`: Cerca per nome
+- `queryByType(type)`: Cerca per tipo
+- `queryByContent(content)`: Cerca nel contenuto
+
+## 🧪 Test
+
+```bash
+npm test
+```
+
+## 📄 Licenza
+
+MIT
+
+## 💬 Supporto
+
+- Apri una Issue su GitHub
+- Contatta il team di sviluppo
+
+## 🔗 Links Utili
+
+- [GunDB Documentation](https://gun.eco/docs)
+- [IPFS Documentation](https://docs.ipfs.io/)
+
+## 📚 Esempi Dettagliati
+
+### 1. Salvataggio in Nodi Specifici
+
+#### Con GunDB puro:
 ```typescript
-const newNode: EncryptedNode = {
-  id: "0",
-  type: "FILE",
-  name: "my-file",
-  parent: "",
-  children: [],
-  content: "Hello World!",
-};
+// Salvataggio in un percorso specifico
+gun.get('users').get('123').get('profile').put({
+  name: 'John',
+  age: 30
+});
 
-const newNode: EncryptedNode = {
-  id: "0",
-  type: "DIRECTORY",
-  name: "my-directory",
-  parent: "",
-  children: [],
-  content: "",
-};
+// Lettura da un percorso specifico
+gun.get('users').get('123').get('profile').on((data) => {
+  console.log(data);
+});
 
-mogu.addNode(newNode);
+// Salvataggio nello user space
+user.get('profile').get('settings').put({
+  theme: 'dark'
+});
 ```
 
-### Querying Nodes
-
+#### Con Mogu:
 ```typescript
-// Query by name
-const nodesByName = mogu.queryByName("nodeName");
+// Salvataggio in un percorso specifico
+await mogu.addNode({
+  id: "users/123/profile",  // Il path è codificato nell'ID
+  type: "NODE",
+  name: "John's Profile",
+  content: {
+    name: 'John',
+    age: 30
+  }
+});
 
-// Query by type
-const nodesByType = mogu.queryByType(NodeType.FILE);
+// Lettura da un percorso specifico
+const profile = await mogu.getNode("users/123/profile");
+
+// Salvataggio nello user space (dopo il login)
+await mogu.addNode({
+  id: "~profile/settings",  // Il prefisso ~ indica lo user space
+  type: "NODE",
+  name: "User Settings",
+  content: {
+    theme: 'dark'
+  }
+});
 ```
 
-### Loading a Database
+### 2. User Space vs Public Space
 
+#### Con GunDB puro:
 ```typescript
-// Load from local storage
-mogu.load("cid");
+// Public space - accessibile a tutti
+gun.get('public').get('posts').put({
+  title: 'Hello World'
+});
+
+// User space - accessibile solo dopo login
+user.get('private').get('notes').put({
+  content: 'Secret note'
+});
+
+// Lettura dati pubblici
+gun.get('public').get('posts').on(data => console.log(data));
+
+// Lettura dati privati (richiede login)
+user.get('private').get('notes').on(data => console.log(data));
 ```
 
-### Saving a Database
-
+#### Con Mogu:
 ```typescript
-// Save to local storage
-mogu.store();
+// Public space
+await mogu.addNode({
+  id: "public/posts/1",
+  type: "NODE",
+  name: "Public Post",
+  content: {
+    title: 'Hello World'
+  }
+});
+
+// User space (richiede login)
+await mogu.login('username', 'password');
+await mogu.addNode({
+  id: "~private/notes/1",  // Il prefisso ~ indica lo user space
+  type: "NODE",
+  name: "Private Note",
+  content: {
+    text: 'Secret note'
+  }
+});
+
+// Lettura dati pubblici
+const publicPost = await mogu.getNode("public/posts/1");
+
+// Lettura dati privati (richiede login)
+const privateNote = await mogu.getNode("~private/notes/1");
+
+// Query su dati pubblici
+const publicPosts = mogu.queryByName("Public Post");
+
+// Query su dati privati
+const privateNotes = mogu.queryByContent("Secret note");
 ```
 
-### Blockchain Integration
+### 3. Strutture Dati Complesse
 
+#### Con GunDB puro:
 ```typescript
-import { MoguOnChain } from "@scobru/mogu";
-const moguOnChain = new MoguOnChain("contractAddress", signer);
+// Creazione di una struttura annidata
+gun.get('app')
+   .get('organizations')
+   .get('org1')
+   .get('departments')
+   .get('dev')
+   .get('employees')
+   .put({
+     count: 10,
+     manager: 'Alice'
+   });
+
+// Lettura di strutture annidate
+gun.get('app')
+   .get('organizations')
+   .get('org1')
+   .get('departments')
+   .get('dev')
+   .get('employees')
+   .on(data => console.log(data));
 ```
 
-## API Reference
+#### Con Mogu:
+```typescript
+// Creazione di una struttura annidata
+await mogu.addNode({
+  id: "app/org1/dev/employees",
+  type: "NODE",
+  name: "Development Team",
+  content: {
+    count: 10,
+    manager: 'Alice',
+    department: 'dev',
+    organization: 'org1'
+  }
+});
 
-- **Add Node**: Send a POST request to `/api/addNode` with the node data in the request body. The node data should be an object that matches the `EncryptedNode` type.
+// Lettura di strutture annidate
+const devTeam = await mogu.getNode("app/org1/dev/employees");
 
-- **Update Node**: Send a POST request to `/api/updateNode` with the updated node data in the request body.
+// Query per trovare tutti i team di sviluppo
+const devTeams = mogu.queryByContent("dev");
+```
 
-- **Remove Node**: Send a POST request to `/api/removeNode` with the ID of the node to remove in the request body.
+### 4. Real-time Updates
 
-- **Save Database**: Send a POST request to `/api/save` with the encryption key in the request body.
+#### Con GunDB puro:
+```typescript
+gun.get('live-data').on((data) => {
+  console.log('Data updated:', data);
+});
 
-- **Save Database On Chain**: Send a POST request to `/api/saveOnChain` with the encryption key and the contract address in the request body.
+gun.get('live-data').put({ value: 42 });
+```
 
-- **Load Database From Chain**: Send a POST request to `/api/loadOnChain` with the contract address in the request body.
+#### Con Mogu:
+```typescript
+// Sottoscrizione ai cambiamenti
+mogu.onNodeChange((node) => {
+  console.log('Node updated:', node);
+});
 
-- **Load Database**: Send a POST request to `/api/load/:cid` with the encryption key in the request body and the CID in the URL.
-
-- **Serialize Database**: Send a POST request to `/api/serialize` with the encryption key in the request body.
-
-- **Query By Name**: Send a POST request to `/api/queryByName` with the name to query in the request body.
-
-- **Query By Type**: Send a POST request to `/api/queryByType` with the type to query in the request body.
-
-- **Query By Content**: Send a POST request to `/api/queryByContent` with the content to query in the request body.
-
-- **Query By Children**: Send a POST request to `/api/queryByChildren` with the children to query in the request body.
-
-- **Query By Parent**: Send a POST request to `/api/queryByParent` with the parent to query in the request body.
-
-- **Get All Nodes**: Send a GET request to `/api/getAllNodes` to retrieve all nodes in the database.
-
-- **Unpin CID**: Send a POST request to `/api/unPinCID/:cid` to unpin a CID from IPFS.
-
-Remember to replace `:cid` with the actual CID when making requests to `/api/load/:cid` and `/api/unPinCID/:cid`.
-
-## Contributing
-
-- Guidelines for contributing to the Mogu project.
-
-## License
-
-- Information about the project's licensing.
+// Aggiornamento dati
+await mogu.addNode({
+  id: "live-data",
+  type: "NODE",
+  name: "Live Value",
+  content: { value: 42 }
+});
+```

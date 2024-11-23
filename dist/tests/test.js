@@ -1,194 +1,276 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const db_1 = require("../db/db");
-const pinataAPI_1 = require("../ipfs/pinataAPI");
+const sdk_1 = require("../sdk/sdk");
+const types_1 = require("../db/types");
+// Importa il server per assicurarsi che sia avviato
+require("../server");
 async function run() {
     try {
-        let state = initializeDatabase();
-        state = await addSampleNodes(state);
-        state = await addFileToDirectory(state);
-        state = await addAnotherFileAndList(state);
-        const key = "mecenateBeta";
-        const cid = await performDatabaseOperations(state, key);
-        console.log("CID:", cid);
-        queryDatabase(state);
-        await serializeAndDeserializeDatabase(state, key);
-        addFileAndStore(cid, key);
+        console.log("Starting tests...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log("Server should be ready");
+        // Test con Pinata
+        console.log("Testing with Pinata...");
+        const mogu = new sdk_1.Mogu(['http://localhost:8765'], 'test', // No encryption
+        'PINATA', {
+            apiKey: process.env.PINATA_API_KEY || '',
+            apiSecret: process.env.PINATA_API_SECRET || ''
+        }, 'test-db');
+        await runTests(mogu, "Pinata");
+        console.log("All tests completed successfully!");
     }
     catch (err) {
-        console.error("An error occurred during the test:", err);
+        console.error("Test failed with error:", err);
+        process.exit(1);
     }
 }
-function initializeDatabase() {
-    console.log("Initializing database...");
-    return new Map();
-}
-async function addSampleNodes(state) {
-    console.log("Adding sample nodes...");
-    const node = {
-        id: "1",
-        type: "DIRECTORY",
-        name: "my-node",
-        content: "testDir",
-        children: [],
-        encrypted: false,
-    };
-    state = (0, db_1.addNode)(state, node);
-    console.log("Sample nodes added", Array.from(state.values()));
-    const result = (0, db_1.removeNode)(state, "1");
-    console.log("Sample nodes removed", result);
-    // Update a node in the database
-    const update = (0, db_1.updateNode)(state, Object.assign(Object.assign({}, node), { content: "Updated content" }));
-    console.log("Sample nodes updated", update);
-    // Retrieve a single node from the database
-    const retrievedNode = (0, db_1.getNode)(state, "1");
-    console.log("Retrieved node", retrievedNode);
-    // Retrieve the children of a node
-    const children = (0, db_1.getChildren)(state, "1");
-    console.log("Retrieved children", children);
-    // Query the database
-    const nameQuery = (name) => (node) => node.name === name;
-    const nodesWithName = (0, db_1.query)(state, nameQuery("my-node"));
-    console.log("Nodes with name", nodesWithName);
-    const nameIndex = new Map();
-    const updateNameIndex = (state) => {
-        nameIndex.clear();
-        state.forEach((node, id) => {
-            const name = node.name;
-            if (!nameIndex.has(name)) {
-                nameIndex.set(name, []);
-            }
-            nameIndex.get(name).push(id);
-        });
-    };
-    updateNameIndex(state);
-    const parentIndex = new Map();
-    const updateParentIndex = (state) => {
-        parentIndex.clear();
-        state.forEach((node, id) => {
-            if (!node.parent)
-                return;
-            if (!parentIndex.has(node.parent)) {
-                parentIndex.set(node.parent, []);
-            }
-            parentIndex.get(node.parent).push(id);
-        });
-    };
-    updateParentIndex(state);
-    return state;
-}
-async function performDatabaseOperations(state, key) {
-    console.log("Performing database operations...");
-    const keyUtf8 = new TextEncoder().encode(key);
-    // Store and retrieve from IPFS
-    const hash = await (0, db_1.storeDatabase)(state, keyUtf8);
-    console.log("Database stored with hash:", hash);
-    const retrievedJson = await (0, db_1.retrieveDatabase)(hash, keyUtf8);
-    console.log("Database retrieved:", await retrievedJson);
-    return hash;
-}
-async function addFileAndStore(hash, key) {
-    const keyUtf8 = new TextEncoder().encode(key);
-    const node = await (0, db_1.retrieveDatabase)(hash, keyUtf8);
-    let state = initializeDatabase();
-    state = (0, db_1.addNode)(state, JSON.parse(node));
-    console.log("Unpin File IPFS", await (0, pinataAPI_1.unpinFromIPFS)(hash));
-    const file = {
-        id: "2",
-        type: "FILE",
-        name: "my-file",
-        content: "testFile",
-        children: [],
-        parent: "1",
-    };
-    state = (0, db_1.addNode)(state, file);
-    console.log("Sample nodes added", Array.from(state.values()));
-    const newHash = await (0, db_1.storeDatabase)(state, keyUtf8);
-    return newHash;
-}
-function queryDatabase(state) {
-    console.log("Querying database...");
-    const nameQuery = (name) => (node) => node.name === name;
-    const typeQuery = (type) => (node) => node.type === type;
-    const contentQuery = (content) => (node) => node.content === content;
-    const childrenQuery = (children) => (node) => Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
-    const parentQuery = (parent) => (node) => node.parent === parent;
-    const allNodes = (0, db_1.getAllNodes)(state);
-    console.log("Nodes with name", (0, db_1.query)(state, nameQuery("my-node")));
-    console.log("Nodes with type", (0, db_1.query)(state, typeQuery("FILE")));
-    console.log("Nodes with type", (0, db_1.query)(state, typeQuery("DIRECTORY")));
-    console.log("Nodes with content This is my file", (0, db_1.query)(state, contentQuery("This is my file")));
-    console.log("Nodes with content This is another file", (0, db_1.query)(state, contentQuery("This is another file")));
-    console.log("Nodes with content testDir", (0, db_1.query)(state, contentQuery("testDir")));
-    console.log("Nodes with children", (0, db_1.query)(state, childrenQuery(["3"])));
-    console.log("Nodes with parent", (0, db_1.query)(state, parentQuery("1")));
-    console.log("All nodes", allNodes);
-}
-async function serializeAndDeserializeDatabase(state, key) {
-    console.log("Serializing and deserializing database...");
-    const keyUtf8 = new TextEncoder().encode(key);
-    const serialized = await (0, db_1.serializeDatabase)(state, keyUtf8);
-    console.log("Serialized:", serialized);
-    const deserialized = await (0, db_1.deserializeDatabase)(serialized, keyUtf8);
-    console.log("Deserialized:", deserialized);
-}
-async function addFileToDirectory(state) {
-    console.log("Adding a file to an existing directory...");
-    // Creiamo un nuovo file con l'ID "2" e impostiamo il suo parent alla directory con ID "1"
-    const newFile = {
-        id: "2",
-        type: "FILE",
-        name: "my-file",
-        content: "This is my file",
-        parent: "1",
-        children: [],
-    };
-    // Aggiungiamo il nuovo file allo state
-    state = (0, db_1.addNode)(state, newFile);
-    // Ora dobbiamo aggiornare la lista dei children della directory
-    const parentDir = (0, db_1.getNode)(state, "1");
-    if (parentDir && Array.isArray(parentDir.children)) {
-        parentDir.children.push("2");
-        state = (0, db_1.updateNode)(state, parentDir);
+async function runTests(mogu, provider) {
+    try {
+        console.log(`Starting tests with ${provider}...`);
+        // Login
+        try {
+            console.log("Attempting login...");
+            await mogu.login('testuser', 'testpass');
+            console.log('Login successful');
+        }
+        catch (err) {
+            console.error('Login failed:', err);
+            throw err;
+        }
+        // Test delle operazioni base
+        console.log("Starting basic operations test...");
+        try {
+            await testBasicOperations(mogu);
+        }
+        catch (err) {
+            console.error("Error in basic operations:", err);
+            throw err;
+        }
+        // Test dei percorsi specifici
+        console.log("Starting path operations test...");
+        try {
+            await testPathOperations(mogu);
+        }
+        catch (err) {
+            console.error("Error in path operations:", err);
+            throw err;
+        }
+        // Test dello user space
+        console.log("Starting user space test...");
+        try {
+            await testUserSpace(mogu);
+        }
+        catch (err) {
+            console.error("Error in user space operations:", err);
+            throw err;
+        }
+        // Test delle query
+        console.log("Starting query tests...");
+        try {
+            await testQueries(mogu);
+        }
+        catch (err) {
+            console.error("Error in queries:", err);
+            throw err;
+        }
+        // Test del backup IPFS
+        console.log("Starting IPFS backup test...");
+        try {
+            await testIPFSBackup(mogu);
+        }
+        catch (err) {
+            console.error("Error in IPFS backup:", err);
+            throw err;
+        }
     }
-    console.log("File added to directory", Array.from(state.values()));
-    return state;
-}
-async function addAnotherFileAndList(state) {
-    console.log("Adding another file to the existing directory...");
-    // Creiamo un altro nuovo file con l'ID "3" e impostiamo il suo parent alla directory con ID "1"
-    const anotherFile = {
-        id: "3",
-        type: "FILE",
-        name: "another-file",
-        content: "This is another file",
-        parent: "1",
-        children: [],
-    };
-    // Aggiungiamo il nuovo file allo state
-    state = (0, db_1.addNode)(state, anotherFile);
-    // Ora dobbiamo aggiornare la lista dei children della directory
-    const parentDir = (0, db_1.getNode)(state, "1");
-    if (parentDir && Array.isArray(parentDir.children)) {
-        parentDir.children.push("3");
-        state = (0, db_1.updateNode)(state, parentDir);
+    catch (err) {
+        console.error(`Test failed with ${provider}:`, err);
+        throw err;
     }
-    console.log("Another file added to directory", Array.from(state.values()));
-    // Ora listiamo tutti i file nella directory con l'ID "1"
-    const filesInDir = (0, db_1.getChildren)(state, "1").filter(node => (node === null || node === void 0 ? void 0 : node.type) === "FILE");
-    console.log("Files in directory:", filesInDir);
-    return state;
+}
+async function testBasicOperations(mogu) {
+    console.log("\nTesting basic operations...");
+    // Test creazione nodo semplice
+    console.log("\nCreating simple node...");
+    const node1 = {
+        id: "test/node1",
+        type: types_1.NodeType.NODE,
+        name: "test-node-1",
+        content: "Hello World"
+    };
+    await mogu.addNode(node1);
+    console.log("Simple node created");
+    const retrievedNode = await mogu.getNode("test/node1");
+    console.log("\nRetrieved node:", retrievedNode);
+    console.log("Content is encrypted:", retrievedNode?.encrypted);
+    console.log("Content:", retrievedNode?.content);
+}
+async function testPathOperations(mogu) {
+    console.log("\nTesting path operations...");
+    // Test creazione struttura annidata
+    console.log("\nCreating nested structure...");
+    // Crea una struttura organizzativa
+    const orgNode = {
+        id: "organizations/org1",
+        type: types_1.NodeType.NODE,
+        name: "Test Organization",
+        content: {
+            name: "Test Org",
+            founded: 2023
+        }
+    };
+    const deptNode = {
+        id: "organizations/org1/departments/dev",
+        type: types_1.NodeType.NODE,
+        name: "Development Department",
+        content: {
+            name: "Development",
+            employees: 10
+        }
+    };
+    const teamNode = {
+        id: "organizations/org1/departments/dev/teams/frontend",
+        type: types_1.NodeType.NODE,
+        name: "Frontend Team",
+        content: {
+            name: "Frontend",
+            lead: "John Doe"
+        }
+    };
+    await mogu.addNode(orgNode);
+    await mogu.addNode(deptNode);
+    await mogu.addNode(teamNode);
+    // Verifica la struttura
+    const org = await mogu.getNode("organizations/org1");
+    const dept = await mogu.getNode("organizations/org1/departments/dev");
+    const team = await mogu.getNode("organizations/org1/departments/dev/teams/frontend");
+    console.log("\nRetrieved organization structure:");
+    console.log("Organization:", org);
+    console.log("Department:", dept);
+    console.log("Team:", team);
+}
+async function testUserSpace(mogu) {
+    console.log("\nTesting user space operations...");
+    // Test creazione nodi nello user space
+    const privateNote = {
+        id: "~/notes/private1",
+        type: types_1.NodeType.NODE,
+        name: "Private Note",
+        content: "This is a private note"
+    };
+    const userSettings = {
+        id: "~/settings/theme",
+        type: types_1.NodeType.NODE,
+        name: "User Theme Settings",
+        content: {
+            theme: "dark",
+            fontSize: 14
+        }
+    };
+    await mogu.addNode(privateNote);
+    await mogu.addNode(userSettings);
+    // Verifica i nodi nello user space
+    const note = await mogu.getNode("~/notes/private1");
+    const settings = await mogu.getNode("~/settings/theme");
+    console.log("\nRetrieved user space nodes:");
+    console.log("Private Note:", note);
+    console.log("User Settings:", settings);
+}
+async function testQueries(mogu) {
+    console.log("Testing queries...");
+    // Query by name
+    const nodesByName = mogu.queryByName("Frontend Team");
+    console.log("Nodes by name:", nodesByName);
+    // Query by type
+    const nodesByType = mogu.queryByType(types_1.NodeType.NODE);
+    console.log("Nodes by type:", nodesByType);
+    // Query by content
+    const nodesByContent = mogu.queryByContent("Frontend");
+    console.log("Nodes by content:", nodesByContent);
+    // Get all nodes
+    const allNodes = mogu.getAllNodes();
+    console.log("All nodes:", allNodes);
+}
+async function testIPFSBackup(mogu) {
+    console.log("\nTesting IPFS backup...");
+    // Store current state
+    const hash = await mogu.store();
+    console.log("State stored with hash:", hash);
+    if (hash) {
+        // Mostra il contenuto dello stato prima del backup
+        console.log("\nCurrent state before backup:");
+        const currentState = mogu.getAllNodes();
+        console.log(JSON.stringify(currentState, null, 2));
+        // Test pin/unpin
+        await mogu.pin();
+        console.log("\nState pinned to IPFS");
+        // Load from IPFS
+        await mogu.load(hash);
+        console.log("\nState loaded from IPFS");
+        // Mostra il contenuto dello stato dopo il caricamento
+        console.log("Loaded state from IPFS:");
+        const loadedState = mogu.getAllNodes();
+        console.log(JSON.stringify(loadedState, null, 2));
+        // Verifica che gli stati siano identici confrontando il contenuto effettivo
+        const statesMatch = currentState.length === loadedState.length &&
+            currentState.every(currentNode => {
+                const loadedNode = loadedState.find(n => n.id === currentNode.id);
+                if (!loadedNode)
+                    return false;
+                // Confronta solo i campi rilevanti
+                const currentContent = JSON.stringify(currentNode.content);
+                const loadedContent = JSON.stringify(loadedNode.content);
+                return currentNode.id === loadedNode.id &&
+                    currentNode.type === loadedNode.type &&
+                    currentNode.name === loadedNode.name &&
+                    currentContent === loadedContent &&
+                    currentNode.encrypted === loadedNode.encrypted;
+            });
+        console.log("\nStates match:", statesMatch);
+        if (!statesMatch) {
+            console.log("\nDifferences found:");
+            currentState.forEach(currentNode => {
+                const loadedNode = loadedState.find(n => n.id === currentNode.id);
+                if (!loadedNode) {
+                    console.log(`Node ${currentNode.id} not found in loaded state`);
+                    return;
+                }
+                if (JSON.stringify(currentNode) !== JSON.stringify(loadedNode)) {
+                    console.log(`\nDifferences in node ${currentNode.id}:`);
+                    console.log('Current:', currentNode);
+                    console.log('Loaded:', loadedNode);
+                }
+            });
+        }
+        // Unpin
+        await mogu.unpin(hash);
+        console.log("State unpinned from IPFS");
+    }
 }
 // Main function to kick off the execution
 function main() {
+    console.log("Starting main...");
     const go = async () => {
         try {
             await run();
         }
         catch (err) {
-            console.error(err);
+            console.error("Fatal error in tests:", err);
+            process.exit(1);
         }
     };
-    go();
+    go().catch(err => {
+        console.error("Unhandled error in main:", err);
+        process.exit(1);
+    });
 }
+// Gestione degli errori non catturati
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled rejection:', err);
+    process.exit(1);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    process.exit(1);
+});
 main();

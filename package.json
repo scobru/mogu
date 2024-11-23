@@ -1,54 +1,45 @@
 {
   "name": "@scobru/mogu",
-  "version": "1.2.8",
-  "description": "Ipfs database written in ts",
+  "version": "2.0.0",
   "main": "dist/index.js",
-  "types": "dist/index.d.js",
-  "scripts": {
-    "build": "tsc",
-    "test": "tsc && node dist/test/test.js",
-    "start": "tsc && node dist/api/api.js",
-    "ws": "tsc && node dist/api/websocket.js",
-    "format": "prettier --write . '!node_module/**/*'"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/scobru/mogu.git"
-  },
-  "keywords": [
-    "database",
-    "db",
-    "ipfs",
-    "storage",
-    "decentralized"
-  ],
-  "author": "scobru",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/scobru/mugu/issues"
+  "scripts": {
+    "start": "ts-node src/server.ts",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "test": "ts-node src/tests/test.ts"
   },
-  "homepage": "https://github.com/scobru/mugu#readme",
   "dependencies": {
-    "@scobru/crypto-ipfs": "^1.1.8",
-    "@types/express": "^4.17.20",
-    "@types/libsodium-wrappers": "^0.7.12",
-    "@types/node": "^20.8.10",
-    "@types/ws": "^8.5.8",
-    "asymmetric-crypto": "^1.0.2",
-    "axios": "^1.6.0",
+    "@bundlr-network/client": "^0.8.5",
+    "@helia/json": "^4.0.1",
+    "@helia/strings": "^1.0.0",
+    "@helia/unixfs": "^4.0.1",
+    "@lighthouse-web3/sdk": "^0.1.6",
+    "@pinata/sdk": "^1.1.26",
+    "@types/mime-types": "^2.1.1",
+    "arweave": "^1.11.6",
+    "arweave-stream-tx": "^1.1.0",
+    "axios": "^1.6.2",
+    "blockstore-core": "^5.0.2",
+    "datastore-core": "^10.0.2",
     "dotenv": "^16.3.1",
-    "ethers": "5.0.0",
+    "ethers": "^5.7.2",
     "express": "^4.18.2",
-    "fs-extra": "^11.1.1",
-    "libsodium-wrappers": "^0.7.13",
+    "gun": "^0.2020.1239",
+    "helia": "^5.1.1",
+    "ipfs-http-client": "^56.0.2",
+    "mime-types": "^2.1.35",
     "morgan": "^1.10.0",
-    "nostr-tools": "^1.17.0",
-    "prettier": "^3.0.3",
-    "ts-node": "^10.9.1",
-    "tsc": "^2.0.4",
-    "typescript": "^5.2.2",
-    "winston": "^3.11.0",
-    "ws": "^8.14.2"
+    "multiformats": "^13.3.1",
+    "nft.storage": "^7.0.0",
+    "web3.storage": "^4.4.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.9.3",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  }
 }

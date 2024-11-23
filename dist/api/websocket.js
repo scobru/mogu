@@ -34,12 +34,6 @@ wss.on("connection", (ws) => {
                     params: (0, db_1.getNode)(state, params.id),
                 }));
                 break;
-            case "getChildren":
-                ws.send(JSON.stringify({
-                    method: "children",
-                    params: (0, db_1.getChildren)(state, params.id),
-                }));
-                break;
         }
     });
 });

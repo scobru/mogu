@@ -1,50 +1,89 @@
-import { pinJSONToIPFS, unpinFromIPFS, fetchFromIPFS } from "../ipfs/pinataAPI";
+import { Web3Stash } from "../web3stash/index";
+import type { Web3StashServices, Web3StashConfig } from "../web3stash/types";
 import { ethers } from "ethers";
-import {
-  NodeType,
-  EncryptedNode,
-  addNode,
-  removeNode,
-  updateNode,
-  getNode,
-  storeDatabase,
+import { toUtf8Bytes } from "ethers/lib/utils";
+import { NodeType, EncryptedNode } from "../db/types";
+import { GunMogu, GunNode } from "../db/gunDb";
+import { gun } from '../server';
+import { 
   serializeDatabase,
   deserializeDatabase,
   retrieveDatabase,
+  removeNode,
   getAllNodes,
-} from "../db/db";
-import { setCredentials } from "../ipfs/pinataAPI";
-import { toUtf8Bytes } from "ethers/lib/utils";
+  updateNode 
+} from '../db/db';
 
 type Query = (node: EncryptedNode) => boolean;
 
 const nameQuery = (name: string) => (node: EncryptedNode) => node.name === name;
 const typeQuery = (type: NodeType) => (node: EncryptedNode) => node.type === type;
 const contentQuery = (content: string) => (node: EncryptedNode) => String(node.content) === content;
-const childrenQuery = (children: string[]) => (node: any) =>
-  Array.isArray(node.children) && children.every(childId => node.children.includes(childId));
-const parentQuery = (parent: string) => (node: EncryptedNode) => node.parent === parent;
 
 export { EncryptedNode, NodeType };
 export class Mogu {
+  private gunDb: GunMogu;
+  private key!: Uint8Array;
+  private dbName!: string;
   private state: Map<string, EncryptedNode>;
-  private key: Uint8Array;
-  private dbName: string;
+  private storageService?: any;
 
-  // export EncryptedNode type
-  public static NodeType: NodeType;
+  constructor(
+    peers: string[] = [],
+    key?: string,
+    storageService?: Web3StashServices,
+    storageConfig?: Web3StashConfig,
+    dbName?: string
+  ) {
+    this.gunDb = new GunMogu(gun, peers, false, key || '');
+    this.state = new Map<string, EncryptedNode>();
+    this.dbName = dbName || 'default-db';
+    
+    if (key && key.length > 0) {
+      const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key));
+      const processedKey = this.processKey(hashedKey);
+      this.key = new TextEncoder().encode(processedKey);
+    } else {
+      this.key = new TextEncoder().encode('');
+    }
+    
+    if (storageService && storageConfig) {
+      this.storageService = Web3Stash(storageService, storageConfig);
+    }
+  }
 
-  constructor(key?: string, pinataApiKey?: string, pinataApiSecret?: string, dbName?: string, pinataGateway?: string) {
-    this.state = this.initializeDatabase();
-    // Hash the key string
-    const hashedKey = ethers.utils.keccak256(toUtf8Bytes(key as string));
+  // Nuovi metodi GunDB
+  async login(username: string, password: string) {
+    return this.gunDb.authenticate(username, password);
+  }
 
-    key = this.processKey(hashedKey);
+  onNodeChange(callback: (node: EncryptedNode) => void) {
+    const convertToStandardNode = (gunNode: GunNode): EncryptedNode => ({
+      id: gunNode.id,
+      type: gunNode.type,
+      name: gunNode.name,
+      content: gunNode.content,
+      encrypted: gunNode.encrypted
+    });
 
-    const keyUint8Array = new TextEncoder().encode(key);
-    this.key = keyUint8Array;
-    this.dbName = dbName as string;
-    setCredentials(String(pinataApiKey), String(pinataApiSecret), this.dbName, String(pinataGateway));
+    this.gunDb.subscribeToChanges((gunNode: GunNode) => {
+      callback(convertToStandardNode(gunNode));
+    });
+  }
+
+  async addNode(node: EncryptedNode) {
+    await this.gunDb.addNode(node);
+    this.state.set(node.id, node);
+    return this.state;
+  }
+
+  async getNode(id: string): Promise<EncryptedNode | null> {
+    const gunNode = await this.gunDb.getNode(id);
+    if (gunNode) {
+      this.state.set(id, gunNode);
+      return gunNode;
+    }
+    return this.state.get(id) || null;
   }
 
   initializeDatabase(): Map<string, EncryptedNode> {
@@ -54,51 +93,44 @@ export class Mogu {
 
   serialize() {
     console.log("Serialize");
-    const serialized = serializeDatabase(this.state, this.key);
+    const serialized = serializeDatabase(this.state);
     console.log("Serialized:", serialized);
     return serialized;
   }
 
   deserialize(json: string) {
     console.log("Deserialize");
-    const deserialized = deserializeDatabase(json, this.key);
+    const deserialized = deserializeDatabase(json);
     console.log("Deserialized:", deserialized);
-
     return deserialized;
   }
 
   async store() {
     console.log("Store");
-    let newState;
-
-    if (this.state instanceof Map) {
-      // Additional check: Ensure all keys are strings and all values are EncryptedNode
-      for (let [key, value] of this.state) {
-        if (typeof key !== "string" || !this.isEncryptedNode(value)) {
-          console.error("Invalid state: All keys must be strings and all values must be EncryptedNode");
-          return;
-        }
+    try {
+      const nodes = Array.from(this.state.values());
+      
+      if (!this.storageService) {
+        throw new Error("Storage service not initialized");
       }
 
-      return await storeDatabase(this.state, this.key);
-    } else {
-      newState = await serializeDatabase(this.state, this.key);
-      return await storeDatabase(this.state, this.key);
+      const result = await this.storageService.uploadJson(nodes);
+      console.log("State stored with hash:", result.id);
+      return result.id;
+    } catch (err) {
+      console.error("Error storing state:", err);
+      return undefined;
     }
   }
-  // Helper function to check if a value is an EncryptedNode
+
   isEncryptedNode(value: any): value is EncryptedNode {
-    // Replace this with your actual check
     return (
       value &&
       typeof value === "object" &&
-      "id" in value &&
-      "type" in value &&
-      "name" in value &&
-      "parent" in value &&
-      "children" in value &&
-      "content" in value &&
-      "encrypted" in value
+      typeof value.id === "string" &&
+      typeof value.name === "string" &&
+      Object.values(NodeType).includes(value.type) &&
+      (value.encrypted === undefined || typeof value.encrypted === "boolean")
     );
   }
 
@@ -112,19 +144,13 @@ export class Mogu {
 
   async retrieve(hash: string) {
     console.log("Retrieve");
-    return await retrieveDatabase(hash, this.key);
+    return await retrieveDatabase(hash);
   }
 
   async load(hash: string) {
     console.log("Load");
-    const state = await retrieveDatabase(hash, this.key);
-    this.state = new Map(state.map(node => [node.id, node]));
-    return this.state;
-  }
-
-  addNode(node: EncryptedNode) {
-    console.log("Add Node");
-    this.state = addNode(this.state, node);
+    const state = await retrieveDatabase(hash);
+    this.state = new Map(state.map((node: EncryptedNode) => [node.id, node]));
     return this.state;
   }
 
@@ -132,26 +158,9 @@ export class Mogu {
     return removeNode(this.state, id);
   }
 
-  getNode(id: string) {
-    console.log("Get Node");
-    return getNode(this.state, id);
-  }
-
   getAllNodes(): EncryptedNode[] {
-    console.log("Get All Node");
+    console.log("Get All Nodes");
     return getAllNodes(this.state);
-  }
-
-  getParent(id: string) {
-    console.log("Get Parent");
-    const node = this.state.get(id);
-
-    if (node && node.parent) {
-      return this.state.get(node.parent);
-    }
-
-    console.log("No Parent");
-    return null;
   }
 
   updateNode(node: EncryptedNode) {
@@ -167,13 +176,6 @@ export class Mogu {
     return node;
   }
 
-  getChildren(id: string) {
-    console.log("Get Children");
-    const node = this.state.get(id);
-    if (!node || !node.children) return [];
-    return node.children.map(childId => this.state.get(childId)).filter(Boolean);
-  }
-
   query(predicate: Query) {
     console.log("Query");
     const nodes = this.getAllNodes();
@@ -182,12 +184,20 @@ export class Mogu {
   }
 
   async pin() {
+    if (!this.storageService) {
+      throw new Error("Storage service not initialized");
+    }
     const hash = await this.store();
-    await pinJSONToIPFS(hash);
+    if (hash) {
+      await this.storageService.uploadJson({ hash });
+    }
   }
 
   async unpin(hash: string) {
-    await unpinFromIPFS(hash);
+    if (!this.storageService) {
+      throw new Error("Storage service not initialized");
+    }
+    await this.storageService.unpin(hash);
   }
 
   queryByName(name: string) {
@@ -205,14 +215,44 @@ export class Mogu {
     return this.query(contentQuery(content));
   }
 
-  queryByChildren(children: string[]) {
-    console.log("Query by Children");
-    return this.query(childrenQuery(children));
+  // Metodo per accedere all'istanza Gun
+  public getGun() {
+    return this.gunDb.getGunInstance();
   }
 
-  queryByParent(parent: string) {
-    console.log("Query by Parent");
-    return this.query(parentQuery(parent));
+  // Esempio di utilizzo del plugin chain
+  async useChainPlugin() {
+    const gun = this.getGun();
+    // Ora puoi usare il plugin
+    gun.chain.tuaFunzione();
+  }
+
+  // Wrapper per le funzionalità del plugin
+  async chainOperation(path: string) {
+    const gun = this.getGun();
+    const result = await gun.chain.operation(path);
+    
+    // Converti il risultato nel formato Mogu
+    const node: EncryptedNode = {
+      id: path,
+      type: NodeType.NODE,
+      name: result.name,
+      content: result.data
+    };
+
+    // Aggiorna lo stato interno
+    this.state.set(node.id, node);
+    return node;
+  }
+
+  // Metodo per accedere ai plugin
+  plugin<T>(name: string): T | undefined {
+    return this.gunDb.plugin<T>(name);
+  }
+
+  // Accedi direttamente all'istanza Gun con i plugin
+  public gun() {
+    return this.gunDb.getGun();
   }
 }
 
@@ -225,18 +265,26 @@ export class MoguOnChain extends Mogu {
     "function getCID() public view returns (string memory)",
   ];
 
-  constructor(contractAddress: string, signer: ethers.Signer, initialState?: Map<string, EncryptedNode>, key?: string) {
-    super(key as string);
+  constructor(
+    contractAddress: string, 
+    signer: ethers.Signer, 
+    peers: string[] = [],
+    initialState?: Map<string, EncryptedNode>, 
+    key?: string
+  ) {
+    super(peers, key);
     this.contract = new ethers.Contract(contractAddress, this.abi, signer).connect(signer);
   }
 
   async registerCIDOnChain() {
-    const hash = await this.store(); // Questo è il metodo store della classe padre (NodeDatabase)
+    const hash = await this.store();
+    if (!hash) {
+      throw new Error('Failed to store data');
+    }
     const tx = await this.contract.registerCID(ethers.utils.toUtf8Bytes(hash));
     await tx.wait();
   }
 
-  // Se desideri anche un metodo per ottenere il CID corrente dal contratto:
   async getCurrentCIDFromChain(): Promise<string> {
     const cidBytes = await this.contract.cid();
     return ethers.utils.toUtf8String(cidBytes);
