@@ -1,5 +1,4 @@
 import express from 'express';
-import { createApp } from './api/api';
 import { initGun } from './config/gun';
 import { GunMogu } from './db/gunDb';
 
@@ -12,28 +11,24 @@ export const startServer = async () => {
   });
 
   // Inizializza Gun con il server
-  const gunInstance = initGun(server);
+  const gunInstance = initGun(server, {
+    file: 'radata',  // Usa lo stesso path dell'SDK
+  });
+  
   const gunDb = new GunMogu(gunInstance);
 
-  // Aggiungi il middleware per Gun
+  // Middleware minimo per Gun
   app.use('/gun', (req, res) => {
-    if (req.url === '/gun' && req.method === 'GET') {
-      res.status(200).send('Gun server is running');
-      return;
-    }
     gunInstance.web(req, res);
   });
 
-  // Crea l'app con le route API
-  const appWithRoutes = createApp(gunDb);
-  app.use(appWithRoutes);
-
   // Attendi che il server sia pronto
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  return { app, server, gunInstance, gunDb };
+  return { gunDb, server };
 };
 
+// Avvia il server se eseguito direttamente
 if (require.main === module) {
-  startServer();
+  startServer().catch(console.error);
 } 

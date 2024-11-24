@@ -21,8 +21,6 @@ export declare class GunMogu {
     removePeer(peerUrl: string): string[];
     getPeers(): string[];
     authenticate(username: string, password: string): Promise<any>;
-    private tryAuthenticate;
-    private initializeSEA;
     private parseNodePath;
     private getGunReference;
     private convertToStandardNode;

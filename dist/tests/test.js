@@ -4,31 +4,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const sdk_1 = require("../sdk/sdk");
-const types_1 = require("../db/types");
 const dotenv_1 = __importDefault(require("dotenv"));
+const server_1 = require("../server");
+const promises_1 = __importDefault(require("fs/promises"));
+const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
-const TEST_TIMEOUT = 30000; // Aumentiamo il timeout a 30 secondi
-const OPERATION_TIMEOUT = 5000; // 5 secondi per operazione
+const TEST_TIMEOUT = 30000;
+const RADATA_PATH = path_1.default.join(process.cwd(), "radata");
+/**
+ * Mogu Test Suite
+ * Tests core functionality including:
+ * - Basic operations (put/get)
+ * - Backup and restore
+ * - Backup integrity verification
+ *
+ * Run with: yarn test
+ */
 async function run() {
     try {
         console.log("Starting tests...");
-        // Test con Pinata
-        console.log("Testing with Pinata...");
+        // Avvia il server Gun
+        const { gunDb } = await (0, server_1.startServer)();
+        console.log("Gun server started");
+        // Crea istanza Mogu
         const mogu = new sdk_1.Mogu({
-            key: 'test',
             storageService: 'PINATA',
             storageConfig: {
                 apiKey: process.env.PINATA_API_KEY || '',
                 apiSecret: process.env.PINATA_API_SECRET || ''
-            },
-            dbName: 'test-db'
+            }
         });
-        // Aggiungi peer dopo l'inizializzazione
-        mogu.addPeer('http://localhost:8765/gun');
-        console.log("Peer added");
-        // Attendi che la connessione sia stabilita
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log("Connection established");
         // Esegui i test
         await runTests(mogu);
         console.log("All tests completed successfully!");
@@ -41,57 +46,13 @@ async function run() {
 }
 async function runTests(mogu) {
     try {
-        // Login con retry
-        console.log("Attempting login...");
-        let loginAttempts = 3;
-        // Funzione di login con timeout
-        const tryLogin = async () => {
-            return new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Login timeout'));
-                }, OPERATION_TIMEOUT);
-                mogu.login('testuser', 'testpass')
-                    .then(result => {
-                    clearTimeout(timeout);
-                    resolve(result);
-                })
-                    .catch(err => {
-                    clearTimeout(timeout);
-                    reject(err);
-                });
-            });
-        };
-        while (loginAttempts > 0) {
-            try {
-                await tryLogin();
-                console.log('Login successful');
-                break;
-            }
-            catch (err) {
-                loginAttempts--;
-                if (loginAttempts === 0) {
-                    console.error('All login attempts failed');
-                    throw err;
-                }
-                console.log(`Login failed, retrying... (${loginAttempts} attempts left)`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-        }
-        // Attendi che l'autenticazione sia completamente stabilita
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        // Test sequenziali
-        console.log("\nStarting Basic Operations test...");
+        // Login
+        await mogu.login('testuser', 'testpass');
+        console.log('Login successful');
+        // Test operazioni base
         await testBasicOperations(mogu);
-        console.log("\nStarting Path Operations test...");
-        await testPathOperations(mogu);
-        console.log("\nStarting User Space test...");
-        await testUserSpace(mogu);
-        console.log("\nStarting Queries test...");
-        await testQueries(mogu);
-        console.log("\nStarting IPFS Backup test...");
-        await testIPFSBackup(mogu);
-        console.log("\nStarting Peer Management test...");
-        await testPeerManagement(mogu);
+        // Test backup e restore
+        await testBackup(mogu);
     }
     catch (err) {
         console.error(`Test failed:`, err);
@@ -99,107 +60,114 @@ async function runTests(mogu) {
     }
 }
 async function testBasicOperations(mogu) {
-    const node1 = {
-        id: "test/node1",
-        type: types_1.NodeType.NODE,
-        name: "test-node-1",
-        content: "Hello World"
-    };
-    await Promise.race([
-        mogu.addNode(node1),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Add node timeout')), OPERATION_TIMEOUT))
-    ]);
-    console.log("Node created");
-    // Attendi la sincronizzazione
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const retrievedNode = await Promise.race([
-        mogu.getNode("test/node1"),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Get node timeout')), OPERATION_TIMEOUT))
-    ]);
-    if (!retrievedNode)
-        throw new Error("Node not found");
-    console.log("Retrieved node:", retrievedNode);
+    // Test put
+    await mogu.put('test/data1', { value: 'test1' });
+    await mogu.put('test/data2', { value: 'test2' });
+    // Test get
+    const data1 = await mogu.get('test/data1');
+    console.log('Retrieved data1:', data1);
+    // Test real-time updates
+    mogu.on('test/data1', (data) => {
+        console.log('Data1 updated:', data);
+    });
+    // Attendi che i dati siano sincronizzati
+    await new Promise(resolve => setTimeout(resolve, 2000));
 }
-async function testPathOperations(mogu) {
-    // Test struttura organizzativa
-    const orgNode = {
-        id: "organizations/org1",
-        type: types_1.NodeType.NODE,
-        name: "Test Organization",
-        content: {
-            name: "Test Org",
-            founded: 2023
+async function testBackup(mogu) {
+    // Salva alcuni dati di test
+    const testData = {
+        'test/1': { value: 'one' },
+        'test/2': { value: 'two' },
+        'test/nested/3': { value: 'three' }
+    };
+    // Inserisci i dati
+    for (const [path, data] of Object.entries(testData)) {
+        await mogu.put(path, data);
+    }
+    // Attendi che i dati siano scritti su disco
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Verifica che i file radata esistano
+    try {
+        await promises_1.default.access(RADATA_PATH);
+        console.log('Radata directory exists:', RADATA_PATH);
+    }
+    catch (err) {
+        throw new Error(`Radata directory not found at ${RADATA_PATH}`);
+    }
+    // Crea il backup
+    const hash = await mogu.backup();
+    console.log('Backup created with hash:', hash);
+    // Salva il contenuto originale dei file
+    const originalFiles = new Map();
+    const files = await promises_1.default.readdir(RADATA_PATH);
+    for (const file of files) {
+        const content = await promises_1.default.readFile(path_1.default.join(RADATA_PATH, file), 'utf8');
+        originalFiles.set(file, content);
+    }
+    // Cancella la directory radata
+    await promises_1.default.rm(RADATA_PATH, { recursive: true, force: true });
+    console.log('Radata directory deleted');
+    // Ripristina dal backup
+    const restoreResult = await mogu.restore(hash);
+    console.log('Backup restored:', restoreResult);
+    // Attendi che i file siano ripristinati
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Verifica che i file siano stati ripristinati correttamente
+    const restoredFiles = new Map();
+    const newFiles = await promises_1.default.readdir(RADATA_PATH);
+    for (const file of newFiles) {
+        const content = await promises_1.default.readFile(path_1.default.join(RADATA_PATH, file), 'utf8');
+        restoredFiles.set(file, content);
+    }
+    // Confronta i file originali con quelli ripristinati
+    for (const [file, content] of originalFiles) {
+        if (!restoredFiles.has(file)) {
+            throw new Error(`Missing restored file: ${file}`);
         }
-    };
-    await mogu.addNode(orgNode);
-    const org = await mogu.getNode("organizations/org1");
-    console.log("Organization created:", org);
-}
-async function testUserSpace(mogu) {
-    // Test nodi nello user space
-    const privateNote = {
-        id: "~/notes/private1",
-        type: types_1.NodeType.NODE,
-        name: "Private Note",
-        content: "This is a private note"
-    };
-    await mogu.addNode(privateNote);
-    const note = await mogu.getNode("~/notes/private1");
-    console.log("Private note created:", note);
-}
-async function testQueries(mogu) {
-    // Query by name
-    const nodesByName = await mogu.queryByName("Private Note");
-    console.log("Nodes by name:", nodesByName);
-    // Query by type
-    const nodesByType = await mogu.queryByType(types_1.NodeType.NODE);
-    console.log("Nodes by type:", nodesByType);
-    // Get all nodes
-    const allNodes = mogu.getAllNodes();
-    console.log("All nodes:", allNodes);
-}
-async function testIPFSBackup(mogu) {
-    // Store current state
-    const hash = await mogu.store();
-    console.log("State stored with hash:", hash);
-    if (hash) {
-        // Test pin/unpin
-        await mogu.pin();
-        console.log("State pinned to IPFS");
-        // Load from IPFS
-        await mogu.load(hash);
-        console.log("State loaded from IPFS");
-        // Unpin
-        await mogu.unpin(hash);
-        console.log("State unpinned from IPFS");
+        const restoredContent = restoredFiles.get(file);
+        if (restoredContent !== content) {
+            throw new Error(`Content mismatch in file: ${file}`);
+        }
     }
-}
-// Nuovo test per la gestione dei peer
-async function testPeerManagement(mogu) {
-    // Test aggiunta peer
-    const peers = mogu.addPeer('http://localhost:8766/gun');
-    console.log("Added peer, current peers:", peers);
-    // Test rimozione peer
-    const remainingPeers = mogu.removePeer('http://localhost:8766/gun');
-    console.log("Removed peer, remaining peers:", remainingPeers);
-    // Test lista peer
-    const currentPeers = mogu.getPeers();
-    console.log("Current peers:", currentPeers);
-    if (currentPeers.length === 0) {
-        // Riaggiunge il peer principale per i test successivi
-        mogu.addPeer('http://localhost:8765/gun');
+    // Verifica che i dati siano accessibili tramite Gun
+    for (const [path, data] of Object.entries(testData)) {
+        const restored = await mogu.get(path);
+        if (JSON.stringify(restored?.value) !== JSON.stringify(data.value)) {
+            throw new Error(`Data mismatch at ${path}`);
+        }
     }
+    console.log('Backup and restore verified successfully');
+    // Test di confronto backup
+    console.log('Testing backup comparison...');
+    // Prima verifica: dovrebbe essere uguale
+    const comparison1 = await mogu.compareBackup(hash);
+    console.log('Initial comparison:', comparison1);
+    if (!comparison1.isEqual) {
+        console.error('Comparison details:', comparison1.differences);
+        throw new Error('Backup should be equal after restore');
+    }
+    // Modifica un file locale
+    const testFile = '!';
+    const filePath = path_1.default.join(RADATA_PATH, testFile);
+    const originalContent = await promises_1.default.readFile(filePath, 'utf8');
+    await promises_1.default.writeFile(filePath, JSON.stringify({ modified: true }));
+    // Seconda verifica: dovrebbe essere diverso
+    const comparison2 = await mogu.compareBackup(hash);
+    console.log('Comparison after modification:', comparison2);
+    if (comparison2.isEqual) {
+        throw new Error('Backup should be different after local modification');
+    }
+    // Ripristina il contenuto originale
+    await promises_1.default.writeFile(filePath, originalContent);
+    // Verifica finale dopo il ripristino
+    const comparison3 = await mogu.compareBackup(hash);
+    console.log('Final comparison:', comparison3);
+    if (!comparison3.isEqual) {
+        console.error('Final comparison details:', comparison3.differences);
+        throw new Error('Backup should be equal after content restore');
+    }
+    console.log('Backup comparison tests completed successfully');
 }
-// Gestione degli errori non catturati
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled rejection:', err);
-    process.exit(1);
-});
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught exception:', err);
-    process.exit(1);
-});
-// Avvia i test
 run().catch(err => {
     console.error("Fatal error:", err);
     process.exit(1);

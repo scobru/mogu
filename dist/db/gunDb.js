@@ -40,78 +40,48 @@ class GunMogu {
     // Autenticazione
     async authenticate(username, password) {
         return new Promise((resolve, reject) => {
-            // Se l'utente è già autenticato, disconnettilo prima
+            // Reset completo dell'utente
             if (this.user.is) {
                 this.user.leave();
-                // Attendi che la disconnessione sia completata
-                setTimeout(() => {
-                    this.tryAuthenticate(username, password, resolve, reject);
-                }, 1000);
             }
-            else {
-                this.tryAuthenticate(username, password, resolve, reject);
-            }
-        });
-    }
-    tryAuthenticate(username, password, resolve, reject) {
-        // Prima prova ad autenticare
-        this.user.auth(username, password, async (authAck) => {
-            if (authAck.err) {
-                // Se l'utente non esiste, crealo
-                if (authAck.err.indexOf('no user') !== -1) {
-                    this.user.create(username, password, async (createAck) => {
-                        if (createAck.err) {
-                            reject(createAck.err);
-                        }
-                        else {
-                            // Dopo la creazione, attendi un momento e prova ad autenticare
-                            setTimeout(() => {
-                                this.user.auth(username, password, async (finalAuthAck) => {
-                                    if (finalAuthAck.err) {
-                                        reject(finalAuthAck.err);
+            // Funzione per tentare l'autenticazione
+            const tryAuth = () => {
+                console.log("Attempting auth...");
+                this.user.auth(username, password, (ack) => {
+                    if (ack.err) {
+                        console.log("Auth failed, creating user...");
+                        // Se l'autenticazione fallisce, prova a creare l'utente
+                        this.user.create(username, password, (createAck) => {
+                            if (createAck.err) {
+                                console.error("User creation failed:", createAck.err);
+                                reject(createAck.err);
+                            }
+                            else {
+                                console.log("User created, retrying auth...");
+                                // Riprova l'autenticazione dopo la creazione
+                                this.user.auth(username, password, (finalAck) => {
+                                    if (finalAck.err) {
+                                        console.error("Final auth failed:", finalAck.err);
+                                        reject(finalAck.err);
                                     }
                                     else {
-                                        await this.initializeSEA(finalAuthAck);
-                                        resolve(finalAuthAck);
+                                        console.log("Auth successful!");
+                                        resolve(finalAck);
                                     }
                                 });
-                            }, 1000);
-                        }
-                    });
-                }
-                else {
-                    reject(authAck.err);
-                }
-            }
-            else {
-                await this.initializeSEA(authAck);
-                resolve(authAck);
-            }
+                            }
+                        });
+                    }
+                    else {
+                        console.log("Auth successful!");
+                        resolve(ack);
+                    }
+                });
+            };
+            // Avvia il processo di autenticazione
+            console.log("Starting authentication process...");
+            tryAuth();
         });
-    }
-    // Inizializza SEA dopo l'autenticazione
-    async initializeSEA(ack) {
-        try {
-            // Attendi un momento per assicurarsi che l'autenticazione sia completata
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // Usa la chiave di crittografia se presente
-            if (this.encryptionKey && this.encryptionKey.length > 0) {
-                console.log("Using encryption with key");
-                this.pair = await this.sea.pair();
-                this.pair.epriv = this.encryptionKey;
-            }
-            else {
-                console.log("No encryption key provided, using clear text");
-                this.pair = null;
-            }
-            if (this.user.is) {
-                await this.user.get('pair').put(this.pair);
-            }
-        }
-        catch (err) {
-            console.error('Error initializing SEA:', err);
-            throw err;
-        }
     }
     parseNodePath(id) {
         // Rimuove eventuali slash iniziali e finali e splitta il path

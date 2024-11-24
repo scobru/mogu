@@ -7,21 +7,23 @@ exports.getGunInstance = exports.initializeGun = exports.initGun = void 0;
 const gun_1 = __importDefault(require("gun"));
 require("gun/sea");
 const path_1 = __importDefault(require("path"));
-const os_1 = __importDefault(require("os"));
 let gunInstance;
 // Inizializza Gun con un server HTTP
-const initGun = (server) => {
+const initGun = (server, inputOptions = {}) => {
+    const defaultOptions = {
+        file: path_1.default.join(process.cwd(), "radata"),
+        peers: [],
+        web: server
+    };
+    const options = { ...defaultOptions, ...inputOptions };
     if (!gunInstance) {
-        const gunPath = path_1.default.join(os_1.default.tmpdir(), "gun-data");
-        const options = {
-            web: server,
-            localStorage: false,
-            radisk: false,
-            file: gunPath,
-            multicast: false,
-            axe: false,
-        };
-        gunInstance = (0, gun_1.default)(options);
+        gunInstance = (0, gun_1.default)({
+            file: options.file,
+            peers: options.peers,
+            web: options.web,
+            radix: true,
+            radisk: true,
+        });
         gunInstance.on("error", (err) => {
             console.error("Gun error:", err);
         });
@@ -30,18 +32,19 @@ const initGun = (server) => {
 };
 exports.initGun = initGun;
 // Inizializza Gun senza server (per client)
-const initializeGun = (peers = []) => {
+const initializeGun = (inputOptions = {}) => {
+    const defaultOptions = {
+        file: path_1.default.join(process.cwd(), "gun-data"),
+        peers: []
+    };
+    const options = { ...defaultOptions, ...inputOptions };
     if (!gunInstance) {
-        const gunPath = path_1.default.join(os_1.default.tmpdir(), "gun-data");
-        const options = {
-            peers,
-            localStorage: false,
-            radisk: false,
-            file: gunPath,
-            multicast: false,
-            axe: false,
-        };
-        gunInstance = (0, gun_1.default)(options);
+        gunInstance = (0, gun_1.default)({
+            file: options.file,
+            peers: options.peers,
+            radix: true,
+            radisk: true,
+        });
         gunInstance.on("error", (err) => {
             console.error("Gun error:", err);
         });

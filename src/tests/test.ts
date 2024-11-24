@@ -2,10 +2,23 @@ import { Mogu } from "../sdk/sdk";
 import { NodeType } from "../db/types";
 import dotenv from 'dotenv';
 import { startServer } from '../server';
+import fs from 'fs/promises';
+import path from 'path';
 
 dotenv.config();
 
 const TEST_TIMEOUT = 30000;
+const RADATA_PATH = path.join(process.cwd(), "radata");
+
+/**
+ * Mogu Test Suite
+ * Tests core functionality including:
+ * - Basic operations (put/get)
+ * - Backup and restore
+ * - Backup integrity verification
+ * 
+ * Run with: yarn test
+ */
 
 async function run() {
   try {
@@ -83,35 +96,61 @@ async function testBackup(mogu: Mogu) {
     await mogu.put(path, data);
   }
 
-  // Attendi che i dati siano sincronizzati
+  // Attendi che i dati siano scritti su disco
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Verifica lo stato prima del backup
-  const originalState = mogu.getState();
-  console.log('Original state:', originalState);
+  // Verifica che i file radata esistano
+  try {
+    await fs.access(RADATA_PATH);
+    console.log('Radata directory exists:', RADATA_PATH);
+  } catch (err) {
+    throw new Error(`Radata directory not found at ${RADATA_PATH}`);
+  }
 
   // Crea il backup
   const hash = await mogu.backup();
   console.log('Backup created with hash:', hash);
 
-  // Cancella i dati
-  const gun = mogu.getGun();
-  gun.get('nodes').put(null);
+  // Salva il contenuto originale dei file
+  const originalFiles = new Map();
+  const files = await fs.readdir(RADATA_PATH);
+  for (const file of files) {
+    const content = await fs.readFile(path.join(RADATA_PATH, file), 'utf8');
+    originalFiles.set(file, content);
+  }
 
-  // Attendi che i dati siano cancellati
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Cancella la directory radata
+  await fs.rm(RADATA_PATH, { recursive: true, force: true });
+  console.log('Radata directory deleted');
 
   // Ripristina dal backup
-  await mogu.restore(hash);
+  const restoreResult = await mogu.restore(hash);
+  console.log('Backup restored:', restoreResult);
   
-  // Attendi che i dati siano ripristinati
+  // Attendi che i file siano ripristinati
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Verifica lo stato dopo il ripristino
-  const restoredState = mogu.getState();
-  console.log('Restored state:', restoredState);
+  // Verifica che i file siano stati ripristinati correttamente
+  const restoredFiles = new Map();
+  const newFiles = await fs.readdir(RADATA_PATH);
+  for (const file of newFiles) {
+    const content = await fs.readFile(path.join(RADATA_PATH, file), 'utf8');
+    restoredFiles.set(file, content);
+  }
 
-  // Verifica che i dati siano identici
+  // Confronta i file originali con quelli ripristinati
+  for (const [file, content] of originalFiles) {
+    if (!restoredFiles.has(file)) {
+      throw new Error(`Missing restored file: ${file}`);
+    }
+    
+    const restoredContent = restoredFiles.get(file);
+    if (restoredContent !== content) {
+      throw new Error(`Content mismatch in file: ${file}`);
+    }
+  }
+
+  // Verifica che i dati siano accessibili tramite Gun
   for (const [path, data] of Object.entries(testData)) {
     const restored = await mogu.get(path);
     if (JSON.stringify(restored?.value) !== JSON.stringify(data.value)) {
@@ -119,7 +158,44 @@ async function testBackup(mogu: Mogu) {
     }
   }
 
-  console.log('Backup integrity verified');
+  console.log('Backup and restore verified successfully');
+
+  // Test di confronto backup
+  console.log('Testing backup comparison...');
+  
+  // Prima verifica: dovrebbe essere uguale
+  const comparison1 = await mogu.compareBackup(hash);
+  console.log('Initial comparison:', comparison1);
+  if (!comparison1.isEqual) {
+    console.error('Comparison details:', comparison1.differences);
+    throw new Error('Backup should be equal after restore');
+  }
+
+  // Modifica un file locale
+  const testFile = '!';
+  const filePath = path.join(RADATA_PATH, testFile);
+  const originalContent = await fs.readFile(filePath, 'utf8');
+  await fs.writeFile(filePath, JSON.stringify({ modified: true }));
+
+  // Seconda verifica: dovrebbe essere diverso
+  const comparison2 = await mogu.compareBackup(hash);
+  console.log('Comparison after modification:', comparison2);
+  if (comparison2.isEqual) {
+    throw new Error('Backup should be different after local modification');
+  }
+
+  // Ripristina il contenuto originale
+  await fs.writeFile(filePath, originalContent);
+
+  // Verifica finale dopo il ripristino
+  const comparison3 = await mogu.compareBackup(hash);
+  console.log('Final comparison:', comparison3);
+  if (!comparison3.isEqual) {
+    console.error('Final comparison details:', comparison3.differences);
+    throw new Error('Backup should be equal after content restore');
+  }
+
+  console.log('Backup comparison tests completed successfully');
 }
 
 run().catch(err => {

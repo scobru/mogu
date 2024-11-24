@@ -4,32 +4,32 @@ import path from "path";
 import os from "os";
 
 interface GunOptions {
-  peers?: string[];
-  localStorage?: boolean;
-  radisk?: boolean;
   file?: string;
-  multicast?: boolean;
-  axe?: boolean;
+  peers?: string[];
   web?: any;
+  // ... altre opzioni ...
 }
 
 let gunInstance: any;
 
 // Inizializza Gun con un server HTTP
-export const initGun = (server: any) => {
+export const initGun = (server: any, inputOptions: GunOptions = {}) => {
+  const defaultOptions: GunOptions = {
+    file: path.join(process.cwd(), "radata"),
+    peers: [],
+    web: server
+  };
+
+  const options = { ...defaultOptions, ...inputOptions };
+
   if (!gunInstance) {
-    const gunPath = path.join(os.tmpdir(), "gun-data");
-
-    const options: GunOptions = {
-      web: server,
-      localStorage: false,
+    gunInstance = Gun({
+      file: options.file,
+      peers: options.peers,
+      web: options.web,
+      radix: true,
       radisk: true,
-      file: gunPath,
-      multicast: true,
-      axe: true,
-    };
-
-    gunInstance = Gun(options);
+    });
 
     gunInstance.on("error", (err: any) => {
       console.error("Gun error:", err);
@@ -40,20 +40,21 @@ export const initGun = (server: any) => {
 };
 
 // Inizializza Gun senza server (per client)
-export const initializeGun = (peers: string[] = []) => {
+export const initializeGun = (inputOptions: GunOptions = {}) => {
+  const defaultOptions: GunOptions = {
+    file: path.join(process.cwd(), "gun-data"),
+    peers: []
+  };
+
+  const options = { ...defaultOptions, ...inputOptions };
+
   if (!gunInstance) {
-    const gunPath = path.join(os.tmpdir(), "gun-data");
-
-    const options: GunOptions = {
-      peers,
-      localStorage: false,
-      radisk: false,
-      file: gunPath,
-      multicast: false,
-      axe: false,
-    };
-
-    gunInstance = Gun(options);
+    gunInstance = Gun({
+      file: options.file,
+      peers: options.peers,
+      radix: true,
+      radisk: true,
+    });
 
     gunInstance.on("error", (err: any) => {
       console.error("Gun error:", err);

@@ -1,40 +1,19 @@
-# MOGU - Decentralized Database with GunDB and IPFS
+# MOGU - Decentralized Database with GunDB and IPFS Backup
 
-## Architettura e Concetti Chiave
+A decentralized database solution that combines GunDB's real-time capabilities with IPFS backup functionality.
 
-### 1. Core Components
+## Features
 
-#### 1.1 GunDB Wrapper (GunMogu)
-- Gestisce l'istanza di GunDB
-- Implementa il sistema di autenticazione
-- Gestisce lo stato interno dei nodi
-- Supporta path gerarchici (es: "org/team1/projects/1")
-- Gestisce lo user space ("~/") per dati privati
+- Real-time decentralized database using GunDB
+- Automatic IPFS backup and restore
+- Multiple storage providers support (Pinata, Web3.Storage, NFT.Storage, etc.)
+- Backup integrity verification
+- Simple and intuitive API
 
-#### 1.2 Storage Layer (Web3Stash)
-- Interfaccia unificata per storage distribuito
-- Supporta multiple implementazioni:
-  - IPFS/Pinata
-  - Arweave
-  - Bundlr
-  - NFT.Storage
-  - Web3.Storage
-  - Lighthouse
-
-#### 1.3 SDK (Mogu)
-- Wrapper di alto livello
-- API semplificata per operazioni CRUD
-- Gestione automatica del backup/restore
-- Sistema di query
-
-### 2. Inizializzazione
+## Quick Start
 
 ```typescript
-// Server-side
-const server = express().listen(8765);
-const { gunDb } = await startServer();
-
-// Client-side
+// Initialize Mogu
 const mogu = new Mogu({
   storageService: 'PINATA',
   storageConfig: {
@@ -42,202 +21,174 @@ const mogu = new Mogu({
     apiSecret: process.env.PINATA_API_SECRET
   }
 });
-```
 
-### 3. Autenticazione
-
-```typescript
-// Login (crea l'utente se non esiste)
+// Login (creates user if doesn't exist)
 await mogu.login('username', 'password');
-```
 
-### 4. Operazioni Base
+// Store data
+await mogu.put('users/1', { name: 'John' });
 
-```typescript
-// Scrittura
-await mogu.put('users/1', { 
-  value: { name: 'John' } 
-});
-
-// Lettura
-const data = await mogu.get('users/1');
+// Read data
+const user = await mogu.get('users/1');
 
 // Real-time updates
 mogu.on('users/1', (data) => {
   console.log('User updated:', data);
 });
+
+// Create backup
+const backupHash = await mogu.backup();
+
+// Verify backup integrity
+const comparison = await mogu.compareBackup(backupHash);
+if (comparison.isEqual) {
+  console.log('Backup verified successfully');
+}
+
+// Restore from backup
+await mogu.restore(backupHash);
 ```
 
-### 5. Backup e Restore
+## Installation
+
+```bash
+npm install mogu
+# or
+yarn add mogu
+```
+
+## Architecture
+
+### Core Components
+
+1. **GunDB Layer**
+   - Real-time data synchronization
+   - P2P network communication
+   - User authentication
+   - Data persistence
+
+2. **IPFS Layer**
+   - Distributed file storage
+   - Content-addressed data
+   - Multiple storage providers
+   - Backup integrity verification
+
+3. **SDK Layer**
+   - Simple API interface
+   - Automatic backup management
+   - Data consistency checks
+   - Error handling
+
+## API Reference
+
+### Initialization
 
 ```typescript
-// Backup su storage distribuito
+interface MoguOptions {
+  key?: string;                    // Encryption key
+  storageService?: Web3StashServices; // Storage provider
+  storageConfig?: Web3StashConfig;    // Provider config
+  server?: any;                    // Optional server instance
+}
+
+const mogu = new Mogu(options: MoguOptions);
+```
+
+### Authentication
+
+```typescript
+await mogu.login(username: string, password: string);
+```
+
+### Data Operations
+
+```typescript
+// Store data
+await mogu.put(path: string, data: any);
+
+// Read data
+const data = await mogu.get(path: string);
+
+// Subscribe to changes
+mogu.on(path: string, callback: (data: any) => void);
+```
+
+### Backup Operations
+
+```typescript
+// Create backup
 const hash = await mogu.backup();
 
-// Restore da hash
-await mogu.restore(hash);
+// Restore from backup
+await mogu.restore(hash: string);
 
-// Rimozione backup
-await mogu.removeBackup(hash);
+// Compare backup with current state
+const comparison = await mogu.compareBackup(hash: string);
+
+// Remove backup
+await mogu.removeBackup(hash: string);
 ```
 
-## Implementazione Dettagliata
+## Storage Providers
 
-### 1. Struttura dei Dati
+Currently supported providers:
+- Pinata
+- Web3.Storage
+- NFT.Storage
+- Lighthouse
+- Arweave
+- Bundlr
 
-```typescript
-interface EncryptedNode {
-  id: string;          // Path gerarchico univoco
-  type: NodeType;      // Tipo del nodo (default: 'NODE')
-  name: string;        // Nome del nodo
-  content?: any;       // Contenuto (può essere crittografato)
-  encrypted?: boolean; // Flag di crittografia
-}
-```
-
-### 2. Gestione dei Path
-
-- Supporto per path gerarchici: `org/team1/projects/1`
-- User space privato: `~/notes/private`
-- Path parsing automatico
-- Creazione automatica dei nodi intermedi
-
-### 3. Sincronizzazione
-
-- Real-time sync tramite GunDB
-- Stato interno mantenuto in `Map<string, EncryptedNode>`
-- Backup asincrono su storage distribuito
-- Restore con verifica dell'integrità
-
-### 4. Storage Distribuito
+Add a new provider by implementing the `StorageService` interface:
 
 ```typescript
 interface StorageService {
   uploadJson(data: Record<string, unknown>): Promise<UploadOutput>;
+  get(hash: string): Promise<any>;
   unpin(hash: string): Promise<void>;
-}
-
-interface UploadOutput {
-  id: string;
-  metadata: Record<string, unknown>;
-}
-```
-
-### 5. API REST e WebSocket
-
-```typescript
-// REST Endpoints
-POST /api/addNode
-POST /api/updateNode
-POST /api/removeNode
-GET  /api/getAllNodes
-POST /api/queryByName
-POST /api/queryByType
-POST /api/queryByContent
-
-// WebSocket Events
-{
-  method: "addNode" | "removeNode" | "updateNode" | "getNode",
-  params: EncryptedNode | { id: string }
 }
 ```
 
 ## Best Practices
 
-1. **Inizializzazione**:
-   - Avvia sempre il server prima dei client
-   - Usa environment variables per le chiavi API
-   - Gestisci gli errori di connessione
+1. **Data Organization**
+   - Use hierarchical paths (e.g., 'users/123/profile')
+   - Keep data structures consistent
+   - Validate data before storing
 
-2. **Autenticazione**:
-   - Attendi il completamento del login
-   - Verifica lo stato dell'utente prima delle operazioni
-   - Gestisci il logout esplicito
+2. **Backup Management**
+   - Regular backup schedule
+   - Verify backup integrity
+   - Keep backup history
+   - Clean up old backups
 
-3. **Operazioni sui Dati**:
-   - Usa path significativi e gerarchici
-   - Attendi la sincronizzazione dopo le scritture
-   - Verifica l'integrità dopo il restore
-
-4. **Backup**:
-   - Esegui backup periodici
-   - Verifica l'integrità dei backup
-   - Mantieni un registro dei backup
-   - Rimuovi i backup obsoleti
-
-5. **Performance**:
-   - Usa batch operations per operazioni multiple
-   - Implementa caching lato client
-   - Monitora l'uso della memoria
-
-## Troubleshooting
-
-1. **Errori Comuni**:
-   - `User not authenticated`: Esegui il login
-   - `Storage service not initialized`: Verifica la configurazione
-   - `Invalid backup data`: Controlla il formato dei dati
-
-2. **Debug**:
-   - Abilita i log dettagliati
-   - Verifica lo stato della connessione
-   - Controlla gli errori di rete
+3. **Error Handling**
+   - Handle network errors gracefully
+   - Verify data consistency
+   - Implement retry mechanisms
 
 ## Testing
 
 ```bash
-# Test completi
+# Run all tests
 yarn test
 
-# Test specifici
-yarn test:api     # Test API REST
-yarn test:storage # Test storage
-yarn test:sync    # Test sincronizzazione
+# Run specific test
+yarn test:backup
 ```
 
-## Estensioni
+## Contributing
 
-1. **Plugin**:
-   - Aggiungi funzionalità custom
-   - Estendi le query
-   - Implementa middleware
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-2. **Storage Custom**:
-   - Implementa `StorageService`
-   - Aggiungi nuovo provider
-   - Configura opzioni custom
+## License
 
-## Sicurezza
+MIT
 
-1. **Crittografia**:
-   - Dati crittografati a riposo
-   - Chiavi private mai salvate
-   - Verifica dell'integrità
+## Support
 
-2. **Autenticazione**:
-   - Token JWT
-   - Sessioni sicure
-   - Rate limiting
-
-## Limitazioni Note
-
-1. **Scalabilità**:
-   - Limite di dimensione per nodo
-   - Numero massimo di peer
-   - Latenza in reti grandi
-
-2. **Compatibilità**:
-   - Browser moderni
-   - Node.js 14+
-   - WebSocket required
-
-## Roadmap
-
-1. **Prossime Feature**:
-   - Sharding automatico
-   - Compressione dati
-   - Backup incrementali
-
-2. **Miglioramenti**:
-   - Performance query
-   - Gestione memoria
-   - Resilienza rete
+For support, please open an issue or contact the maintainers.
