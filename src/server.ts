@@ -5,12 +5,8 @@ import { GunMogu } from './db/gunDb';
 
 const port = process.env.PORT || 8765;
 
-// Inizializza il server HTTP
-const startServer = () => {
-  // Crea l'app Express
+export const startServer = async () => {
   const app = express();
-
-  // Crea il server HTTP
   const server = app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
   });
@@ -25,16 +21,19 @@ const startServer = () => {
       res.status(200).send('Gun server is running');
       return;
     }
-    // Cast gunInstance a any per accedere a web
-    (gunInstance as any).web?.(req, res);
+    gunInstance.web(req, res);
   });
 
   // Crea l'app con le route API
   const appWithRoutes = createApp(gunDb);
   app.use(appWithRoutes);
 
-  return { app, server, gun: gunInstance };
+  // Attendi che il server sia pronto
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  return { app, server, gunInstance, gunDb };
 };
 
-// Esporta le istanze
-export const { app, server, gun } = startServer(); 
+if (require.main === module) {
+  startServer();
+} 

@@ -1,46 +1,38 @@
-import { addNode, removeNode, getNode, updateNode, EncryptedNode } from "../db/db";
+import { NodeType, EncryptedNode } from "../db/types";
+import { GunMogu } from "../db/gunDb";
 import WebSocket from "ws";
 
 const wss = new WebSocket.Server({ port: 3002 });
+let gunDb: GunMogu;
 
-const state = new Map<string, EncryptedNode>();
+export const initializeWebSocket = (gunDbInstance: GunMogu) => {
+  gunDb = gunDbInstance;
 
-wss.on(
-  "connection",
-  (ws: { on: (arg0: string, arg1: (message: any) => void) => void; send: (arg0: string) => void }) => {
-    ws.on("message", (message: string) => {
+  wss.on("connection", (ws: WebSocket) => {
+    ws.on("message", async (message: string) => {
       const { method, params } = JSON.parse(message);
+      
       switch (method) {
         case "addNode":
-          addNode(state, params as EncryptedNode);
-          ws.send(JSON.stringify({ method: "nodeAdded", params: params as EncryptedNode }));
+          await gunDb.addNode(params as EncryptedNode);
+          ws.send(JSON.stringify({ method: "nodeAdded", params }));
           break;
+          
         case "removeNode":
-          removeNode(state, params.id as string);
-          ws.send(
-            JSON.stringify({
-              method: "nodeRemoved",
-              params: { id: params.id as string },
-            }),
-          );
+          await gunDb.removeNode(params.id);
+          ws.send(JSON.stringify({ method: "nodeRemoved", params: { id: params.id } }));
           break;
+          
         case "updateNode":
-          ws.send(
-            JSON.stringify({
-              method: "nodeUpdated",
-              params: updateNode(state, params as EncryptedNode),
-            }),
-          );
+          await gunDb.updateNode(params as EncryptedNode);
+          ws.send(JSON.stringify({ method: "nodeUpdated", params }));
           break;
+          
         case "getNode":
-          ws.send(
-            JSON.stringify({
-              method: "node",
-              params: getNode(state, params.id as string),
-            }),
-          );
+          const node = await gunDb.getNode(params.id);
+          ws.send(JSON.stringify({ method: "node", params: node }));
           break;
       }
     });
-  },
-);
+  });
+};

@@ -7,77 +7,93 @@ exports.GunMogu = void 0;
 const gun_1 = __importDefault(require("gun"));
 require("gun/sea");
 const types_1 = require("./types");
-const ipfsAdapter_1 = require("./adapters/ipfsAdapter");
-const path_1 = __importDefault(require("path"));
-const os_1 = __importDefault(require("os"));
-const gunPluginManager_1 = require("../plugins/gunPluginManager");
-const plugins_1 = require("../plugins");
 class GunMogu {
-    constructor(gunInstance, peers = [], useIpfs = false, encryptionKey = '') {
+    constructor(gunInstance, encryptionKey = '') {
+        this.peers = new Set();
+        // Gestione dello stato interno
+        this.state = new Map();
         this.encryptionKey = encryptionKey;
-        // Registra i plugin prima di inizializzare Gun
-        (0, plugins_1.registerGunPlugins)();
-        if (gunInstance) {
-            this.gun = gunInstance;
-        }
-        else {
-            // Usa una directory temporanea per i file di Gun
-            const gunPath = path_1.default.join(os_1.default.tmpdir(), 'gun-data');
-            const options = {
-                peers,
-                localStorage: false,
-                radisk: false,
-                file: gunPath,
-                multicast: false,
-                axe: false
-            };
-            this.gun = (0, gun_1.default)(options);
-        }
-        if (useIpfs) {
-            this.ipfsAdapter = new ipfsAdapter_1.IPFSAdapter(this.gun, {
-                apiKey: process.env.PINATA_API_KEY || '',
-                apiSecret: process.env.PINATA_API_SECRET || ''
-            });
-        }
+        this.gun = gunInstance;
         this.user = this.gun.user();
         this.nodes = this.gun.get('nodes');
         this.sea = gun_1.default.SEA;
-        this.gun.on('error', (err) => {
-            console.error('Gun error:', err);
-        });
-        // Inizializza i plugin
-        gunPluginManager_1.GunPluginManager.initializePlugins(this.gun);
+    }
+    // Gestione dei peer
+    addPeer(peerUrl) {
+        if (!this.peers.has(peerUrl)) {
+            this.gun.opt({ peers: [peerUrl] });
+            this.peers.add(peerUrl);
+        }
+        return Array.from(this.peers);
+    }
+    removePeer(peerUrl) {
+        if (this.peers.has(peerUrl)) {
+            this.peers.delete(peerUrl);
+            // Ricrea la connessione con i peer rimanenti
+            this.gun.opt({ peers: Array.from(this.peers) });
+        }
+        return Array.from(this.peers);
+    }
+    getPeers() {
+        return Array.from(this.peers);
     }
     // Autenticazione
     async authenticate(username, password) {
         return new Promise((resolve, reject) => {
-            // Prima prova a creare l'utente
-            this.user.create(username, password, (ack) => {
-                if (ack.err && ack.err.indexOf('already') !== -1) {
-                    console.log("User already created!");
-                    // Se l'utente esiste già, prova ad autenticarlo
-                    this.user.auth(username, password, async (authAck) => {
-                        if (authAck.err) {
-                            reject(authAck.err);
+            // Se l'utente è già autenticato, disconnettilo prima
+            if (this.user.is) {
+                this.user.leave();
+                // Attendi che la disconnessione sia completata
+                setTimeout(() => {
+                    this.tryAuthenticate(username, password, resolve, reject);
+                }, 1000);
+            }
+            else {
+                this.tryAuthenticate(username, password, resolve, reject);
+            }
+        });
+    }
+    tryAuthenticate(username, password, resolve, reject) {
+        // Prima prova ad autenticare
+        this.user.auth(username, password, async (authAck) => {
+            if (authAck.err) {
+                // Se l'utente non esiste, crealo
+                if (authAck.err.indexOf('no user') !== -1) {
+                    this.user.create(username, password, async (createAck) => {
+                        if (createAck.err) {
+                            reject(createAck.err);
                         }
                         else {
-                            await this.initializeSEA(authAck);
-                            resolve(authAck);
+                            // Dopo la creazione, attendi un momento e prova ad autenticare
+                            setTimeout(() => {
+                                this.user.auth(username, password, async (finalAuthAck) => {
+                                    if (finalAuthAck.err) {
+                                        reject(finalAuthAck.err);
+                                    }
+                                    else {
+                                        await this.initializeSEA(finalAuthAck);
+                                        resolve(finalAuthAck);
+                                    }
+                                });
+                            }, 1000);
                         }
                     });
                 }
-                else if (ack.err) {
-                    reject(ack.err);
-                }
                 else {
-                    this.initializeSEA(ack).then(() => resolve(ack));
+                    reject(authAck.err);
                 }
-            });
+            }
+            else {
+                await this.initializeSEA(authAck);
+                resolve(authAck);
+            }
         });
     }
     // Inizializza SEA dopo l'autenticazione
     async initializeSEA(ack) {
         try {
+            // Attendi un momento per assicurarsi che l'autenticazione sia completata
+            await new Promise(resolve => setTimeout(resolve, 1000));
             // Usa la chiave di crittografia se presente
             if (this.encryptionKey && this.encryptionKey.length > 0) {
                 console.log("Using encryption with key");
@@ -88,7 +104,9 @@ class GunMogu {
                 console.log("No encryption key provided, using clear text");
                 this.pair = null;
             }
-            await this.user.get('pair').put(this.pair);
+            if (this.user.is) {
+                await this.user.get('pair').put(this.pair);
+            }
         }
         catch (err) {
             console.error('Error initializing SEA:', err);
@@ -118,7 +136,30 @@ class GunMogu {
         }
         return ref;
     }
+    // Sposta qui la logica di conversione dei nodi
+    convertToStandardNode(gunNode) {
+        return {
+            id: gunNode.id,
+            type: gunNode.type,
+            name: gunNode.name,
+            content: gunNode.content,
+            encrypted: gunNode.encrypted
+        };
+    }
+    // Metodi per la gestione dello stato
+    getState() {
+        return this.state;
+    }
+    setState(newState) {
+        this.state = newState;
+    }
+    // Metodi per la gestione dei nodi
     async addNode(node) {
+        await this.addNodeToGun(node);
+        this.state.set(node.id, node);
+        return this.state;
+    }
+    async addNodeToGun(node) {
         if (!this.user.is) {
             throw new Error('User not authenticated');
         }
@@ -183,6 +224,14 @@ class GunMogu {
         }
     }
     async getNode(id) {
+        const gunNode = await this.getNodeFromGun(id);
+        if (gunNode) {
+            this.state.set(id, gunNode);
+            return gunNode;
+        }
+        return this.state.get(id) || null;
+    }
+    async getNodeFromGun(id) {
         console.log("GunMogu: Starting getNode...", id);
         if (!this.user.is) {
             throw new Error('User not authenticated');
@@ -279,82 +328,62 @@ class GunMogu {
             });
         });
     }
-    // Query in tempo reale
-    async queryByType(type, callback) {
-        this.nodes.map().once(async (node) => {
-            if (node && node.type === type) {
-                const decryptedNode = await this.getNode(node.id);
-                if (decryptedNode) {
-                    callback([decryptedNode]);
+    // Query methods
+    async queryByName(name) {
+        const nodes = [];
+        return new Promise((resolve) => {
+            this.nodes.map().once(async (node) => {
+                if (node && node.name === name) {
+                    const decryptedNode = await this.getNode(node.id);
+                    if (decryptedNode) {
+                        nodes.push(decryptedNode);
+                    }
                 }
-            }
+                resolve(nodes);
+            });
         });
     }
-    // Backup su IPFS
-    async backupToIPFS() {
+    async queryByType(type) {
+        const nodes = [];
         return new Promise((resolve) => {
-            this.nodes.once(async (allNodes) => {
-                if (!allNodes) {
-                    resolve(null);
-                    return;
+            this.nodes.map().once(async (node) => {
+                if (node && node.type === type) {
+                    const decryptedNode = await this.getNode(node.id);
+                    if (decryptedNode) {
+                        nodes.push(decryptedNode);
+                    }
                 }
-                const nodes = Object.entries(allNodes).map(([id, node]) => ({
-                    id,
-                    ...node,
-                    _: undefined
-                }));
-                const key = `backup-${Date.now()}`;
-                await this.ipfsAdapter?.put(key, nodes);
-                const result = await this.ipfsAdapter?.get(key);
-                resolve(result);
+                resolve(nodes);
+            });
+        });
+    }
+    async queryByContent(content) {
+        const nodes = [];
+        return new Promise((resolve) => {
+            this.nodes.map().once(async (node) => {
+                if (node && String(node.content) === content) {
+                    const decryptedNode = await this.getNode(node.id);
+                    if (decryptedNode) {
+                        nodes.push(decryptedNode);
+                    }
+                }
+                resolve(nodes);
             });
         });
     }
     // Sottoscrizione a cambiamenti
     subscribeToChanges(callback) {
-        // Sottoscrizione a tutti i cambiamenti nel public space
-        this.gun.map().on(async (node, id) => {
-            if (node) {
-                const decryptedNode = await this.getNode(id);
-                if (decryptedNode) {
-                    callback(decryptedNode);
-                }
+        this.gun.map().on(async (gunNode, id) => {
+            if (gunNode) {
+                const standardNode = this.convertToStandardNode(gunNode);
+                this.state.set(id, standardNode);
+                callback(standardNode);
             }
         });
-        // Se l'utente è autenticato, sottoscrizione anche allo user space
-        if (this.user.is) {
-            this.user.map().on(async (node, id) => {
-                if (node) {
-                    const decryptedNode = await this.getNode(`~${id}`);
-                    if (decryptedNode) {
-                        callback(decryptedNode);
-                    }
-                }
-            });
-        }
     }
     // Aggiungi un getter per accedere all'istanza Gun
     getGunInstance() {
         return this.gun;
-    }
-    // Metodo generico per accedere ai plugin
-    plugin(name) {
-        const plugin = gunPluginManager_1.GunPluginManager.getPlugin(name);
-        if (!plugin)
-            return undefined;
-        // Crea un wrapper per i metodi del plugin
-        const wrapper = {};
-        if (plugin.chainMethods) {
-            Object.entries(plugin.chainMethods).forEach(([methodName, method]) => {
-                wrapper[methodName] = (...args) => method.apply(this.gun, args);
-            });
-        }
-        if (plugin.staticMethods) {
-            Object.entries(plugin.staticMethods).forEach(([methodName, method]) => {
-                wrapper[methodName] = (...args) => method.apply(null, args);
-            });
-        }
-        return wrapper;
     }
     // Metodo per accedere all'istanza Gun
     getGun() {

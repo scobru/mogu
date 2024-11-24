@@ -1,7 +1,4 @@
-import 'gun/sea';
-import 'gun/lib/then';
-import 'gun/lib/radix';
-import 'gun/lib/radisk';
-import 'gun/lib/store';
-import 'gun/lib/rindexed';
-export declare const initGun: (server: any) => import("gun").IGunInstance<any>;
+import "gun/sea";
+export declare const initGun: (server: any) => any;
+export declare const initializeGun: (peers?: string[]) => any;
+export declare const getGunInstance: () => any;

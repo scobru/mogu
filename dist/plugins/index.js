@@ -13,7 +13,7 @@ function registerGunPlugins() {
     // Carica gun-eth se siamo in un browser
     if (typeof window !== 'undefined') {
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/gun-eth/src/gun-eth.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/gun-eth/dist/gun-eth.cjs';
         document.head.appendChild(script);
         console.log("Gun-eth loading via CDN in browser");
     }

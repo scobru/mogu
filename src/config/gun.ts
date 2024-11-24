@@ -1,48 +1,71 @@
-import Gun from 'gun';
-import 'gun/sea';
-import 'gun/lib/then';
-import 'gun/lib/radix';
-import 'gun/lib/radisk';
-import 'gun/lib/store';
-import 'gun/lib/rindexed';
-import path from 'path';
-import os from 'os';
+import Gun from "gun";
+import "gun/sea";
+import path from "path";
+import os from "os";
 
-// Definisci l'interfaccia per le opzioni di Gun
 interface GunOptions {
-  web?: any;
+  peers?: string[];
   localStorage?: boolean;
   radisk?: boolean;
   file?: string;
   multicast?: boolean;
   axe?: boolean;
-  peers?: string[];
-  debug?: boolean;
+  web?: any;
 }
 
+let gunInstance: any;
+
+// Inizializza Gun con un server HTTP
 export const initGun = (server: any) => {
-  // Usa una directory temporanea del sistema per i file radata
-  const radataPath = path.join(os.tmpdir(), 'mogu-radata');
-  
-  const options: GunOptions = {
-    web: server,
-    localStorage: false,
-    radisk: true,
-    file: radataPath,
-    multicast: false,
-    axe: false,
-    peers: server ? undefined : ['http://localhost:8765/gun'],
-    debug: false
-  };
+  if (!gunInstance) {
+    const gunPath = path.join(os.tmpdir(), "gun-data");
 
-  const gun = Gun(options);
+    const options: GunOptions = {
+      web: server,
+      localStorage: false,
+      radisk: true,
+      file: gunPath,
+      multicast: true,
+      axe: true,
+    };
 
-  // Usa il metodo on solo per gli errori critici
-  (gun as any).on('error', (err: any) => {
-    if (err && err.code !== 'EPERM') {
-      console.error('Critical Gun error:', err);
-    }
-  });
+    gunInstance = Gun(options);
 
-  return gun;
-}; 
+    gunInstance.on("error", (err: any) => {
+      console.error("Gun error:", err);
+    });
+  }
+
+  return gunInstance;
+};
+
+// Inizializza Gun senza server (per client)
+export const initializeGun = (peers: string[] = []) => {
+  if (!gunInstance) {
+    const gunPath = path.join(os.tmpdir(), "gun-data");
+
+    const options: GunOptions = {
+      peers,
+      localStorage: false,
+      radisk: false,
+      file: gunPath,
+      multicast: false,
+      axe: false,
+    };
+
+    gunInstance = Gun(options);
+
+    gunInstance.on("error", (err: any) => {
+      console.error("Gun error:", err);
+    });
+  }
+
+  return gunInstance;
+};
+
+export const getGunInstance = () => {
+  if (!gunInstance) {
+    throw new Error("Gun not initialized. Call initializeGun or initGun first.");
+  }
+  return gunInstance;
+};

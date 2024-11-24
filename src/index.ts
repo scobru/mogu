@@ -1,8 +1,15 @@
-import Gun from 'gun';
-import { registerGunPlugins } from './plugins';
+import { Mogu } from "./sdk/sdk";
+import { NodeType } from "./db/types";
+import { initGun, initializeGun } from "./config/gun";
+import { startServer } from "./server";
+import type { Web3StashServices, Web3StashConfig } from "./web3stash/types";
 
-// Registra i plugin prima di usare Gun
-registerGunPlugins();
-
-// Esporta tutto il resto
-export { Mogu, MoguOnChain, EncryptedNode, NodeType } from "./sdk/sdk";
+export {
+  Mogu,
+  NodeType,
+  initGun,
+  initializeGun,
+  startServer,
+  Web3StashServices,
+  Web3StashConfig
+};

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createRouter = void 0;
 const express_1 = require("express");
-const db_1 = require("../db/db");
 const createRouter = (gunDb) => {
     const router = (0, express_1.Router)();
     let state = new Map();
@@ -15,7 +14,7 @@ const createRouter = (gunDb) => {
                 return;
             }
             await gunDb.addNode(node);
-            state.set(node.id, node);
+            state = gunDb.getState();
             res.send({ message: "nodeAdded", params: node });
         }
         catch (error) {
@@ -26,7 +25,7 @@ const createRouter = (gunDb) => {
         try {
             const node = req.body;
             await gunDb.updateNode(node);
-            state = (0, db_1.updateNode)(state, node);
+            state = gunDb.getState();
             res.send({ message: "nodeUpdated", params: node });
         }
         catch (error) {
@@ -37,7 +36,7 @@ const createRouter = (gunDb) => {
         try {
             const { id } = req.body;
             await gunDb.removeNode(id);
-            state = (0, db_1.removeNode)(state, id);
+            state = gunDb.getState();
             res.send({ message: "nodeRemoved", params: { id } });
         }
         catch (error) {
@@ -46,7 +45,7 @@ const createRouter = (gunDb) => {
     });
     router.get("/getAllNodes", async (req, res) => {
         try {
-            const nodes = (0, db_1.getAllNodes)(state);
+            const nodes = Array.from(gunDb.getState().values());
             res.send(nodes);
         }
         catch (error) {
@@ -56,7 +55,7 @@ const createRouter = (gunDb) => {
     router.post("/queryByName", async (req, res) => {
         try {
             const { name } = req.body;
-            const nodes = (0, db_1.query)(state, node => node.name === name);
+            const nodes = await gunDb.queryByName(name);
             res.send(nodes);
         }
         catch (error) {
@@ -66,7 +65,7 @@ const createRouter = (gunDb) => {
     router.post("/queryByType", async (req, res) => {
         try {
             const { type } = req.body;
-            const nodes = (0, db_1.query)(state, node => node.type === type);
+            const nodes = await gunDb.queryByType(type);
             res.send(nodes);
         }
         catch (error) {
@@ -76,7 +75,7 @@ const createRouter = (gunDb) => {
     router.post("/queryByContent", async (req, res) => {
         try {
             const { content } = req.body;
-            const nodes = (0, db_1.query)(state, node => String(node.content) === content);
+            const nodes = await gunDb.queryByContent(content);
             res.send(nodes);
         }
         catch (error) {
@@ -85,8 +84,8 @@ const createRouter = (gunDb) => {
     });
     router.post("/save", async (req, res) => {
         try {
-            const hash = await (0, db_1.storeDatabase)(state);
-            res.send({ hash });
+            const nodes = Array.from(gunDb.getState().values());
+            res.send({ nodes });
         }
         catch (error) {
             res.status(500).send({ error: "Failed to save state" });
@@ -95,21 +94,11 @@ const createRouter = (gunDb) => {
     router.post("/load/:hash", async (req, res) => {
         try {
             const { hash } = req.params;
-            const nodes = await (0, db_1.retrieveDatabase)(hash);
-            state = new Map(nodes.map(node => [node.id, node]));
-            res.send(nodes);
+            const nodes = await gunDb.getState();
+            res.send(Array.from(nodes.values()));
         }
         catch (error) {
             res.status(500).send({ error: "Failed to load state" });
-        }
-    });
-    router.post("/serialize", async (req, res) => {
-        try {
-            const serialized = await (0, db_1.serializeDatabase)(state);
-            res.send(serialized);
-        }
-        catch (error) {
-            res.status(500).send({ error: "Failed to serialize state" });
         }
     });
     return router;

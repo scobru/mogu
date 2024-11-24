@@ -1,19 +1,6 @@
 import express, { Router, Request, Response } from "express";
 import { GunMogu } from "../db/gunDb";
 import { NodeType, EncryptedNode } from "../db/types";
-import { 
-  unpinFromIPFS,
-  setCredentials 
-} from "../ipfs/pinataAPI";
-import {
-  updateNode,
-  removeNode,
-  storeDatabase,
-  retrieveDatabase,
-  serializeDatabase,
-  query,
-  getAllNodes
-} from "../db/db";
 
 export const createRouter = (gunDb: GunMogu) => {
   const router = Router();
@@ -30,7 +17,7 @@ export const createRouter = (gunDb: GunMogu) => {
       }
 
       await gunDb.addNode(node);
-      state.set(node.id, node);
+      state = gunDb.getState();
       
       res.send({ message: "nodeAdded", params: node });
     } catch (error) {
@@ -42,7 +29,7 @@ export const createRouter = (gunDb: GunMogu) => {
     try {
       const node = req.body as EncryptedNode;
       await gunDb.updateNode(node);
-      state = updateNode(state, node);
+      state = gunDb.getState();
       res.send({ message: "nodeUpdated", params: node });
     } catch (error) {
       res.status(500).send({ error: "Failed to update node" });
@@ -53,7 +40,7 @@ export const createRouter = (gunDb: GunMogu) => {
     try {
       const { id } = req.body;
       await gunDb.removeNode(id);
-      state = removeNode(state, id);
+      state = gunDb.getState();
       res.send({ message: "nodeRemoved", params: { id } });
     } catch (error) {
       res.status(500).send({ error: "Failed to remove node" });
@@ -62,7 +49,7 @@ export const createRouter = (gunDb: GunMogu) => {
 
   router.get("/getAllNodes", async (req: Request, res: Response) => {
     try {
-      const nodes = getAllNodes(state);
+      const nodes = Array.from(gunDb.getState().values());
       res.send(nodes);
     } catch (error) {
       res.status(500).send({ error: "Failed to get nodes" });
@@ -72,7 +59,7 @@ export const createRouter = (gunDb: GunMogu) => {
   router.post("/queryByName", async (req: Request, res: Response) => {
     try {
       const { name } = req.body;
-      const nodes = query(state, node => node.name === name);
+      const nodes = await gunDb.queryByName(name);
       res.send(nodes);
     } catch (error) {
       res.status(500).send({ error: "Failed to query nodes" });
@@ -82,7 +69,7 @@ export const createRouter = (gunDb: GunMogu) => {
   router.post("/queryByType", async (req: Request, res: Response) => {
     try {
       const { type } = req.body;
-      const nodes = query(state, node => node.type === type);
+      const nodes = await gunDb.queryByType(type);
       res.send(nodes);
     } catch (error) {
       res.status(500).send({ error: "Failed to query nodes" });
@@ -92,7 +79,7 @@ export const createRouter = (gunDb: GunMogu) => {
   router.post("/queryByContent", async (req: Request, res: Response) => {
     try {
       const { content } = req.body;
-      const nodes = query(state, node => String(node.content) === content);
+      const nodes = await gunDb.queryByContent(content);
       res.send(nodes);
     } catch (error) {
       res.status(500).send({ error: "Failed to query nodes" });
@@ -101,8 +88,8 @@ export const createRouter = (gunDb: GunMogu) => {
 
   router.post("/save", async (req: Request, res: Response) => {
     try {
-      const hash = await storeDatabase(state);
-      res.send({ hash });
+      const nodes = Array.from(gunDb.getState().values());
+      res.send({ nodes });
     } catch (error) {
       res.status(500).send({ error: "Failed to save state" });
     }
@@ -111,20 +98,10 @@ export const createRouter = (gunDb: GunMogu) => {
   router.post("/load/:hash", async (req: Request, res: Response) => {
     try {
       const { hash } = req.params;
-      const nodes = await retrieveDatabase(hash);
-      state = new Map(nodes.map(node => [node.id, node]));
-      res.send(nodes);
+      const nodes = await gunDb.getState();
+      res.send(Array.from(nodes.values()));
     } catch (error) {
       res.status(500).send({ error: "Failed to load state" });
-    }
-  });
-
-  router.post("/serialize", async (req: Request, res: Response) => {
-    try {
-      const serialized = await serializeDatabase(state);
-      res.send(serialized);
-    } catch (error) {
-      res.status(500).send({ error: "Failed to serialize state" });
     }
   });
 

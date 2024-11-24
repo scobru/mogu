@@ -1,5 +1,5 @@
 import 'gun/sea';
-import { NodeType, EncryptedNode as StandardNode } from './types';
+import { EncryptedNode, NodeType, EncryptedNode as StandardNode } from './types';
 export interface GunNode {
     id: string;
     type: NodeType;
@@ -15,19 +15,30 @@ export declare class GunMogu {
     private pair;
     private sea;
     private encryptionKey;
-    constructor(gunInstance?: any, peers?: string[], useIpfs?: boolean, encryptionKey?: string);
+    private peers;
+    constructor(gunInstance: any, encryptionKey?: string);
+    addPeer(peerUrl: string): string[];
+    removePeer(peerUrl: string): string[];
+    getPeers(): string[];
     authenticate(username: string, password: string): Promise<any>;
+    private tryAuthenticate;
     private initializeSEA;
     private parseNodePath;
     private getGunReference;
-    addNode(node: StandardNode): Promise<unknown>;
-    getNode(id: string): Promise<StandardNode | null>;
-    updateNode(node: StandardNode): Promise<unknown>;
+    private convertToStandardNode;
+    private state;
+    getState(): Map<string, EncryptedNode>;
+    setState(newState: Map<string, EncryptedNode>): void;
+    addNode(node: EncryptedNode): Promise<Map<string, EncryptedNode>>;
+    private addNodeToGun;
+    getNode(id: string): Promise<EncryptedNode | null>;
+    private getNodeFromGun;
+    updateNode(node: StandardNode): Promise<Map<string, EncryptedNode>>;
     removeNode(id: string): Promise<unknown>;
-    queryByType(type: NodeType, callback: (nodes: StandardNode[]) => void): Promise<void>;
-    backupToIPFS(): Promise<unknown>;
-    subscribeToChanges(callback: (node: GunNode) => void): void;
+    queryByName(name: string): Promise<EncryptedNode[]>;
+    queryByType(type: NodeType): Promise<EncryptedNode[]>;
+    queryByContent(content: string): Promise<EncryptedNode[]>;
+    subscribeToChanges(callback: (node: EncryptedNode) => void): void;
     getGunInstance(): any;
-    plugin<T>(name: string): T | undefined;
     getGun(): any;
 }

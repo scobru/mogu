@@ -27,8 +27,7 @@ const startServer = () => {
             res.status(200).send('Gun server is running');
             return;
         }
-        // Cast gunInstance a any per accedere a web
-        gunInstance.web?.(req, res);
+        gunInstance.web(req, res);
     });
     // Crea l'app con le route API
     const appWithRoutes = (0, api_1.createApp)(gunDb);

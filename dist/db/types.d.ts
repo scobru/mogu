@@ -1,4 +1,6 @@
 export declare enum NodeType {
+    AUTH = "AUTH",
+    MESSAGE = "MESSAGE",
     NODE = "NODE"
 }
 export interface EncryptedNode {

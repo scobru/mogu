@@ -7,15 +7,13 @@ const utils_1 = require("ethers/lib/utils");
 const types_1 = require("../db/types");
 Object.defineProperty(exports, "NodeType", { enumerable: true, get: function () { return types_1.NodeType; } });
 const gunDb_1 = require("../db/gunDb");
-const server_1 = require("../server");
-const db_1 = require("../db/db");
-const nameQuery = (name) => (node) => node.name === name;
-const typeQuery = (type) => (node) => node.type === type;
-const contentQuery = (content) => (node) => String(node.content) === content;
+const gun_1 = require("../config/gun");
 class Mogu {
-    constructor(peers = [], key, storageService, storageConfig, dbName) {
-        this.gunDb = new gunDb_1.GunMogu(server_1.gun, peers, false, key || '');
-        this.state = new Map();
+    constructor(options = {}) {
+        const { key, storageService, storageConfig, dbName, server } = options;
+        // Inizializza GUN in base al contesto (server o client)
+        const gunInstance = server ? (0, gun_1.initGun)(server) : (0, gun_1.initializeGun)();
+        this.gunDb = new gunDb_1.GunMogu(gunInstance, key || '');
         this.dbName = dbName || 'default-db';
         if (key && key.length > 0) {
             const hashedKey = ethers_1.ethers.utils.keccak256((0, utils_1.toUtf8Bytes)(key));
@@ -29,55 +27,45 @@ class Mogu {
             this.storageService = (0, index_1.Web3Stash)(storageService, storageConfig);
         }
     }
-    // Nuovi metodi GunDB
+    // Metodo per aggiungere peer dinamicamente
+    addPeer(peerUrl) {
+        return this.gunDb.addPeer(peerUrl);
+    }
+    // Metodo per rimuovere peer
+    removePeer(peerUrl) {
+        return this.gunDb.removePeer(peerUrl);
+    }
+    // Metodo per ottenere la lista dei peer attuali
+    getPeers() {
+        return this.gunDb.getPeers();
+    }
+    // Metodi delegati a GunDB
     async login(username, password) {
         return this.gunDb.authenticate(username, password);
     }
     onNodeChange(callback) {
-        const convertToStandardNode = (gunNode) => ({
-            id: gunNode.id,
-            type: gunNode.type,
-            name: gunNode.name,
-            content: gunNode.content,
-            encrypted: gunNode.encrypted
-        });
-        this.gunDb.subscribeToChanges((gunNode) => {
-            callback(convertToStandardNode(gunNode));
-        });
+        this.gunDb.subscribeToChanges(callback);
     }
     async addNode(node) {
-        await this.gunDb.addNode(node);
-        this.state.set(node.id, node);
-        return this.state;
+        return this.gunDb.addNode(node);
     }
     async getNode(id) {
-        const gunNode = await this.gunDb.getNode(id);
-        if (gunNode) {
-            this.state.set(id, gunNode);
-            return gunNode;
-        }
-        return this.state.get(id) || null;
+        return this.gunDb.getNode(id);
     }
-    initializeDatabase() {
-        console.log("Initializing database...");
-        return new Map();
+    // Query methods
+    async queryByName(name) {
+        return this.gunDb.queryByName(name);
     }
-    serialize() {
-        console.log("Serialize");
-        const serialized = (0, db_1.serializeDatabase)(this.state);
-        console.log("Serialized:", serialized);
-        return serialized;
+    async queryByType(type) {
+        return this.gunDb.queryByType(type);
     }
-    deserialize(json) {
-        console.log("Deserialize");
-        const deserialized = (0, db_1.deserializeDatabase)(json);
-        console.log("Deserialized:", deserialized);
-        return deserialized;
+    async queryByContent(content) {
+        return this.gunDb.queryByContent(content);
     }
+    // Storage service methods
     async store() {
-        console.log("Store");
         try {
-            const nodes = Array.from(this.state.values());
+            const nodes = Array.from(this.gunDb.getState().values());
             if (!this.storageService) {
                 throw new Error("Storage service not initialized");
             }
@@ -90,14 +78,6 @@ class Mogu {
             return undefined;
         }
     }
-    isEncryptedNode(value) {
-        return (value &&
-            typeof value === "object" &&
-            typeof value.id === "string" &&
-            typeof value.name === "string" &&
-            Object.values(types_1.NodeType).includes(value.type) &&
-            (value.encrypted === undefined || typeof value.encrypted === "boolean"));
-    }
     processKey(hashedKey) {
         if (hashedKey.length > 32) {
             return hashedKey.substring(0, 32);
@@ -106,38 +86,29 @@ class Mogu {
             return hashedKey.padEnd(32, "0");
         }
     }
-    async retrieve(hash) {
-        console.log("Retrieve");
-        return await (0, db_1.retrieveDatabase)(hash);
-    }
     async load(hash) {
-        console.log("Load");
-        const state = await (0, db_1.retrieveDatabase)(hash);
-        this.state = new Map(state.map((node) => [node.id, node]));
-        return this.state;
+        try {
+            if (!this.storageService) {
+                throw new Error("Storage service not initialized");
+            }
+            const data = await this.storageService.downloadJson(hash);
+            const nodes = Array.isArray(data) ? data : [data];
+            this.gunDb.setState(new Map(nodes.map((node) => [node.id, node])));
+            return this.gunDb.getState();
+        }
+        catch (err) {
+            console.error("Error loading state:", err);
+            throw err;
+        }
     }
     removeNode(id) {
-        return (0, db_1.removeNode)(this.state, id);
+        return this.gunDb.removeNode(id);
     }
     getAllNodes() {
-        console.log("Get All Nodes");
-        return (0, db_1.getAllNodes)(this.state);
+        return Array.from(this.gunDb.getState().values());
     }
     updateNode(node) {
-        console.log("Update Node");
-        if (!this.state.has(node.id)) {
-            console.log("Node with ID not found in state:", node.id);
-            return;
-        }
-        this.state = (0, db_1.updateNode)(this.state, node);
-        console.log("Update Complete!");
-        return node;
-    }
-    query(predicate) {
-        console.log("Query");
-        const nodes = this.getAllNodes();
-        console.log("Nodes:", nodes);
-        return nodes.filter(predicate);
+        return this.gunDb.updateNode(node);
     }
     async pin() {
         if (!this.storageService) {
@@ -154,56 +125,15 @@ class Mogu {
         }
         await this.storageService.unpin(hash);
     }
-    queryByName(name) {
-        console.log("Query by Name");
-        return this.query(nameQuery(name));
-    }
-    queryByType(type) {
-        console.log("Query by Type");
-        return this.query(typeQuery(type));
-    }
-    queryByContent(content) {
-        console.log("Query by Content");
-        return this.query(contentQuery(content));
-    }
     // Metodo per accedere all'istanza Gun
     getGun() {
         return this.gunDb.getGunInstance();
     }
-    // Esempio di utilizzo del plugin chain
-    async useChainPlugin() {
-        const gun = this.getGun();
-        // Ora puoi usare il plugin
-        gun.chain.tuaFunzione();
-    }
-    // Wrapper per le funzionalità del plugin
-    async chainOperation(path) {
-        const gun = this.getGun();
-        const result = await gun.chain.operation(path);
-        // Converti il risultato nel formato Mogu
-        const node = {
-            id: path,
-            type: types_1.NodeType.NODE,
-            name: result.name,
-            content: result.data
-        };
-        // Aggiorna lo stato interno
-        this.state.set(node.id, node);
-        return node;
-    }
-    // Metodo per accedere ai plugin
-    plugin(name) {
-        return this.gunDb.plugin(name);
-    }
-    // Accedi direttamente all'istanza Gun con i plugin
-    gun() {
-        return this.gunDb.getGun();
-    }
 }
 exports.Mogu = Mogu;
 class MoguOnChain extends Mogu {
-    constructor(contractAddress, signer, peers = [], initialState, key) {
-        super(peers, key);
+    constructor(contractAddress, signer, options = {}) {
+        super(options);
         this.abi = [
             "event CIDRegistered(string cid)",
             "function registerCID(string memory cidNew) public",
