@@ -1,196 +1,243 @@
 # MOGU - Decentralized Database with GunDB and IPFS
 
-<img src="./mogu.png" alt="image" width="300" height="300">
+## Architettura e Concetti Chiave
 
-Mogu è un wrapper semplificato per GunDB che aggiunge:
-- Storage persistente su IPFS/Pinata/Arweave/Bundlr
-- Crittografia integrata
-- API REST e WebSocket
-- Query semplificate
-- Supporto per percorsi gerarchici
+### 1. Core Components
 
-## 🚀 Installazione
+#### 1.1 GunDB Wrapper (GunMogu)
+- Gestisce l'istanza di GunDB
+- Implementa il sistema di autenticazione
+- Gestisce lo stato interno dei nodi
+- Supporta path gerarchici (es: "org/team1/projects/1")
+- Gestisce lo user space ("~/") per dati privati
 
-```bash
-npm install @scobru/mogu
-# o
-yarn add @scobru/mogu
-```
+#### 1.2 Storage Layer (Web3Stash)
+- Interfaccia unificata per storage distribuito
+- Supporta multiple implementazioni:
+  - IPFS/Pinata
+  - Arweave
+  - Bundlr
+  - NFT.Storage
+  - Web3.Storage
+  - Lighthouse
 
-## ⚙️ Configurazione
+#### 1.3 SDK (Mogu)
+- Wrapper di alto livello
+- API semplificata per operazioni CRUD
+- Gestione automatica del backup/restore
+- Sistema di query
 
-1. Crea un file `.env`:
-```env
-PINATA_API_KEY=your_pinata_key
-PINATA_API_SECRET=your_pinata_secret
-```
-
-2. Inizializza il server:
-```typescript
-import { initGun } from '@scobru/mogu';
-import express from 'express';
-
-const app = express();
-const server = app.listen(8765);
-const gunInstance = initGun(server);
-```
-
-## 💻 Utilizzo Base
+### 2. Inizializzazione
 
 ```typescript
-import { Mogu } from '@scobru/mogu';
-import { initializeGun } from '@scobru/mogu/config';
+// Server-side
+const server = express().listen(8765);
+const { gunDb } = await startServer();
 
-// Inizializza Gun
-const gunInstance = initializeGun(['http://localhost:8765']);
-
-// Crea istanza Mogu
-const mogu = new Mogu(
-  ['http://localhost:8765'],
-  'encryption-key',  // Opzionale
-  'PINATA',
-  {
+// Client-side
+const mogu = new Mogu({
+  storageService: 'PINATA',
+  storageConfig: {
     apiKey: process.env.PINATA_API_KEY,
     apiSecret: process.env.PINATA_API_SECRET
   }
-);
+});
+```
 
-// Login
+### 3. Autenticazione
+
+```typescript
+// Login (crea l'utente se non esiste)
 await mogu.login('username', 'password');
+```
 
-// Operazioni CRUD
-const node = await mogu.addNode({
-  id: "docs/readme",
-  type: "NODE",
-  name: "README",
-  content: "# Hello World"
+### 4. Operazioni Base
+
+```typescript
+// Scrittura
+await mogu.put('users/1', { 
+  value: { name: 'John' } 
 });
 
 // Lettura
-const myNode = await mogu.getNode("docs/readme");
+const data = await mogu.get('users/1');
 
-// Query
-const nodes = await mogu.queryByName("README");
-
-// Real-time Updates
-mogu.onNodeChange((node) => {
-  console.log('Node updated:', node);
-});
-
-// Backup su IPFS/Pinata
-const hash = await mogu.store();
-await mogu.pin();
-```
-
-## 🌟 Features
-
-### Percorsi Gerarchici
-```typescript
-// Struttura organizzativa
-await mogu.addNode({
-  id: "org/team1/projects/project1",
-  type: "NODE",
-  name: "Project 1",
-  content: { status: "active" }
-});
-
-// User space privato
-await mogu.addNode({
-  id: "~/notes/private",  // ~ indica user space
-  type: "NODE",
-  name: "Private Notes",
-  content: "Secret"
+// Real-time updates
+mogu.on('users/1', (data) => {
+  console.log('User updated:', data);
 });
 ```
 
-### Query Avanzate
+### 5. Backup e Restore
+
 ```typescript
-// Query per nome
-const nodesByName = await mogu.queryByName("Project 1");
+// Backup su storage distribuito
+const hash = await mogu.backup();
 
-// Query per tipo
-const nodesByType = await mogu.queryByType(NodeType.NODE);
+// Restore da hash
+await mogu.restore(hash);
 
-// Query per contenuto
-const nodesByContent = await mogu.queryByContent("active");
+// Rimozione backup
+await mogu.removeBackup(hash);
 ```
 
-### WebSocket API
+## Implementazione Dettagliata
+
+### 1. Struttura dei Dati
+
 ```typescript
-// Client
-const ws = new WebSocket('ws://localhost:3002');
-
-ws.send(JSON.stringify({
-  method: "addNode",
-  params: {
-    id: "test/node1",
-    type: "NODE",
-    name: "Test Node",
-    content: "Hello"
-  }
-}));
-
-ws.onmessage = (event) => {
-  const { method, params } = JSON.parse(event.data);
-  console.log(method, params);
-};
+interface EncryptedNode {
+  id: string;          // Path gerarchico univoco
+  type: NodeType;      // Tipo del nodo (default: 'NODE')
+  name: string;        // Nome del nodo
+  content?: any;       // Contenuto (può essere crittografato)
+  encrypted?: boolean; // Flag di crittografia
+}
 ```
 
-### REST API
+### 2. Gestione dei Path
+
+- Supporto per path gerarchici: `org/team1/projects/1`
+- User space privato: `~/notes/private`
+- Path parsing automatico
+- Creazione automatica dei nodi intermedi
+
+### 3. Sincronizzazione
+
+- Real-time sync tramite GunDB
+- Stato interno mantenuto in `Map<string, EncryptedNode>`
+- Backup asincrono su storage distribuito
+- Restore con verifica dell'integrità
+
+### 4. Storage Distribuito
+
+```typescript
+interface StorageService {
+  uploadJson(data: Record<string, unknown>): Promise<UploadOutput>;
+  unpin(hash: string): Promise<void>;
+}
+
+interface UploadOutput {
+  id: string;
+  metadata: Record<string, unknown>;
+}
+```
+
+### 5. API REST e WebSocket
+
+```typescript
+// REST Endpoints
+POST /api/addNode
+POST /api/updateNode
+POST /api/removeNode
+GET  /api/getAllNodes
+POST /api/queryByName
+POST /api/queryByType
+POST /api/queryByContent
+
+// WebSocket Events
+{
+  method: "addNode" | "removeNode" | "updateNode" | "getNode",
+  params: EncryptedNode | { id: string }
+}
+```
+
+## Best Practices
+
+1. **Inizializzazione**:
+   - Avvia sempre il server prima dei client
+   - Usa environment variables per le chiavi API
+   - Gestisci gli errori di connessione
+
+2. **Autenticazione**:
+   - Attendi il completamento del login
+   - Verifica lo stato dell'utente prima delle operazioni
+   - Gestisci il logout esplicito
+
+3. **Operazioni sui Dati**:
+   - Usa path significativi e gerarchici
+   - Attendi la sincronizzazione dopo le scritture
+   - Verifica l'integrità dopo il restore
+
+4. **Backup**:
+   - Esegui backup periodici
+   - Verifica l'integrità dei backup
+   - Mantieni un registro dei backup
+   - Rimuovi i backup obsoleti
+
+5. **Performance**:
+   - Usa batch operations per operazioni multiple
+   - Implementa caching lato client
+   - Monitora l'uso della memoria
+
+## Troubleshooting
+
+1. **Errori Comuni**:
+   - `User not authenticated`: Esegui il login
+   - `Storage service not initialized`: Verifica la configurazione
+   - `Invalid backup data`: Controlla il formato dei dati
+
+2. **Debug**:
+   - Abilita i log dettagliati
+   - Verifica lo stato della connessione
+   - Controlla gli errori di rete
+
+## Testing
+
 ```bash
-# Crea nodo
-curl -X POST http://localhost:3001/api/addNode \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "test/node1",
-    "type": "NODE",
-    "name": "Test Node",
-    "content": "Hello"
-  }'
-
-# Query
-curl -X POST http://localhost:3001/api/queryByName \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "Test Node" }'
-```
-
-## 🏗️ Architettura
-
-```
-src/
-├── api/            # REST & WebSocket APIs
-├── config/         # Gun configuration
-├── db/            
-│   ├── gunDb.ts   # Core GunDB wrapper
-│   └── types.ts   # Type definitions
-├── ipfs/          # IPFS/Pinata integration
-└── sdk/           # Main SDK
-```
-
-## 🔒 Sicurezza
-
-- **Crittografia Integrata**: Attivata fornendo una chiave
-- **User Space**: Area privata per dati utente (`~/`)
-- **Autenticazione**: Sistema login integrato
-- **Storage Distribuito**: IPFS, Pinata, Arweave o Bundlr
-
-## 🧪 Testing
-
-```bash
-# Esegui i test
+# Test completi
 yarn test
 
 # Test specifici
-yarn test:api
-yarn test:storage
+yarn test:api     # Test API REST
+yarn test:storage # Test storage
+yarn test:sync    # Test sincronizzazione
 ```
 
-## 📄 Licenza
+## Estensioni
 
-MIT
+1. **Plugin**:
+   - Aggiungi funzionalità custom
+   - Estendi le query
+   - Implementa middleware
 
-## 🔗 Links
+2. **Storage Custom**:
+   - Implementa `StorageService`
+   - Aggiungi nuovo provider
+   - Configura opzioni custom
 
-- [Documentazione](https://github.com/yourusername/mogu/docs)
-- [Esempi](https://github.com/yourusername/mogu/examples)
-- [Issues](https://github.com/yourusername/mogu/issues)
+## Sicurezza
+
+1. **Crittografia**:
+   - Dati crittografati a riposo
+   - Chiavi private mai salvate
+   - Verifica dell'integrità
+
+2. **Autenticazione**:
+   - Token JWT
+   - Sessioni sicure
+   - Rate limiting
+
+## Limitazioni Note
+
+1. **Scalabilità**:
+   - Limite di dimensione per nodo
+   - Numero massimo di peer
+   - Latenza in reti grandi
+
+2. **Compatibilità**:
+   - Browser moderni
+   - Node.js 14+
+   - WebSocket required
+
+## Roadmap
+
+1. **Prossime Feature**:
+   - Sharding automatico
+   - Compressione dati
+   - Backup incrementali
+
+2. **Miglioramenti**:
+   - Performance query
+   - Gestione memoria
+   - Resilienza rete
