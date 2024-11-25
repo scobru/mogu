@@ -1,95 +1,137 @@
+/**
+ * @fileoverview Main Mogu module that manages integration between GunDB and IPFS
+ */
+
 import { Web3Stash } from "../web3stash/index";
 import type { Web3StashServices, Web3StashConfig } from "../web3stash/types";
-import { NodeType, EncryptedNode } from "../db/types";
-import { GunMogu } from "../db/gunDb";
 import { initializeGun, initGun } from "../config/gun";
 import * as fsPromises from "fs/promises";
 import path from "path";
-import { keccak256 } from "js-sha3";
-import Gun, { IGunChain } from "gun";
+import { IPFSAdapter } from "../adapters/ipfsAdapter";
 
-export { EncryptedNode, NodeType };
-
+/**
+ * Configuration options for Mogu instance
+ * @interface MoguOptions
+ * @property {string} [key] - Optional encryption key
+ * @property {Web3StashServices} [storageService] - Web3 storage service to use
+ * @property {Web3StashConfig} [storageConfig] - Configuration for storage service
+ * @property {any} [server] - GunDB server configuration
+ * @property {boolean} [useIPFS] - Flag to enable IPFS usage
+ */
 interface MoguOptions {
   key?: string;
   storageService?: Web3StashServices;
   storageConfig?: Web3StashConfig;
   server?: any;
+  useIPFS?: boolean;
 }
 
+/**
+ * Interface for backup file data
+ * @interface BackupFileData
+ * @property {string} fileName - Name of the file
+ * @property {string|object} content - Content of the file
+ */
 interface BackupFileData {
   fileName: string;
   content: string | object;
 }
 
 /**
- * Mogu - A decentralized database with IPFS backup capabilities
- * @class
+ * Main Mogu class that manages integration between GunDB and IPFS
+ * @class Mogu
  */
 export class Mogu {
-  private gun: GunMogu;
+  private gun: any;
   private storageService?: any;
   private lastBackupHash?: string;
   private radataPath: string;
+  private ipfsAdapter?: IPFSAdapter;
+  private useIPFS: boolean;
 
+  /**
+   * Creates a Mogu instance
+   * @constructor
+   * @param {MoguOptions} options - Configuration options
+   */
   constructor(options: MoguOptions = {}) {
-    const { key, storageService, storageConfig, server } = options;
+    const { key, storageService, storageConfig, server, useIPFS = false } = options;
 
-    // Imposta il percorso di Gun correttamente
     this.radataPath = path.join(process.cwd(), "radata");
     console.log("Using radata path:", this.radataPath);
 
-    // Crea la directory radata se non esiste
     fsPromises.mkdir(this.radataPath, { recursive: true }).catch(console.error);
 
-    // Inizializza Gun con il percorso corretto
     const gunInstance = server ? initGun(server, { file: this.radataPath }) : initializeGun({ file: this.radataPath });
+    this.gun = gunInstance;
 
-    this.gun = new GunMogu(gunInstance, key || "");
+    this.useIPFS = useIPFS;
+
+    if (this.useIPFS) {
+      if (!storageConfig) {
+        throw new Error("Storage configuration is required when using IPFS");
+      }
+      this.ipfsAdapter = new IPFSAdapter(storageConfig);
+    }
 
     if (storageService && storageConfig) {
       this.storageService = Web3Stash(storageService, storageConfig);
     }
-
-    // Estensione della catena di Gun per i metodi di backup
-    (Gun.chain as any).backup = this.backup;
-    (Gun.chain as any).restore = this.restore;
-    (Gun.chain as any).removeBackup = this.removeBackup;
-    (Gun.chain as any).compareBackup = this.compareBackup;
   }
 
-  // Aggiungiamo il metodo login
-  async login(username: string, password: string) {
-    return this.gun.authenticate(username, password);
+  /**
+   * Gets the GunDB instance
+   * @returns {any} GunDB instance
+   */
+  public getGunInstance() {
+    return this.gun;
   }
 
-  // Metodi base - usa direttamente Gun
-  async put(path: string, data: any) {
-    const ref = this.gun.getGunInstance().get("nodes").get(path);
-    return new Promise(resolve => {
-      ref.put(data, (ack: any) => resolve(ack));
-    });
+  /**
+   * Retrieves data from specified key
+   * @param {string} key - Key to retrieve data from
+   * @returns {Promise<any>} Retrieved data
+   */
+  get(key: string) {
+    if (this.useIPFS && this.ipfsAdapter) {
+      return this.ipfsAdapter.get(key);
+    }
+    return this.gun.get(key);
   }
 
-  async get(path: string) {
-    const ref = this.gun.getGunInstance().get("nodes").get(path);
-    return new Promise<any>(resolve => {
-      ref.once((data: any) => resolve(data));
-    });
+  /**
+   * Puts data at specified key
+   * @param {string} key - Key to put data at
+   * @param {any} data - Data to put
+   * @returns {Promise<any>} Operation result
+   */
+  put(key: string, data: any) {
+    if (this.useIPFS && this.ipfsAdapter) {
+      return this.ipfsAdapter.put(key, data);
+    }
+    return this.gun.get(key).put(data);
   }
 
-  on(path: string, callback: (data: any) => void) {
-    this.gun.getGunInstance().get("nodes").get(path).on(callback);
+  /**
+   * Subscribes to updates on a key
+   * @param {string} key - Key to monitor
+   * @param {Function} callback - Function to call for updates
+   */
+  on(key: string, callback: (data: any) => void) {
+    this.gun.get(key).on(callback);
   }
 
-  // Backup su IPFS - salva i dati raw di Gun
+  /**
+   * Performs data backup
+   * @returns {Promise<string>} Hash of created backup
+   * @throws {Error} If storage service is not initialized
+   */
   async backup() {
     if (!this.storageService) {
       throw new Error("Storage service not initialized");
     }
 
     try {
-      // Leggi tutti i file dalla directory gun-data
       const files = await fsPromises.readdir(this.radataPath);
       console.log("Files to backup:", files);
 
@@ -100,13 +142,11 @@ export class Mogu {
         const content = await fsPromises.readFile(filePath, "utf8");
 
         try {
-          // Prova a parsare il contenuto come JSON
           backupData[file] = {
             fileName: file,
             content: JSON.parse(content),
           };
         } catch {
-          // Se non è JSON valido, salvalo come stringa
           backupData[file] = {
             fileName: file,
             content: content,
@@ -116,10 +156,8 @@ export class Mogu {
 
       console.log("Backup data prepared:", backupData);
 
-      // Carica i dati su IPFS
       const result = await this.storageService.uploadJson(backupData);
 
-      // Fai l'unpin del backup precedente solo dopo aver verificato che il nuovo è ok
       if (this.lastBackupHash) {
         try {
           await this.storageService.unpin(this.lastBackupHash);
@@ -138,13 +176,18 @@ export class Mogu {
     }
   }
 
+  /**
+   * Restores data from a backup
+   * @param {string} hash - Hash of backup to restore
+   * @returns {Promise<boolean>} True if restore was successful
+   * @throws {Error} If storage service is not initialized
+   */
   async restore(hash: string) {
     if (!this.storageService) {
       throw new Error("Storage service not initialized");
     }
 
     try {
-      // Ottieni i dati direttamente da IPFS usando il gateway
       const backupData = await this.storageService.get(hash);
       console.log("Backup data received:", JSON.stringify(backupData, null, 2));
 
@@ -152,15 +195,12 @@ export class Mogu {
         throw new Error("Invalid backup data format");
       }
 
-      // Rimuovi la directory radata esistente
       await fsPromises.rm(this.radataPath, { recursive: true, force: true });
       console.log("Existing radata directory removed");
 
-      // Crea la directory radata
       await fsPromises.mkdir(this.radataPath, { recursive: true });
       console.log("New radata directory created");
 
-      // Ripristina ogni file esattamente come era
       for (const [fileName, fileData] of Object.entries(backupData)) {
         if (!fileData || typeof fileData !== "object") {
           console.warn(`Invalid file data for ${fileName}`);
@@ -177,7 +217,6 @@ export class Mogu {
         console.log(`Restoring file: ${fileName}`);
 
         try {
-          // Mantieni la struttura esatta del file di Gun
           const fileContent = JSON.stringify(content);
           await fsPromises.writeFile(filePath, fileContent, "utf8");
           console.log(`File ${fileName} restored successfully`);
@@ -190,11 +229,9 @@ export class Mogu {
       this.lastBackupHash = hash;
       console.log("All files restored successfully");
 
-      // Reinizializza Gun per caricare i nuovi dati
-      const gunInstance = this.gun.getGunInstance();
+      const gunInstance = this.gun;
       gunInstance.opt({ file: this.radataPath });
 
-      // Attendi che Gun carichi i dati
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       return true;
@@ -204,7 +241,11 @@ export class Mogu {
     }
   }
 
-  // Metodo per rimuovere esplicitamente un backup
+  /**
+   * Removes a specific backup
+   * @param {string} hash - Hash of backup to remove
+   * @throws {Error} If storage service is not initialized
+   */
   async removeBackup(hash: string) {
     if (!this.storageService) {
       throw new Error("Storage service not initialized");
@@ -222,19 +263,12 @@ export class Mogu {
     }
   }
 
-  // Metodi di utilità
-  getGun() {
-    return this.gun.getGunInstance();
-  }
-
-  getState() {
-    return this.gun.getState();
-  }
-
-  private async getFileHash(content: string): Promise<string> {
-    return keccak256(content);
-  }
-
+  /**
+   * Compares a backup with local data
+   * @param {string} hash - Hash of backup to compare
+   * @returns {Promise<Object>} Object containing comparison results
+   * @throws {Error} If storage service is not initialized
+   */
   async compareBackup(hash: string): Promise<{
     isEqual: boolean;
     differences?: {
@@ -248,15 +282,12 @@ export class Mogu {
     }
 
     try {
-      // Ottieni i dati del backup remoto
       const remoteData = await this.storageService.get(hash);
       console.log("Remote data:", JSON.stringify(remoteData, null, 2));
 
-      // Leggi i file locali
       const localFiles = await fsPromises.readdir(this.radataPath);
       const localData: Record<string, any> = {};
 
-      // Carica i contenuti dei file locali
       for (const file of localFiles) {
         const filePath = path.join(this.radataPath, file);
         const content = await fsPromises.readFile(filePath, "utf8");
@@ -273,19 +304,16 @@ export class Mogu {
         }
       }
 
-      // Confronta i backup
       const differences = {
         missingLocally: [] as string[],
         missingRemotely: [] as string[],
         contentMismatch: [] as string[],
       };
 
-      // Controlla i file remoti
       for (const [fileName, fileData] of Object.entries(remoteData)) {
         if (!localData[fileName]) {
           differences.missingLocally.push(fileName);
         } else {
-          // Confronta i contenuti normalizzati
           const remoteContent = JSON.stringify((fileData as BackupFileData).content);
           const localContent = JSON.stringify(localData[fileName].content);
 
@@ -295,7 +323,6 @@ export class Mogu {
         }
       }
 
-      // Controlla i file locali
       for (const fileName of Object.keys(localData)) {
         if (!remoteData[fileName]) {
           differences.missingRemotely.push(fileName);

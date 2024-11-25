@@ -1,5 +1,4 @@
-import { Mogu } from "../sdk/sdk";
-import { NodeType } from "../db/types";
+import { Mogu } from "../core/core";
 import dotenv from 'dotenv';
 import { startServer } from '../server';
 import fs from 'fs/promises';
@@ -10,35 +9,34 @@ dotenv.config();
 const TEST_TIMEOUT = 30000;
 const RADATA_PATH = path.join(process.cwd(), "radata");
 
-/**
- * Mogu Test Suite
- * Tests core functionality including:
- * - Basic operations (put/get)
- * - Backup and restore
- * - Backup integrity verification
- * 
- * Run with: yarn test
- */
-
 async function run() {
   try {
     console.log("Starting tests...");
     
-    // Avvia il server Gun
-    const { gunDb } = await startServer();
-    console.log("Gun server started");
-    
-    // Crea istanza Mogu
-    const mogu = new Mogu({
+    // Test con IPFS disabilitato
+    console.log("\n=== Running tests with IPFS disabled ===");
+    const moguWithoutIPFS = new Mogu({
       storageService: 'PINATA',
       storageConfig: {
         apiKey: process.env.PINATA_API_KEY || '',
         apiSecret: process.env.PINATA_API_SECRET || ''
-      }
+      },
+      useIPFS: false
     });
+    await runTests(moguWithoutIPFS, "without IPFS");
 
-    // Esegui i test
-    await runTests(mogu);
+    // Test con IPFS abilitato
+    console.log("\n=== Running tests with IPFS enabled ===");
+    const moguWithIPFS = new Mogu({
+      storageService: 'PINATA',
+      storageConfig: {
+        apiKey: process.env.PINATA_API_KEY || '',
+        apiSecret: process.env.PINATA_API_SECRET || ''
+      },
+      useIPFS: true
+    });
+    await runTests(moguWithIPFS, "with IPFS");
+
     console.log("All tests completed successfully!");
     process.exit(0);
   } catch (err) {
@@ -47,17 +45,16 @@ async function run() {
   }
 }
 
-async function runTests(mogu: Mogu) {
+async function runTests(mogu: Mogu, testType: string) {
   try {
-    // Login
-    await mogu.login('testuser', 'testpass');
-    console.log('Login successful');
-
-    // Test operazioni base
+    console.log(`\nStarting basic operations test ${testType}...`);
     await testBasicOperations(mogu);
     
-    // Test backup e restore
+    console.log(`\nStarting backup test ${testType}...`);
     await testBackup(mogu);
+
+    console.log(`\nStarting IPFS operations test ${testType}...`);
+    await testIPFSOperations(mogu);
 
   } catch (err) {
     console.error(`Test failed:`, err);
@@ -67,20 +64,64 @@ async function runTests(mogu: Mogu) {
 
 async function testBasicOperations(mogu: Mogu) {
   // Test put
+  console.log("Testing put operation...");
   await mogu.put('test/data1', { value: 'test1' });
   await mogu.put('test/data2', { value: 'test2' });
   
   // Test get
+  console.log("Testing get operation...");
   const data1 = await mogu.get('test/data1');
   console.log('Retrieved data1:', data1);
   
+  // Verifica dei dati
+  if (!data1 || data1.value !== 'test1') {
+    throw new Error('Data verification failed for test/data1');
+  }
+  
   // Test real-time updates
-  mogu.on('test/data1', (data) => {
-    console.log('Data1 updated:', data);
+  console.log("Testing real-time updates...");
+  const updatePromise = new Promise<void>(resolve => {
+    mogu.on('test/data1', (data: any) => {
+      console.log('Data1 updated:', data);
+      if (data.value === 'updated') {
+        resolve();
+      }
+    });
   });
 
-  // Attendi che i dati siano sincronizzati
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Aggiorna i dati
+  await mogu.put('test/data1', { value: 'updated' });
+  
+  // Attendi l'aggiornamento
+  await Promise.race([
+    updatePromise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Update timeout')), 5000))
+  ]);
+}
+
+async function testIPFSOperations(mogu: Mogu) {
+  console.log("Testing IPFS operations...");
+  
+  // Test di scrittura su IPFS
+  const testData = { value: 'ipfs-test' };
+  await mogu.put('ipfs-test', testData);
+  
+  // Test di lettura da IPFS
+  const retrieved = await mogu.get('ipfs-test');
+  console.log('Retrieved from IPFS:', retrieved);
+  
+  if (JSON.stringify(retrieved.value) !== JSON.stringify(testData.value)) {
+    throw new Error('IPFS data verification failed');
+  }
+  
+  // Test di aggiornamento su IPFS
+  const updatedData = { value: 'ipfs-updated' };
+  await mogu.put('ipfs-test', updatedData);
+  
+  const retrievedUpdated = await mogu.get('ipfs-test');
+  if (JSON.stringify(retrievedUpdated.value) !== JSON.stringify(updatedData.value)) {
+    throw new Error('IPFS update verification failed');
+  }
 }
 
 async function testBackup(mogu: Mogu) {
@@ -92,6 +133,7 @@ async function testBackup(mogu: Mogu) {
   };
 
   // Inserisci i dati
+  console.log("Inserting test data...");
   for (const [path, data] of Object.entries(testData)) {
     await mogu.put(path, data);
   }
@@ -108,6 +150,7 @@ async function testBackup(mogu: Mogu) {
   }
 
   // Crea il backup
+  console.log("Creating backup...");
   const hash = await mogu.backup();
   console.log('Backup created with hash:', hash);
 
@@ -124,6 +167,7 @@ async function testBackup(mogu: Mogu) {
   console.log('Radata directory deleted');
 
   // Ripristina dal backup
+  console.log("Restoring from backup...");
   const restoreResult = await mogu.restore(hash);
   console.log('Backup restored:', restoreResult);
   
@@ -131,6 +175,7 @@ async function testBackup(mogu: Mogu) {
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   // Verifica che i file siano stati ripristinati correttamente
+  console.log("Verifying restored files...");
   const restoredFiles = new Map();
   const newFiles = await fs.readdir(RADATA_PATH);
   for (const file of newFiles) {
@@ -151,9 +196,13 @@ async function testBackup(mogu: Mogu) {
   }
 
   // Verifica che i dati siano accessibili tramite Gun
+  console.log("Verifying data accessibility...");
   for (const [path, data] of Object.entries(testData)) {
     const restored = await mogu.get(path);
-    if (JSON.stringify(restored?.value) !== JSON.stringify(data.value)) {
+    console.log(`Original data at ${path}:`, data);
+    console.log(`Restored data at ${path}:`, restored);
+
+    if (JSON.stringify(restored.value) !== JSON.stringify(data.value)) {
       throw new Error(`Data mismatch at ${path}`);
     }
   }
@@ -174,18 +223,26 @@ async function testBackup(mogu: Mogu) {
   // Modifica un file locale
   const testFile = '!';
   const filePath = path.join(RADATA_PATH, testFile);
-  const originalContent = await fs.readFile(filePath, 'utf8');
-  await fs.writeFile(filePath, JSON.stringify({ modified: true }));
 
-  // Seconda verifica: dovrebbe essere diverso
-  const comparison2 = await mogu.compareBackup(hash);
-  console.log('Comparison after modification:', comparison2);
-  if (comparison2.isEqual) {
-    throw new Error('Backup should be different after local modification');
+  // Verifica che il file esista prima di leggerlo
+  try {
+    await fs.access(filePath);
+    const originalContent = await fs.readFile(filePath, 'utf8');
+    await fs.writeFile(filePath, JSON.stringify({ modified: true }));
+
+    // Seconda verifica: dovrebbe essere diverso
+    const comparison2 = await mogu.compareBackup(hash);
+    console.log('Comparison after modification:', comparison2);
+    if (comparison2.isEqual) {
+      throw new Error('Backup should be different after local modification');
+    }
+
+    // Ripristina il contenuto originale
+    await fs.writeFile(filePath, originalContent);
+  } catch (err) {
+    console.error(`Error accessing file ${filePath}:`, err);
+    throw err;
   }
-
-  // Ripristina il contenuto originale
-  await fs.writeFile(filePath, originalContent);
 
   // Verifica finale dopo il ripristino
   const comparison3 = await mogu.compareBackup(hash);
