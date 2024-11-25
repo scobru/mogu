@@ -45,6 +45,7 @@ const gun_1 = require("../config/gun");
 const fsPromises = __importStar(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 const js_sha3_1 = require("js-sha3");
+const gun_2 = __importDefault(require("gun"));
 /**
  * Mogu - A decentralized database with IPFS backup capabilities
  * @class
@@ -63,6 +64,11 @@ class Mogu {
         if (storageService && storageConfig) {
             this.storageService = (0, index_1.Web3Stash)(storageService, storageConfig);
         }
+        // Estensione della catena di Gun per i metodi di backup
+        gun_2.default.chain.backup = this.backup;
+        gun_2.default.chain.restore = this.restore;
+        gun_2.default.chain.removeBackup = this.removeBackup;
+        gun_2.default.chain.compareBackup = this.compareBackup;
     }
     // Aggiungiamo il metodo login
     async login(username, password) {
@@ -230,17 +236,17 @@ class Mogu {
             // Carica i contenuti dei file locali
             for (const file of localFiles) {
                 const filePath = path_1.default.join(this.radataPath, file);
-                const content = await fsPromises.readFile(filePath, 'utf8');
+                const content = await fsPromises.readFile(filePath, "utf8");
                 try {
                     localData[file] = {
                         fileName: file,
-                        content: JSON.parse(content)
+                        content: JSON.parse(content),
                     };
                 }
                 catch {
                     localData[file] = {
                         fileName: file,
-                        content: content
+                        content: content,
                     };
                 }
             }
@@ -248,7 +254,7 @@ class Mogu {
             const differences = {
                 missingLocally: [],
                 missingRemotely: [],
-                contentMismatch: []
+                contentMismatch: [],
             };
             // Controlla i file remoti
             for (const [fileName, fileData] of Object.entries(remoteData)) {
@@ -276,11 +282,11 @@ class Mogu {
             console.log("Compare details:", {
                 localFiles: Object.keys(localData),
                 remoteFiles: Object.keys(remoteData),
-                differences
+                differences,
             });
             return {
                 isEqual,
-                differences: isEqual ? undefined : differences
+                differences: isEqual ? undefined : differences,
             };
         }
         catch (err) {

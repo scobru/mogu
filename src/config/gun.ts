@@ -70,3 +70,5 @@ export const getGunInstance = () => {
   }
   return gunInstance;
 };
+
+export { Gun };

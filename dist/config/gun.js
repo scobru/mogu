@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGunInstance = exports.initializeGun = exports.initGun = void 0;
+exports.Gun = exports.getGunInstance = exports.initializeGun = exports.initGun = void 0;
 const gun_1 = __importDefault(require("gun"));
+exports.Gun = gun_1.default;
 require("gun/sea");
 const path_1 = __importDefault(require("path"));
 let gunInstance;

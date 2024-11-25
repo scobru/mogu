@@ -1,3 +1,4 @@
+import Gun from "gun";
 import "gun/sea";
 interface GunOptions {
     file?: string;
@@ -7,4 +8,4 @@ interface GunOptions {
 export declare const initGun: (server: any, inputOptions?: GunOptions) => any;
 export declare const initializeGun: (inputOptions?: GunOptions) => any;
 export declare const getGunInstance: () => any;
-export {};
+export { Gun };

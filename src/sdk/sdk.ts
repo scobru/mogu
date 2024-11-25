@@ -6,6 +6,7 @@ import { initializeGun, initGun } from "../config/gun";
 import * as fsPromises from "fs/promises";
 import path from "path";
 import { keccak256 } from "js-sha3";
+import Gun, { IGunChain } from "gun";
 
 export { EncryptedNode, NodeType };
 
@@ -19,10 +20,6 @@ interface MoguOptions {
 interface BackupFileData {
   fileName: string;
   content: string | object;
-}
-
-interface BackupData {
-  [key: string]: BackupFileData;
 }
 
 /**
@@ -53,6 +50,12 @@ export class Mogu {
     if (storageService && storageConfig) {
       this.storageService = Web3Stash(storageService, storageConfig);
     }
+
+    // Estensione della catena di Gun per i metodi di backup
+    (Gun.chain as any).backup = this.backup;
+    (Gun.chain as any).restore = this.restore;
+    (Gun.chain as any).removeBackup = this.removeBackup;
+    (Gun.chain as any).compareBackup = this.compareBackup;
   }
 
   // Aggiungiamo il metodo login
@@ -115,7 +118,7 @@ export class Mogu {
 
       // Carica i dati su IPFS
       const result = await this.storageService.uploadJson(backupData);
-      
+
       // Fai l'unpin del backup precedente solo dopo aver verificato che il nuovo è ok
       if (this.lastBackupHash) {
         try {
@@ -238,7 +241,7 @@ export class Mogu {
       missingLocally: string[];
       missingRemotely: string[];
       contentMismatch: string[];
-    }
+    };
   }> {
     if (!this.storageService) {
       throw new Error("Storage service not initialized");
@@ -256,16 +259,16 @@ export class Mogu {
       // Carica i contenuti dei file locali
       for (const file of localFiles) {
         const filePath = path.join(this.radataPath, file);
-        const content = await fsPromises.readFile(filePath, 'utf8');
+        const content = await fsPromises.readFile(filePath, "utf8");
         try {
           localData[file] = {
             fileName: file,
-            content: JSON.parse(content)
+            content: JSON.parse(content),
           };
         } catch {
           localData[file] = {
             fileName: file,
-            content: content
+            content: content,
           };
         }
       }
@@ -274,7 +277,7 @@ export class Mogu {
       const differences = {
         missingLocally: [] as string[],
         missingRemotely: [] as string[],
-        contentMismatch: [] as string[]
+        contentMismatch: [] as string[],
       };
 
       // Controlla i file remoti
@@ -299,19 +302,20 @@ export class Mogu {
         }
       }
 
-      const isEqual = differences.missingLocally.length === 0 &&
-                     differences.missingRemotely.length === 0 &&
-                     differences.contentMismatch.length === 0;
+      const isEqual =
+        differences.missingLocally.length === 0 &&
+        differences.missingRemotely.length === 0 &&
+        differences.contentMismatch.length === 0;
 
       console.log("Compare details:", {
         localFiles: Object.keys(localData),
         remoteFiles: Object.keys(remoteData),
-        differences
+        differences,
       });
 
       return {
         isEqual,
-        differences: isEqual ? undefined : differences
+        differences: isEqual ? undefined : differences,
       };
     } catch (err) {
       console.error("Backup comparison failed:", err);
