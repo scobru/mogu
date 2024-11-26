@@ -62,6 +62,59 @@ console.log('Changes:', {
 });
 ```
 
+### Test Dettagliati
+
+```typescript
+// Test di confronto dettagliato dei backup
+const detailedComparison = await mogu.compareDetailedBackup(hash);
+console.log('Analisi dettagliata:', {
+  isEqual: detailedComparison.isEqual,
+  totalChanges: detailedComparison.totalChanges,
+  differences: detailedComparison.differences
+});
+
+// Verifica dello stato del backup
+const backupState = await mogu.getBackupState(hash);
+
+// Test di ripristino con verifica
+const restoreResult = await mogu.restore(hash);
+console.log('Ripristino completato:', restoreResult);
+```
+
+### Verifica dell'Integrità dei Dati
+
+I test verificano:
+- Integrità dei file ripristinati
+- Confronto contenuto byte per byte
+- Verifica accessibilità dati post-ripristino
+- Rilevamento modifiche in tempo reale
+- Tracciamento dettagliato delle modifiche ai file
+- Gestione di file nuovi, modificati ed eliminati
+
+### Monitoraggio Modifiche
+
+```typescript
+// Esempio di output del confronto dettagliato
+{
+  isEqual: false,
+  totalChanges: {
+    modified: 1,
+    added: 1,
+    deleted: 0
+  },
+  differences: [
+    {
+      type: 'modified',
+      path: 'path/to/file'
+    },
+    {
+      type: 'added',
+      path: 'path/to/new/file'
+    }
+  ]
+}
+```
+
 ### Esecuzione dei Test
 
 ```bash
