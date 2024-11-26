@@ -2,11 +2,110 @@
 
 <img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" width="300" height="auto" alt="Mogu Logo">
 
+Mogu è una soluzione di storage decentralizzato che integra GunDB con IPFS, fornendo backup, versioning e sincronizzazione in tempo reale.
 
+## Caratteristiche Principali
 
+- Backup automatico dei dati su IPFS
+- Versioning avanzato con confronto delle versioni
+- Supporto per multiple storage providers (Pinata, Web3.Storage, NFT.Storage, ecc.)
+- Sincronizzazione in tempo reale con GunDB
+- Sistema di backup e restore affidabile
+- Confronto dettagliato tra versioni dei backup
+- Supporto per metadata personalizzati
 
+## Test
 
-Mogu is a TypeScript-based project that integrates GunDB with IPFS to provide a decentralized and efficient data storage solution. It includes features for real-time updates, backups, and restores via Web3Stash and IPFS.
+Il progetto include un suite completa di test che verifica:
+
+### Test di Base
+```typescript
+// Test operazioni base
+await testBasicOperations(mogu);
+// - Operazioni put/get
+// - Aggiornamenti in tempo reale
+// - Gestione eventi
+
+// Test backup
+await testBackup(mogu);
+// - Creazione backup
+// - Ripristino backup
+// - Verifica integrità dati
+// - Confronto versioni
+
+// Test IPFS
+await testIPFSOperations(mogu);
+// - Operazioni IPFS
+// - Sincronizzazione dati
+```
+
+### Test di Backup e Confronto Versioni
+
+```typescript
+// Creazione backup
+const { hash, versionInfo } = await mogu.backup();
+
+// Confronto versioni
+const comparison = await mogu.compareBackup(hash);
+console.log('Comparison:', {
+  isEqual: comparison.isEqual,
+  isNewer: comparison.isNewer,
+  timeDiff: comparison.formattedDiff
+});
+
+// Confronto dettagliato
+const detailedComparison = await mogu.compareDetailedBackup(hash);
+console.log('Changes:', {
+  added: detailedComparison.totalChanges.added,
+  modified: detailedComparison.totalChanges.modified,
+  deleted: detailedComparison.totalChanges.deleted
+});
+```
+
+### Esecuzione dei Test
+
+```bash
+# Esegui tutti i test
+yarn test
+
+# Test specifici
+yarn test:basic      # Test operazioni base
+yarn test:backup     # Test backup/restore
+yarn test:ipfs       # Test IPFS
+```
+
+## Configurazione Test
+
+```typescript
+const moguConfig = {
+  storageService: 'PINATA',
+  storageConfig: {
+    apiKey: process.env.PINATA_API_KEY,
+    apiSecret: process.env.PINATA_API_SECRET
+  },
+  useIPFS: true/false  // Test con/senza IPFS
+};
+
+const mogu = new Mogu(moguConfig);
+```
+
+### Risultati Test
+
+I test verificano:
+- Operazioni base (put/get/on)
+- Backup e restore
+- Confronto versioni
+- Diff dettagliato tra backup
+- Gestione metadata
+- Operazioni IPFS
+- Sincronizzazione dati
+
+Ogni test produce output dettagliato con:
+- Hash del backup
+- Informazioni versione
+- Dettagli confronto
+- Statistiche modifiche
+- Log operazioni
 
 ## Table of Contents
 - [Introduction](#introduction)
