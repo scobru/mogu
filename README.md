@@ -1,194 +1,236 @@
-# MOGU - Decentralized Database with GunDB and IPFS Backup
+# Mogu Project Documentation
 
-A decentralized database solution that combines GunDB's real-time capabilities with IPFS backup functionality.
+Mogu is a TypeScript-based project that integrates GunDB with IPFS to provide a decentralized and efficient data storage solution. It includes features for real-time updates, backups, and restores via Web3Stash and IPFS.
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Server Configuration](#server-configuration)
+  - [Mogu SDK](#mogu-sdk)
+  - [IPFS Adapter](#ipfs-adapter)
+  - [Web3Stash](#web3stash)
+  - [Backup and Restore](#backup-and-restore)
+- [Testing](#testing)
+- [File Structure](#file-structure)
+- [License](#license)
+
+---
+
+## Introduction
+
+Mogu provides developers with tools to build decentralized and efficient applications using GunDB for data synchronization and IPFS for storage. It supports features like data backup, restore, and real-time updates, making it ideal for decentralized applications (dApps).
 
 ## Features
+- Real-time data synchronization using GunDB
+- Data backup and restore using IPFS and Web3Stash
+- Supports both local and IPFS-based storage
+- Modular design for easy integration with other services
+- Backup comparison functionality
+- Support for basic CRUD operations
+- Reliable backup and restore system
+- Support for multiple storage providers (Pinata, Web3.Storage, NFT.Storage)
+- Automatic cryptographic key management
+- Integrated caching system
+- Support for structured and unstructured data
 
-- Real-time decentralized database using GunDB
-- Automatic IPFS backup and restore
-- Multiple storage providers support (Pinata, Web3.Storage, NFT.Storage, etc.)
-- Backup integrity verification
-- Simple and intuitive API
+---
 
-## Quick Start
+## Installation
+
+To set up the project locally, follow these steps:
+
+1. Install the package via npm:
+    ```bash
+    npm install @scobru/mogu
+    ```
+
+2. Create a `.env` file in the root directory with the following variables:
+    ```
+    PINATA_API_KEY=<your-pinata-api-key>
+    PINATA_API_SECRET=<your-pinata-api-secret>
+    PINATA_GATEWAY=<your-pinata-gateway>
+    DB_NAME=<your-db-name>
+    PRIVATE_KEY=<your-private-key>
+    PROVIDER_URL=<your-provider-url>
+    STORAGE=true
+    ```
+
+3. Import and initialize Mogu in your project:
+    ```typescript
+    import { Mogu } from '@scobru/mogu';
+    
+    const mogu = new Mogu({
+      dbName: process.env.DB_NAME,
+      storage: process.env.STORAGE === 'true',
+      privateKey: process.env.PRIVATE_KEY,
+      providerUrl: process.env.PROVIDER_URL
+    });
+    ```
+
+---
+
+## Usage
+
+### Mogu SDK
+
+The Mogu SDK provides a comprehensive set of features to interact with the system. Here's the detailed documentation:
+
+#### Initialization
 
 ```typescript
-// Initialize Mogu
+import { Mogu } from '@scobru/mogu';
+
+const options = {
+  key: "optional-key",
+  storageService: "pinata", // or other supported services
+  storageConfig: {
+    // storage service configuration
+  },
+  server: {}, // optional GunDB server configuration
+  useIPFS: true // enable IPFS usage
+};
+
+const mogu = new Mogu(options);
+```
+
+#### Core Methods
+
+##### `getGunInstance()`
+Returns the GunDB instance.
+```typescript
+const gunInstance = mogu.getGunInstance();
+```
+
+##### `get(key: string)`
+Retrieves data from the specified key.
+```typescript
+const data = await mogu.get("myKey");
+```
+
+##### `put(key: string, data: any)`
+Puts data at the specified key.
+```typescript
+await mogu.put("myKey", { data: "value" });
+```
+
+##### `on(key: string, callback: (data: any) => void)`
+Subscribes to updates on a specific key.
+```typescript
+mogu.on("myKey", (data) => {
+  console.log("Updated data:", data);
+});
+```
+
+#### Backup Management
+
+##### `backup()`
+Performs data backup.
+```typescript
+const hash = await mogu.backup();
+console.log("Backup hash:", hash);
+```
+
+##### `restore(hash: string)`
+Restores data from a backup.
+```typescript
+const success = await mogu.restore("backupHash");
+```
+
+##### `removeBackup(hash: string)`
+Removes a specific backup.
+```typescript
+await mogu.removeBackup("backupHash");
+```
+
+##### `compareBackup(hash: string)`
+Compares a backup with local data.
+```typescript
+const comparison = await mogu.compareBackup("backupHash");
+console.log("Comparison results:", comparison);
+```
+
+#### Interfaces
+
+```typescript
+interface MoguOptions {
+  key?: string;
+  storageService?: Web3StashServices;
+  storageConfig?: Web3StashConfig;
+  server?: any;
+  useIPFS?: boolean;
+}
+
+interface BackupFileData {
+  fileName: string;
+  content: string | object;
+}
+```
+
+#### Error Handling
+
+The SDK includes comprehensive error handling. All methods that might fail throw errors that should be handled with try/catch:
+
+```typescript
+try {
+  await mogu.backup();
+} catch (error) {
+  console.error("Backup error:", error);
+}
+```
+
+### Advanced Usage Examples
+
+#### Real-Time Synchronization
+```typescript
+// Sync configuration
+const mogu = new Mogu({ useIPFS: true });
+
+// Subscribe to updates
+mogu.on("documents", (data) => {
+  console.log("Documents updated:", data);
+});
+
+// Update data
+await mogu.put("documents", { new: "content" });
+```
+
+#### Automatic Backup Management
+```typescript
 const mogu = new Mogu({
-  storageService: 'PINATA',
+  storageService: "pinata",
   storageConfig: {
     apiKey: process.env.PINATA_API_KEY,
     apiSecret: process.env.PINATA_API_SECRET
   }
 });
 
-// Login (creates user if doesn't exist)
-await mogu.login('username', 'password');
-
-// Store data
-await mogu.put('users/1', { name: 'John' });
-
-// Read data
-const user = await mogu.get('users/1');
-
-// Real-time updates
-mogu.on('users/1', (data) => {
-  console.log('User updated:', data);
-});
-
-// Create backup
-const backupHash = await mogu.backup();
-
-// Verify backup integrity
-const comparison = await mogu.compareBackup(backupHash);
-if (comparison.isEqual) {
-  console.log('Backup verified successfully');
-}
-
-// Restore from backup
-await mogu.restore(backupHash);
+// Periodic backup
+setInterval(async () => {
+  try {
+    const hash = await mogu.backup();
+    console.log("Automatic backup completed:", hash);
+  } catch (error) {
+    console.error("Automatic backup error:", error);
+  }
+}, 3600000); // every hour
 ```
 
-## Installation
-
-```bash
-npm install mogu
-# or
-yarn add mogu
-```
-
-## Architecture
-
-### Core Components
-
-1. **GunDB Layer**
-   - Real-time data synchronization
-   - P2P network communication
-   - User authentication
-   - Data persistence
-
-2. **IPFS Layer**
-   - Distributed file storage
-   - Content-addressed data
-   - Multiple storage providers
-   - Backup integrity verification
-
-3. **SDK Layer**
-   - Simple API interface
-   - Automatic backup management
-   - Data consistency checks
-   - Error handling
-
-## API Reference
-
-### Initialization
-
-```typescript
-interface MoguOptions {
-  key?: string;                    // Encryption key
-  storageService?: Web3StashServices; // Storage provider
-  storageConfig?: Web3StashConfig;    // Provider config
-  server?: any;                    // Optional server instance
-}
-
-const mogu = new Mogu(options: MoguOptions);
-```
-
-### Authentication
-
-```typescript
-await mogu.login(username: string, password: string);
-```
-
-### Data Operations
-
-```typescript
-// Store data
-await mogu.put(path: string, data: any);
-
-// Read data
-const data = await mogu.get(path: string);
-
-// Subscribe to changes
-mogu.on(path: string, callback: (data: any) => void);
-```
-
-### Backup Operations
-
-```typescript
-// Create backup
-const hash = await mogu.backup();
-
-// Restore from backup
-await mogu.restore(hash: string);
-
-// Compare backup with current state
-const comparison = await mogu.compareBackup(hash: string);
-
-// Remove backup
-await mogu.removeBackup(hash: string);
-```
-
-## Storage Providers
-
-Currently supported providers:
-- Pinata
-- Web3.Storage
-- NFT.Storage
-- Lighthouse
-- Arweave
-- Bundlr
-
-Add a new provider by implementing the `StorageService` interface:
-
-```typescript
-interface StorageService {
-  uploadJson(data: Record<string, unknown>): Promise<UploadOutput>;
-  get(hash: string): Promise<any>;
-  unpin(hash: string): Promise<void>;
-}
-```
-
-## Best Practices
-
-1. **Data Organization**
-   - Use hierarchical paths (e.g., 'users/123/profile')
-   - Keep data structures consistent
-   - Validate data before storing
-
-2. **Backup Management**
-   - Regular backup schedule
-   - Verify backup integrity
-   - Keep backup history
-   - Clean up old backups
-
-3. **Error Handling**
-   - Handle network errors gracefully
-   - Verify data consistency
-   - Implement retry mechanisms
+---
 
 ## Testing
 
-```bash
-# Run all tests
-yarn test
+The project includes unit and integration tests to ensure code robustness and stability.
 
-# Run specific test
-yarn test:backup
-```
+---
 
-## Contributing
+## File Structure
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+The project is structured in a modular way, with each component separated and well-defined.
+
+---
 
 ## License
 
-MIT
-
-## Support
-
-For support, please open an issue or contact the maintainers.
+Mogu is released under the MIT license.

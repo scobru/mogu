@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initializeGun = exports.initGun = exports.NodeType = exports.startServer = exports.Mogu = void 0;
-const types_1 = require("./db/types");
-Object.defineProperty(exports, "NodeType", { enumerable: true, get: function () { return types_1.NodeType; } });
+exports.initializeGun = exports.initGun = exports.startServer = exports.Mogu = void 0;
 const gun_1 = require("./config/gun");
 Object.defineProperty(exports, "initGun", { enumerable: true, get: function () { return gun_1.initGun; } });
 Object.defineProperty(exports, "initializeGun", { enumerable: true, get: function () { return gun_1.initializeGun; } });
-var sdk_1 = require("./sdk/sdk");
-Object.defineProperty(exports, "Mogu", { enumerable: true, get: function () { return sdk_1.Mogu; } });
+var core_1 = require("./core/core");
+Object.defineProperty(exports, "Mogu", { enumerable: true, get: function () { return core_1.Mogu; } });
 var server_1 = require("./server");
 Object.defineProperty(exports, "startServer", { enumerable: true, get: function () { return server_1.startServer; } });

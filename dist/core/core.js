@@ -1,6 +1,6 @@
 "use strict";
 /**
- * @fileoverview Enhanced Mogu core with Proxy pattern
+ * @fileoverview Main Mogu module that manages integration between GunDB and IPFS
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -56,112 +56,60 @@ class Mogu {
      * @param {MoguOptions} options - Configuration options
      */
     constructor(options = {}) {
-        this._ctx = null;
-        this._ctxVal = null;
-        this._ctxProp = null;
-        this._ready = true;
-        this._proxyEnable = true;
-        this._isProxy = false;
-        const { key, storageService, storageConfig, server, useIPFS = false, immutable = false } = options;
-        // Initialize Gun
-        this.Gun = (typeof window !== 'undefined') ? window.Gun : require('gun/gun');
-        this.immutable = immutable;
+        const { key, storageService, storageConfig, server, useIPFS = false } = options;
         this.radataPath = path_1.default.join(process.cwd(), "radata");
+        console.log("Using radata path:", this.radataPath);
         fsPromises.mkdir(this.radataPath, { recursive: true }).catch(console.error);
-        const gunInstance = server ?
-            (0, gun_1.initGun)(server, { file: this.radataPath }) :
-            (0, gun_1.initializeGun)({ file: this.radataPath });
+        const gunInstance = server ? (0, gun_1.initGun)(server, { file: this.radataPath }) : (0, gun_1.initializeGun)({ file: this.radataPath });
         this.gun = gunInstance;
         this.useIPFS = useIPFS;
-        // Initialize IPFS if needed
-        if (useIPFS && storageConfig) {
+        if (this.useIPFS) {
+            if (!storageConfig) {
+                throw new Error("Storage configuration is required when using IPFS");
+            }
             this.ipfsAdapter = new ipfsAdapter_1.IPFSAdapter(storageConfig);
         }
-        // Initialize storage service
         if (storageService && storageConfig) {
             this.storageService = (0, index_1.Web3Stash)(storageService, storageConfig);
         }
-        // Bind methods
-        this.mutate = this.mutate.bind(this);
-        this.extend = this.extend.bind(this);
-        // Only create proxy if this is not already a proxy instance
-        if (!this._isProxy) {
-            const proxy = new Proxy(this, moguProxy(this));
-            proxy._isProxy = true;
-            return proxy;
-        }
-        return this;
     }
-    // Getter for value promise
-    get value() {
-        return new Promise((resolve, reject) => {
-            if (!this || !this._ctx || !this._ctx.once) {
-                return reject('No gun context');
-            }
-            this._ctx.once((data) => {
-                let timer = setInterval(() => {
-                    if (this._ready) {
-                        resolve(data);
-                        clearInterval(timer);
-                    }
-                }, 100);
-            });
-        });
+    /**
+     * Gets the GunDB instance
+     * @returns {any} GunDB instance
+     */
+    getGunInstance() {
+        return this.gun;
     }
-    // Method to handle mutations in immutable mode
-    mutate(val) {
-        if (!val && this._ctxVal) {
-            this._ready = false;
-            const node = this._ctxProp;
-            // Salva i dati sia in put che in _
-            node.put = this._ctxVal;
-            node._ = this._ctxVal;
-            node.put(this._ctxVal, (ack) => {
-                if (ack.err) {
-                    console.error('Error in mutate:', ack.err);
-                }
-                else {
-                    this._ready = true;
-                }
-            });
-        }
-    }
-    // Extension method for plugins
-    extend(extensions, opts) {
-        this._proxyEnable = false;
-        if (!Array.isArray(extensions)) {
-            extensions = [extensions];
-        }
-        for (const Extension of extensions) {
-            if (typeof Extension === 'function') {
-                const instance = new Extension(this, opts);
-                this[instance.name] = instance;
-            }
-        }
-        this._proxyEnable = true;
-    }
-    // Original methods with proxy support
+    /**
+     * Retrieves data from specified key
+     * @param {string} key - Key to retrieve data from
+     * @returns {Promise<any>} Retrieved data
+     */
     get(key) {
         if (this.useIPFS && this.ipfsAdapter) {
             return this.ipfsAdapter.get(key);
         }
-        return new Proxy(this.gun.get(key), moguProxy(this));
+        return this.gun.get(key);
     }
+    /**
+     * Puts data at specified key
+     * @param {string} key - Key to put data at
+     * @param {any} data - Data to put
+     * @returns {Promise<any>} Operation result
+     */
     put(key, data) {
-        if (this.immutable) {
-            this._ctxProp = this.gun.get(key);
-            this._ctxVal = data;
-            return this;
-        }
         if (this.useIPFS && this.ipfsAdapter) {
             return this.ipfsAdapter.put(key, data);
         }
-        this._ready = false;
-        const result = this.gun.get(key).put(data, () => this._ready = true);
-        return new Proxy(result, moguProxy(this));
+        return this.gun.get(key).put(data);
     }
+    /**
+     * Subscribes to updates on a key
+     * @param {string} key - Key to monitor
+     * @param {Function} callback - Function to call for updates
+     */
     on(key, callback) {
-        return this.gun.get(key).on(callback);
+        this.gun.get(key).on(callback);
     }
     /**
      * Performs data backup
@@ -358,124 +306,5 @@ class Mogu {
             throw err;
         }
     }
-    // Implementazione dell'interfaccia MoguInternal
-    getGun() {
-        return this.gun;
-    }
-    isImmutable() {
-        return this.immutable;
-    }
-    setCtxProp(value) {
-        this._ctxProp = value;
-    }
-    setCtxVal(value) {
-        this._ctxVal = value;
-    }
-    setReady(value) {
-        this._ready = value;
-    }
-    getReady() {
-        return this._ready;
-    }
 }
 exports.Mogu = Mogu;
-// Proxy handler modificato
-function moguProxy(base) {
-    return {
-        get(target, prop, receiver) {
-            // Handle special properties
-            if (prop === 'constructor' || prop === 'prototype' || typeof prop === 'symbol') {
-                return Reflect.get(target, prop, receiver);
-            }
-            // Handle value property
-            if (prop === 'value') {
-                return new Promise((resolve) => {
-                    if (!target.once) {
-                        resolve(target);
-                        return;
-                    }
-                    target.once((data) => {
-                        // Se i dati sono undefined, prova a leggere da put
-                        if (data === undefined && target.put) {
-                            resolve(target.put);
-                            return;
-                        }
-                        // Se i dati sono ancora undefined, prova a leggere da _
-                        if (data === undefined && target._) {
-                            resolve(target._);
-                            return;
-                        }
-                        resolve(data);
-                    });
-                });
-            }
-            // Handle on method
-            if (prop === 'on') {
-                return (cb) => {
-                    if (!target.on)
-                        return;
-                    return target.on((data) => {
-                        // Se i dati sono undefined, prova a leggere da put o _
-                        if (data === undefined) {
-                            if (target.put) {
-                                cb(target.put);
-                                return;
-                            }
-                            if (target._) {
-                                cb(target._);
-                                return;
-                            }
-                        }
-                        cb(data);
-                    });
-                };
-            }
-            // Handle existing properties
-            if (prop in target) {
-                const value = target[prop];
-                if (typeof value === 'function') {
-                    return value.bind(target);
-                }
-                return value;
-            }
-            // Create new chain
-            const gun = base.getGun();
-            const gunChain = gun.get(String(prop));
-            return new Proxy(gunChain, moguProxy(base));
-        },
-        set(target, prop, value) {
-            // Handle existing properties
-            if (prop in target && typeof prop === 'string') {
-                target[prop] = value;
-                return true;
-            }
-            const gun = base.getGun();
-            if (base.isImmutable()) {
-                console.warn('Immutable mode is on - use .mutate() to modify data');
-                const node = gun.get(String(prop));
-                base.setCtxProp(node);
-                base.setCtxVal(value);
-                base.setReady(true);
-                // Salva i dati anche in put e _
-                node.put = value;
-                node._ = value;
-            }
-            else {
-                base.setReady(false);
-                const node = gun.get(String(prop));
-                // Salva i dati sia in put che in _
-                node.put = value;
-                node._ = value;
-                node.put(value, (ack) => {
-                    if (ack.err) {
-                        console.error('Error writing data:', ack.err);
-                    }
-                    else {
-                        base.setReady(true);
-                    }
-                });
-            }
-            return true;
-        }
-    };
-}

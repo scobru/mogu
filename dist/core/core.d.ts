@@ -1,12 +1,7 @@
 /**
- * @fileoverview Enhanced Mogu core with Proxy pattern
+ * @fileoverview Main Mogu module that manages integration between GunDB and IPFS
  */
 import type { Web3StashServices, Web3StashConfig } from "../web3stash/types";
-declare global {
-    interface Window {
-        Gun: any;
-    }
-}
 /**
  * Configuration options for Mogu instance
  * @interface MoguOptions
@@ -15,7 +10,6 @@ declare global {
  * @property {Web3StashConfig} [storageConfig] - Configuration for storage service
  * @property {any} [server] - GunDB server configuration
  * @property {boolean} [useIPFS] - Flag to enable IPFS usage
- * @property {boolean} [immutable] - Flag to enable immutable mode
  */
 interface MoguOptions {
     key?: string;
@@ -23,58 +17,48 @@ interface MoguOptions {
     storageConfig?: Web3StashConfig;
     server?: any;
     useIPFS?: boolean;
-    immutable?: boolean;
-}
-/**
- * Interface for plugin instances
- * @interface PluginInstance
- * @property {string} name - Name of the plugin
- * @property {any} [key: string] - Key-value pairs for plugin-specific data
- */
-interface PluginInstance {
-    name: string;
-    [key: string]: any;
-}
-interface MoguInternal {
-    getGun(): any;
-    isImmutable(): boolean;
-    setCtxProp(value: any): void;
-    setCtxVal(value: any): void;
-    setReady(value: boolean): void;
-    getReady(): boolean;
 }
 /**
  * Main Mogu class that manages integration between GunDB and IPFS
  * @class Mogu
  */
-export declare class Mogu implements MoguInternal {
-    [key: string]: any;
+export declare class Mogu {
     private gun;
-    private Gun;
     private storageService?;
-    private ipfsAdapter?;
     private lastBackupHash?;
     private radataPath;
+    private ipfsAdapter?;
     private useIPFS;
-    private immutable;
-    private _ctx;
-    private _ctxVal;
-    private _ctxProp;
-    private _ready;
-    private _proxyEnable;
-    private _isProxy;
     /**
      * Creates a Mogu instance
      * @constructor
      * @param {MoguOptions} options - Configuration options
      */
     constructor(options?: MoguOptions);
-    get value(): Promise<any>;
-    mutate(val?: any): void;
-    extend(extensions: Array<new (mogu: Mogu, opts: any) => PluginInstance>, opts?: any): void;
+    /**
+     * Gets the GunDB instance
+     * @returns {any} GunDB instance
+     */
+    getGunInstance(): any;
+    /**
+     * Retrieves data from specified key
+     * @param {string} key - Key to retrieve data from
+     * @returns {Promise<any>} Retrieved data
+     */
     get(key: string): any;
+    /**
+     * Puts data at specified key
+     * @param {string} key - Key to put data at
+     * @param {any} data - Data to put
+     * @returns {Promise<any>} Operation result
+     */
     put(key: string, data: any): any;
-    on(key: string, callback: (data: any) => void): any;
+    /**
+     * Subscribes to updates on a key
+     * @param {string} key - Key to monitor
+     * @param {Function} callback - Function to call for updates
+     */
+    on(key: string, callback: (data: any) => void): void;
     /**
      * Performs data backup
      * @returns {Promise<string>} Hash of created backup
@@ -108,11 +92,5 @@ export declare class Mogu implements MoguInternal {
             contentMismatch: string[];
         };
     }>;
-    getGun(): any;
-    isImmutable(): boolean;
-    setCtxProp(value: any): void;
-    setCtxVal(value: any): void;
-    setReady(value: boolean): void;
-    getReady(): boolean;
 }
 export {};
