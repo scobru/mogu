@@ -1,17 +1,30 @@
 import { StorageService } from "./base-storage";
 import type { UploadOutput } from "../types";
-import type { PinataClient } from "@pinata/sdk";
+import type { PinataClient, PinataPinOptions } from "@pinata/sdk";
 import pinataSDK from "@pinata/sdk";
 import axios from "axios";
 
+// Definiamo i tipi esatti come richiesto da Pinata
+type PinataMetadataValue = string | number | null;
+
 interface PinataMetadata {
   name?: string;
-  keyvalues?: Record<string, string | number | boolean | null>;
+  keyvalues?: Record<string, PinataMetadataValue>;
 }
 
-interface PinataOptions {
-  pinataMetadata?: Record<string, any>;
-  pinataOptions?: Record<string, any>;
+// Non estendiamo PinataPinOptions, ma creiamo un tipo separato
+interface PinataUploadOptions {
+  pinataMetadata?: Record<string, PinataMetadataValue>;
+  pinataOptions?: {
+    cidVersion?: 0 | 1;
+    wrapWithDirectory?: boolean;
+    customPinPolicy?: {
+      regions: Array<{
+        id: string;
+        desiredReplicationCount: number;
+      }>;
+    };
+  };
 }
 
 export class PinataService extends StorageService {
@@ -23,9 +36,38 @@ export class PinataService extends StorageService {
     this.serviceInstance = pinataSDK(pinataApiKey, pinataApiSecret);
   }
 
+  private formatPinataMetadata(metadata?: PinataMetadata): Record<string, PinataMetadataValue> {
+    if (!metadata) return {};
+
+    const result: Record<string, PinataMetadataValue> = {};
+    
+    if (metadata.name) {
+      result.name = metadata.name;
+    }
+
+    if (metadata.keyvalues) {
+      Object.entries(metadata.keyvalues).forEach(([key, value]) => {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      });
+    }
+
+    return result;
+  }
+
   public async get(hash: string) {
-    const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${hash}`);
-    return response.data;
+    try {
+      if (!hash || typeof hash !== 'string') {
+        throw new Error('Hash non valido');
+      }
+
+      const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${hash}`);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero da Pinata:', error);
+      throw error;
+    }
   }
 
   public getEndpoint() {
@@ -36,41 +78,41 @@ export class PinataService extends StorageService {
     await this.serviceInstance.unpin(hash);
   }
 
-  public async uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<UploadOutput> {
+  public async uploadJson(jsonData: Record<string, unknown>, options?: PinataUploadOptions): Promise<UploadOutput> {
     try {
-      // Se è una richiesta GET, usa il gateway
-      if (options?.method === "GET") {
-        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${options.hash}`;
-        const response = await axios.get(gatewayUrl);
-        return response.data;
-      }
-
-      // Per l'upload, usa pinJSONToIPFS
-      const pinataOptions: PinataOptions = {
-        pinataMetadata: {
-          name: "mogu-backup",
-          keyvalues: {
-            timestamp: new Date().toISOString(),
-            type: "backup",
-          },
-        },
+      const pinataOptions: PinataPinOptions = {
+        pinataMetadata: this.formatPinataMetadata(options?.pinataMetadata as PinataMetadata),
+        pinataOptions: options?.pinataOptions
       };
 
       const response = await this.serviceInstance.pinJSONToIPFS(jsonData, pinataOptions);
-
-      // Verifica che i dati siano stati caricati correttamente
-      const verifyUrl = `https://gateway.pinata.cloud/ipfs/${response.IpfsHash}`;
-      await axios.get(verifyUrl);
-
+      
       return {
         id: response.IpfsHash,
         metadata: {
           ...response,
-          data: jsonData, // Includi i dati originali nella risposta
+          data: jsonData
         },
       };
     } catch (error) {
-      console.error("Error with Pinata:", error);
+      console.error("Errore con Pinata:", error);
+      throw error;
+    }
+  }
+
+  public async getMetadata(hash: string): Promise<any> {
+    try {
+      const pinList = await this.serviceInstance.pinList({
+        hashContains: hash
+      });
+
+      if (pinList.rows && pinList.rows.length > 0) {
+        return pinList.rows[0].metadata;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Errore nel recupero dei metadata:', error);
       throw error;
     }
   }
