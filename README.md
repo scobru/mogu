@@ -14,7 +14,7 @@ Mogu is a TypeScript-based project that integrates GunDB with IPFS to provide a 
 - [Installation](#installation)
 - [Usage](#usage)
   - [Server Configuration](#server-configuration)
-  - [Mogu SDK](#mogu-sdk)
+  - [Mogu Core](#mogu-core)
   - [IPFS Adapter](#ipfs-adapter)
   - [Web3Stash](#web3stash)
   - [Backup and Restore](#backup-and-restore)
@@ -79,9 +79,9 @@ To set up the project locally, follow these steps:
 
 ## Usage
 
-### Mogu SDK
+### Mogu Core
 
-The Mogu SDK provides a comprehensive set of features to interact with the system. Here's the detailed documentation:
+The Mogu Core provides a comprehensive set of features to interact with the system. Here's the detailed documentation:
 
 #### Initialization
 
@@ -176,7 +176,7 @@ interface BackupFileData {
 
 #### Error Handling
 
-The SDK includes comprehensive error handling. All methods that might fail throw errors that should be handled with try/catch:
+The Mogu Core includes comprehensive error handling. All methods that might fail throw errors that should be handled with try/catch:
 
 ```typescript
 try {
