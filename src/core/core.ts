@@ -83,7 +83,7 @@ export class Mogu {
    * Gets the GunDB instance
    * @returns {any} GunDB instance
    */
-  public getGunInstance() {
+  public getGun() {
     return this.gun;
   }
 

@@ -39,7 +39,7 @@ export declare class Mogu {
      * Gets the GunDB instance
      * @returns {any} GunDB instance
      */
-    getGunInstance(): any;
+    getGun(): any;
     /**
      * Retrieves data from specified key
      * @param {string} key - Key to retrieve data from

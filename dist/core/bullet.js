@@ -1,16 +1,76 @@
 'use strict';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Bullet = void 0;
 require("gun/gun");
+const index_1 = require("../web3stash/index");
+const gun_1 = require("../config/gun");
+const fsPromises = __importStar(require("fs/promises"));
+const path_1 = __importDefault(require("path"));
+const ipfsAdapter_1 = require("../adapters/ipfsAdapter");
 class Bullet {
-    constructor(gun, opts) {
+    constructor(gunOrOpts, opts) {
         this._registerContext = null;
-        this.gun = gun;
+        const options = (gunOrOpts && 'get' in gunOrOpts) ? (opts || {}) : (gunOrOpts || {});
+        this.radataPath = path_1.default.join(process.cwd(), "radata");
+        console.log("Using radata path:", this.radataPath);
+        fsPromises.mkdir(this.radataPath, { recursive: true }).catch(console.error);
+        const { key, storageService, storageConfig, server, useIPFS = false, immutable = false } = options;
         this.Gun = (typeof window !== 'undefined') ? window.Gun : require('gun/gun');
+        const gunInstance = server ?
+            (0, gun_1.initGun)(server, { file: this.radataPath }) :
+            (0, gun_1.initializeGun)({ file: this.radataPath });
+        this.gun = gunInstance;
+        this.useIPFS = useIPFS;
+        this.immutable = immutable;
+        if (this.useIPFS) {
+            if (!storageConfig) {
+                throw new Error("Storage configuration is required when using IPFS");
+            }
+            this.ipfsAdapter = new ipfsAdapter_1.IPFSAdapter(storageConfig);
+        }
+        if (storageService && storageConfig) {
+            this.storageService = (0, index_1.Web3Stash)(storageService, storageConfig);
+        }
         this._ctx = null;
         this._ctxVal = null;
         this._ready = true;
         this._proxyEnable = true;
-        this.immutable = (opts && opts.immutable) ? true : false;
         const that = this;
         this.Gun.on('opt', (context) => {
             that._registerContext = context;
@@ -99,7 +159,53 @@ class Bullet {
     setCtxVal(val) {
         this._ctxVal = val;
     }
+    async backup() {
+        if (!this.storageService) {
+            throw new Error("Storage service not initialized");
+        }
+        try {
+            // ... logica di backup da Mogu ...
+        }
+        catch (err) {
+            console.error("Backup failed:", err);
+            throw err;
+        }
+    }
+    async restore(hash) {
+        if (!this.storageService) {
+            throw new Error("Storage service not initialized");
+        }
+        try {
+            // ... logica di restore da Mogu ...
+        }
+        catch (err) {
+            console.error("Restore failed:", err);
+            throw err;
+        }
+    }
+    async removeBackup(hash) {
+        // ... logica di removeBackup da Mogu ...
+    }
+    async compareBackup(hash) {
+        // ... logica di compareBackup da Mogu ...
+    }
+    get(key) {
+        if (this.useIPFS && this.ipfsAdapter) {
+            return this.ipfsAdapter.get(key);
+        }
+        return this.gun.get(key);
+    }
+    put(key, data) {
+        if (this.useIPFS && this.ipfsAdapter) {
+            return this.ipfsAdapter.put(key, data);
+        }
+        return this.gun.get(key).put(data);
+    }
+    on(key, callback) {
+        this.gun.get(key).on(callback);
+    }
 }
+exports.Bullet = Bullet;
 function bulletProxy(base) {
     return {
         get(target, prop, receiver) {
@@ -130,7 +236,4 @@ function bulletProxy(base) {
             return true;
         }
     };
-}
-if (typeof window === 'undefined') {
-    module.exports = Bullet;
 }

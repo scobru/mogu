@@ -77,7 +77,7 @@ class Mogu {
      * Gets the GunDB instance
      * @returns {any} GunDB instance
      */
-    getGunInstance() {
+    getGun() {
         return this.gun;
     }
     /**

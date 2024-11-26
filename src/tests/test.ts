@@ -1,6 +1,5 @@
 import { Mogu } from "../core/core";
 import dotenv from 'dotenv';
-import { startServer } from '../server';
 import fs from 'fs/promises';
 import path from 'path';
 
