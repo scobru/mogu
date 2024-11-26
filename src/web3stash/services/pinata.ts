@@ -1,17 +1,30 @@
 import { StorageService } from "./base-storage";
 import type { UploadOutput } from "../types";
-import type { PinataClient } from "@pinata/sdk";
+import type { PinataClient, PinataPinOptions } from "@pinata/sdk";
 import pinataSDK from "@pinata/sdk";
 import axios from "axios";
 
+// Definiamo i tipi esatti come richiesto da Pinata
+type PinataMetadataValue = string | number | null;
+
 interface PinataMetadata {
   name?: string;
-  keyvalues?: Record<string, string | number | boolean | null>;
+  keyvalues?: Record<string, PinataMetadataValue>;
 }
 
-interface PinataOptions {
-  pinataMetadata?: Record<string, any>;
-  pinataOptions?: Record<string, any>;
+// Non estendiamo PinataPinOptions, ma creiamo un tipo separato
+interface PinataUploadOptions {
+  pinataMetadata?: Record<string, PinataMetadataValue>;
+  pinataOptions?: {
+    cidVersion?: 0 | 1;
+    wrapWithDirectory?: boolean;
+    customPinPolicy?: {
+      regions: Array<{
+        id: string;
+        desiredReplicationCount: number;
+      }>;
+    };
+  };
 }
 
 export class PinataService extends StorageService {
@@ -21,6 +34,26 @@ export class PinataService extends StorageService {
   constructor(pinataApiKey: string, pinataApiSecret: string) {
     super();
     this.serviceInstance = pinataSDK(pinataApiKey, pinataApiSecret);
+  }
+
+  private formatPinataMetadata(metadata?: PinataMetadata): Record<string, PinataMetadataValue> {
+    if (!metadata) return {};
+
+    const result: Record<string, PinataMetadataValue> = {};
+    
+    if (metadata.name) {
+      result.name = metadata.name;
+    }
+
+    if (metadata.keyvalues) {
+      Object.entries(metadata.keyvalues).forEach(([key, value]) => {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      });
+    }
+
+    return result;
   }
 
   public async get(hash: string) {
@@ -45,67 +78,11 @@ export class PinataService extends StorageService {
     await this.serviceInstance.unpin(hash);
   }
 
-  private serializeMetadata(metadata: any): Record<string, string | number | boolean> {
-    const serialized: Record<string, string | number | boolean> = {};
-    
-    // Funzione ricorsiva per serializzare oggetti complessi
-    const serialize = (obj: any): string | number | boolean => {
-      if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
-        return obj;
-      }
-      if (obj instanceof Date) {
-        return obj.toISOString();
-      }
-      return JSON.stringify(obj);
-    };
-
-    // Se metadata è un oggetto, serializza ogni valore
-    if (metadata && typeof metadata === 'object') {
-      for (const [key, value] of Object.entries(metadata)) {
-        serialized[key] = serialize(value);
-      }
-    }
-
-    return serialized;
-  }
-
-  private generateBackupName(metadata: any): string {
-    const timestamp = new Date().toISOString()
-      .replace(/[:.]/g, '-')
-      .replace('T', '_')
-      .replace('Z', '');
-    
-    const type = metadata?.type || 'backup';
-    const version = metadata?.versionInfo?.version || '1.0';
-    const size = metadata?.versionInfo?.size || 0;
-    const sizeFormatted = this.formatSize(size);
-    
-    return `mogu-${type}-v${version}-${sizeFormatted}-${timestamp}`;
-  }
-
-  private formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
-  }
-
-  public async uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<UploadOutput> {
+  public async uploadJson(jsonData: Record<string, unknown>, options?: PinataUploadOptions): Promise<UploadOutput> {
     try {
-      const metadata = options?.metadata || {};
-      const backupName = this.generateBackupName(metadata);
-      
-      const pinataOptions: PinataOptions = {
-        pinataMetadata: {
-          name: backupName,
-          keyvalues: this.serializeMetadata({
-            timestamp: new Date().toISOString(),
-            type: "backup",
-            version: "1.0",
-            size: Buffer.from(JSON.stringify(jsonData)).length,
-            ...metadata
-          })
-        },
+      const pinataOptions: PinataPinOptions = {
+        pinataMetadata: this.formatPinataMetadata(options?.pinataMetadata as PinataMetadata),
+        pinataOptions: options?.pinataOptions
       };
 
       const response = await this.serviceInstance.pinJSONToIPFS(jsonData, pinataOptions);
@@ -114,9 +91,7 @@ export class PinataService extends StorageService {
         id: response.IpfsHash,
         metadata: {
           ...response,
-          name: backupName,
-          data: jsonData,
-          originalMetadata: metadata
+          data: jsonData
         },
       };
     } catch (error) {
@@ -132,23 +107,7 @@ export class PinataService extends StorageService {
       });
 
       if (pinList.rows && pinList.rows.length > 0) {
-        const pin = pinList.rows[0];
-        const metadata = pin.metadata;
-        
-        // Tenta di deserializzare i valori JSON nei metadata
-        if (metadata.keyvalues) {
-          const deserializedMetadata: Record<string, any> = {};
-          for (const [key, value] of Object.entries(metadata.keyvalues)) {
-            try {
-              deserializedMetadata[key] = JSON.parse(value as string);
-            } catch {
-              deserializedMetadata[key] = value;
-            }
-          }
-          return deserializedMetadata;
-        }
-        
-        return metadata;
+        return pinList.rows[0].metadata;
       }
       
       return null;

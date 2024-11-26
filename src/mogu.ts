@@ -1,6 +1,6 @@
 import { VersionManager, VersionInfo, VersionComparison, DetailedComparison } from './versioning';
 import { Web3Stash } from "./web3stash";
-import type { MoguConfig, BackupMetadata } from './types/mogu';
+import type { MoguConfig, BackupMetadata, BackupData } from './types/mogu';
 import fs from 'fs-extra';
 import { IPFSAdapter } from "./adapters/ipfsAdapter";
 import { initializeGun, initGun } from "./config/gun";
@@ -9,15 +9,18 @@ import { promisify } from 'util';
 import { createReadStream } from 'fs';
 import { createGzip } from 'zlib';
 import { pipeline } from 'stream';
+import { BackupAdapter, BackupOptions } from './adapters/backupAdapter';
+import { sha3_256 } from 'js-sha3';
 
 export class Mogu {
   private versionManager: VersionManager;
   private gun: any;
   private storage: any;
   private ipfsAdapter?: IPFSAdapter;
+  private backupAdapter: BackupAdapter;
   private config: Required<MoguConfig>;
 
-  constructor(config: MoguConfig) {
+  constructor(config: MoguConfig, backupOptions?: BackupOptions) {
     const radataPath = config.radataPath || path.join(process.cwd(), "radata");
     
     this.config = {
@@ -41,6 +44,9 @@ export class Mogu {
     if (this.config.useIPFS) {
       this.ipfsAdapter = new IPFSAdapter(config.storageConfig);
     }
+
+    // Inizializza il BackupAdapter
+    this.backupAdapter = new BackupAdapter(this.storage, backupOptions);
   }
 
   get(key: string) {
@@ -55,7 +61,7 @@ export class Mogu {
     this.gun.get(key).on(callback);
   }
 
-  async backup(): Promise<{ hash: string; versionInfo: VersionInfo }> {
+  async backup(): Promise<{ hash: string; versionInfo: VersionInfo; name: string }> {
     try {
       // Leggi tutti i file nella directory radata
       const files = await fs.readdir(this.config.radataPath);
@@ -89,12 +95,7 @@ export class Mogu {
         versionInfo
       };
 
-      // Carica i dati
-      const result = await this.storage.uploadJson(backupData, { metadata });
-      return { 
-        hash: result.id, // Usa l'ID restituito da Pinata
-        versionInfo 
-      };
+      return this.backupAdapter.createBackup(backupData, metadata);
     } catch (error) {
       console.error('Errore durante il backup:', error);
       throw error;
@@ -109,15 +110,11 @@ export class Mogu {
       }
 
       console.log('Recupero dati da hash:', hash);
-      const remoteData = await this.storage.get(hash);
+      const backup = await this.backupAdapter.getBackup(hash);
       
-      if (!remoteData) {
+      if (!backup?.data) {
         throw new Error('Nessun dato trovato per l\'hash fornito');
       }
-
-      // Assicurati che i dati siano in formato corretto
-      const backupData = typeof remoteData === 'string' ? 
-        JSON.parse(remoteData) : remoteData;
 
       // Rimuovi la directory esistente
       await fs.remove(this.config.radataPath);
@@ -128,7 +125,7 @@ export class Mogu {
       console.log('Directory radata ricreata');
 
       // Ripristina i file dal backup
-      for (const [fileName, fileData] of Object.entries(backupData)) {
+      for (const [fileName, fileData] of Object.entries(backup.data)) {
         const filePath = path.join(this.config.radataPath, fileName);
         await fs.writeFile(filePath, JSON.stringify(fileData));
         console.log(`File ripristinato: ${fileName}`);
@@ -171,18 +168,69 @@ export class Mogu {
         }
       }
 
-      // Converti i dati locali in Buffer
-      const localDataBuffer = Buffer.from(JSON.stringify(localData));
-
-      // Recupera i dati remoti e i metadata
-      const remoteData = await this.storage.get(backupHash);
-      const metadata = await this.storage.getMetadata(backupHash);
+      // Recupera il backup completo
+      const backup = await this.backupAdapter.getBackup(backupHash);
       
-      if (!metadata?.versionInfo) {
+      if (!backup?.data || !backup?.metadata?.versionInfo) {
         throw new Error('Backup non valido: metadata mancanti');
       }
 
-      return this.versionManager.compareVersions(localDataBuffer, metadata.versionInfo);
+      // Ordina le chiavi degli oggetti per un confronto consistente
+      const sortObject = (obj: any): any => {
+        if (typeof obj !== 'object' || obj === null) return obj;
+        if (Array.isArray(obj)) return obj.map(sortObject);
+        return Object.keys(obj).sort().reduce((result: any, key) => {
+          result[key] = sortObject(obj[key]);
+          return result;
+        }, {});
+      };
+
+      // Normalizza e ordina i dati per il confronto
+      const normalizedLocalData = sortObject(localData);
+      const normalizedRemoteData = sortObject(backup.data);
+
+      // Confronta i dati effettivi
+      const localDataStr = JSON.stringify(normalizedLocalData);
+      const remoteDataStr = JSON.stringify(normalizedRemoteData);
+      const localChecksum = sha3_256(Buffer.from(localDataStr));
+      const remoteChecksum = sha3_256(Buffer.from(remoteDataStr));
+
+      const localVersion: VersionInfo = {
+        hash: localChecksum,
+        timestamp: Date.now(),
+        size: Buffer.from(localDataStr).length,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          modifiedAt: new Date().toISOString(),
+          checksum: localChecksum
+        }
+      };
+
+      const remoteVersion = backup.metadata.versionInfo;
+
+      // Se i contenuti sono uguali, usa i metadata remoti per mantenere la coerenza
+      if (localChecksum === remoteChecksum) {
+        return {
+          isEqual: true,
+          isNewer: false, // Non importa in questo caso
+          localVersion: remoteVersion, // Usa la versione remota per coerenza
+          remoteVersion,
+          timeDiff: 0,
+          formattedDiff: "meno di un minuto"
+        };
+      }
+
+      return {
+        isEqual: false,
+        isNewer: localVersion.timestamp > remoteVersion.timestamp,
+        localVersion,
+        remoteVersion,
+        timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
+        formattedDiff: this.versionManager.formatTimeDifference(
+          localVersion.timestamp, 
+          remoteVersion.timestamp
+        )
+      };
     } catch (error) {
       console.error('Errore durante il confronto:', error);
       throw error;
@@ -214,14 +262,18 @@ export class Mogu {
       // Converti i dati locali in Buffer
       const localDataBuffer = Buffer.from(JSON.stringify(localData));
 
-      // Recupera i dati remoti
-      const remoteData = await this.storage.get(backupHash);
-      const remoteDataBuffer = Buffer.from(JSON.stringify(remoteData));
+      // Recupera il backup completo
+      const backup = await this.backupAdapter.getBackup(backupHash);
+      const remoteDataBuffer = Buffer.from(JSON.stringify(backup.data));
       
       return this.versionManager.compareDetailedVersions(localDataBuffer, remoteDataBuffer);
     } catch (error) {
       console.error('Errore durante il confronto dettagliato:', error);
       throw error;
     }
+  }
+
+  async getBackupState(hash: string): Promise<BackupData> {
+    return this.backupAdapter.getBackup(hash);
   }
 } 

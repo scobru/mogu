@@ -67,8 +67,24 @@ class VersionManager {
         const localVersion = await this.createVersionInfo(localData);
         const remoteVersion = await this.createVersionInfo(remoteData);
         const localChecksums = await this.getFileChecksums(this.radataPath);
-        const remoteData_parsed = JSON.parse(remoteData.toString());
-        const remoteChecksums = new Map(Object.entries(remoteData_parsed.checksums));
+        // Gestisci il caso in cui remoteData non sia nel formato atteso
+        let remoteChecksums = new Map();
+        try {
+            const remoteObj = JSON.parse(remoteData.toString());
+            // Verifica se l'oggetto ha la struttura attesa
+            if (remoteObj && typeof remoteObj === 'object') {
+                for (const [key, value] of Object.entries(remoteObj)) {
+                    const content = Buffer.from(JSON.stringify(value));
+                    remoteChecksums.set(key, {
+                        checksum: (0, js_sha3_1.sha3_256)(content),
+                        size: content.length
+                    });
+                }
+            }
+        }
+        catch (error) {
+            console.error('Errore nel parsing dei dati remoti:', error);
+        }
         const differences = [];
         const totalChanges = { added: 0, modified: 0, deleted: 0 };
         // Trova file modificati e aggiunti

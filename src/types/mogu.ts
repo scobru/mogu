@@ -18,6 +18,9 @@ export interface BackupMetadata {
   timestamp: number;
   type: string;
   versionInfo: VersionInfo;
+  name?: string;
+  description?: string;
+  [key: string]: any;
 }
 
 export interface FileChecksum {
@@ -27,4 +30,9 @@ export interface FileChecksum {
 
 export interface RemoteChecksums {
   checksums: Map<string, FileChecksum>;
+}
+
+export interface BackupData {
+  data: Record<string, any>;
+  metadata: BackupMetadata;
 } 

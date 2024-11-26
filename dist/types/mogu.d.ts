@@ -15,6 +15,9 @@ export interface BackupMetadata {
     timestamp: number;
     type: string;
     versionInfo: VersionInfo;
+    name?: string;
+    description?: string;
+    [key: string]: any;
 }
 export interface FileChecksum {
     checksum: string;

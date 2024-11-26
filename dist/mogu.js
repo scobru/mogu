@@ -10,8 +10,9 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const ipfsAdapter_1 = require("./adapters/ipfsAdapter");
 const gun_1 = require("./config/gun");
 const path_1 = __importDefault(require("path"));
+const backupAdapter_1 = require("./adapters/backupAdapter");
 class Mogu {
-    constructor(config) {
+    constructor(config, backupOptions) {
         const radataPath = config.radataPath || path_1.default.join(process.cwd(), "radata");
         this.config = {
             ...config,
@@ -30,6 +31,8 @@ class Mogu {
         if (this.config.useIPFS) {
             this.ipfsAdapter = new ipfsAdapter_1.IPFSAdapter(config.storageConfig);
         }
+        // Inizializza il BackupAdapter
+        this.backupAdapter = new backupAdapter_1.BackupAdapter(this.storage, backupOptions);
     }
     get(key) {
         return this.gun.get(key);
@@ -41,31 +44,63 @@ class Mogu {
         this.gun.get(key).on(callback);
     }
     async backup() {
-        const data = await fs_extra_1.default.readFile(this.config.radataPath);
-        if (!Buffer.isBuffer(data)) {
-            throw new Error('Dati non validi: il file deve essere letto come Buffer');
+        try {
+            // Leggi tutti i file nella directory radata
+            const files = await fs_extra_1.default.readdir(this.config.radataPath);
+            const backupData = {};
+            // Leggi il contenuto di ogni file
+            for (const file of files) {
+                const filePath = path_1.default.join(this.config.radataPath, file);
+                const stats = await fs_extra_1.default.stat(filePath);
+                // Salta le directory
+                if (stats.isDirectory())
+                    continue;
+                const content = await fs_extra_1.default.readFile(filePath, 'utf8');
+                try {
+                    backupData[file] = JSON.parse(content);
+                }
+                catch {
+                    backupData[file] = content;
+                }
+            }
+            // Converti i dati in Buffer
+            const dataBuffer = Buffer.from(JSON.stringify(backupData));
+            // Crea version info
+            const versionInfo = await this.versionManager.createVersionInfo(dataBuffer);
+            const metadata = {
+                timestamp: Date.now(),
+                type: 'mogu-backup',
+                versionInfo
+            };
+            return this.backupAdapter.createBackup(backupData, metadata);
         }
-        const versionInfo = await this.versionManager.createVersionInfo(data);
-        const metadata = {
-            timestamp: Date.now(),
-            type: 'mogu-backup',
-            versionInfo
-        };
-        const hash = await this.storage.uploadJson(data, { metadata });
-        return { hash, versionInfo };
+        catch (error) {
+            console.error('Errore durante il backup:', error);
+            throw error;
+        }
     }
     async restore(hash) {
         try {
-            const remoteData = await this.storage.get(hash);
+            // Assicurati che l'hash sia una stringa valida
+            if (!hash || typeof hash !== 'string') {
+                throw new Error('Hash non valido');
+            }
+            console.log('Recupero dati da hash:', hash);
+            const backup = await this.backupAdapter.getBackup(hash);
+            if (!backup?.data) {
+                throw new Error('Nessun dato trovato per l\'hash fornito');
+            }
             // Rimuovi la directory esistente
             await fs_extra_1.default.remove(this.config.radataPath);
+            console.log('Directory radata rimossa');
             // Ricrea la directory
             await fs_extra_1.default.mkdirp(this.config.radataPath);
+            console.log('Directory radata ricreata');
             // Ripristina i file dal backup
-            const backupData = JSON.parse(remoteData.toString());
-            for (const [fileName, fileData] of Object.entries(backupData)) {
+            for (const [fileName, fileData] of Object.entries(backup.data)) {
                 const filePath = path_1.default.join(this.config.radataPath, fileName);
                 await fs_extra_1.default.writeFile(filePath, JSON.stringify(fileData));
+                console.log(`File ripristinato: ${fileName}`);
             }
             // Reinizializza Gun con il nuovo path
             this.gun = this.config.server ?
@@ -81,27 +116,70 @@ class Mogu {
         }
     }
     async compareBackup(backupHash) {
-        const localData = await fs_extra_1.default.readFile(this.config.radataPath);
-        if (!Buffer.isBuffer(localData)) {
-            throw new Error('Dati locali non validi: il file deve essere letto come Buffer');
+        try {
+            // Leggi tutti i file nella directory radata
+            const files = await fs_extra_1.default.readdir(this.config.radataPath);
+            const localData = {};
+            // Leggi il contenuto di ogni file
+            for (const file of files) {
+                const filePath = path_1.default.join(this.config.radataPath, file);
+                const stats = await fs_extra_1.default.stat(filePath);
+                // Salta le directory
+                if (stats.isDirectory())
+                    continue;
+                const content = await fs_extra_1.default.readFile(filePath, 'utf8');
+                try {
+                    localData[file] = JSON.parse(content);
+                }
+                catch {
+                    localData[file] = content;
+                }
+            }
+            // Converti i dati locali in Buffer
+            const localDataBuffer = Buffer.from(JSON.stringify(localData));
+            // Recupera i metadata del backup
+            const backup = await this.backupAdapter.getBackup(backupHash);
+            if (!backup?.metadata?.versionInfo) {
+                throw new Error('Backup non valido: metadata mancanti');
+            }
+            return this.versionManager.compareVersions(localDataBuffer, backup.metadata.versionInfo);
         }
-        const remoteData = await this.storage.get(backupHash);
-        const metadata = await this.storage.getMetadata(backupHash);
-        if (!metadata?.versionInfo) {
-            throw new Error('Backup non valido: metadata mancanti');
+        catch (error) {
+            console.error('Errore durante il confronto:', error);
+            throw error;
         }
-        return this.versionManager.compareVersions(localData, metadata.versionInfo);
     }
     async compareDetailedBackup(backupHash) {
-        const localData = await fs_extra_1.default.readFile(this.config.radataPath);
-        if (!Buffer.isBuffer(localData)) {
-            throw new Error('Dati locali non validi: il file deve essere letto come Buffer');
+        try {
+            // Leggi tutti i file nella directory radata
+            const files = await fs_extra_1.default.readdir(this.config.radataPath);
+            const localData = {};
+            // Leggi il contenuto di ogni file
+            for (const file of files) {
+                const filePath = path_1.default.join(this.config.radataPath, file);
+                const stats = await fs_extra_1.default.stat(filePath);
+                // Salta le directory
+                if (stats.isDirectory())
+                    continue;
+                const content = await fs_extra_1.default.readFile(filePath, 'utf8');
+                try {
+                    localData[file] = JSON.parse(content);
+                }
+                catch {
+                    localData[file] = content;
+                }
+            }
+            // Converti i dati locali in Buffer
+            const localDataBuffer = Buffer.from(JSON.stringify(localData));
+            // Recupera il backup completo
+            const backup = await this.backupAdapter.getBackup(backupHash);
+            const remoteDataBuffer = Buffer.from(JSON.stringify(backup.data));
+            return this.versionManager.compareDetailedVersions(localDataBuffer, remoteDataBuffer);
         }
-        const remoteData = await this.storage.get(backupHash);
-        if (!Buffer.isBuffer(remoteData)) {
-            throw new Error('Dati remoti non validi: devono essere in formato Buffer');
+        catch (error) {
+            console.error('Errore durante il confronto dettagliato:', error);
+            throw error;
         }
-        return this.versionManager.compareDetailedVersions(localData, remoteData);
     }
 }
 exports.Mogu = Mogu;

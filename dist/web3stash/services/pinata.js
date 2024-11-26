@@ -13,9 +13,34 @@ class PinataService extends base_storage_1.StorageService {
         this.serviceBaseUrl = "ipfs://";
         this.serviceInstance = (0, sdk_1.default)(pinataApiKey, pinataApiSecret);
     }
+    formatPinataMetadata(metadata) {
+        if (!metadata)
+            return {};
+        const result = {};
+        if (metadata.name) {
+            result.name = metadata.name;
+        }
+        if (metadata.keyvalues) {
+            Object.entries(metadata.keyvalues).forEach(([key, value]) => {
+                if (value !== undefined) {
+                    result[key] = value;
+                }
+            });
+        }
+        return result;
+    }
     async get(hash) {
-        const response = await axios_1.default.get(`https://gateway.pinata.cloud/ipfs/${hash}`);
-        return response.data;
+        try {
+            if (!hash || typeof hash !== 'string') {
+                throw new Error('Hash non valido');
+            }
+            const response = await axios_1.default.get(`https://gateway.pinata.cloud/ipfs/${hash}`);
+            return response.data;
+        }
+        catch (error) {
+            console.error('Errore nel recupero da Pinata:', error);
+            throw error;
+        }
     }
     getEndpoint() {
         return "https://gateway.pinata.cloud/ipfs/";
@@ -25,36 +50,36 @@ class PinataService extends base_storage_1.StorageService {
     }
     async uploadJson(jsonData, options) {
         try {
-            // Se è una richiesta GET, usa il gateway
-            if (options?.method === "GET") {
-                const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${options.hash}`;
-                const response = await axios_1.default.get(gatewayUrl);
-                return response.data;
-            }
-            // Per l'upload, usa pinJSONToIPFS
             const pinataOptions = {
-                pinataMetadata: {
-                    name: "mogu-backup",
-                    keyvalues: {
-                        timestamp: new Date().toISOString(),
-                        type: "backup",
-                    },
-                },
+                pinataMetadata: this.formatPinataMetadata(options?.pinataMetadata),
+                pinataOptions: options?.pinataOptions
             };
             const response = await this.serviceInstance.pinJSONToIPFS(jsonData, pinataOptions);
-            // Verifica che i dati siano stati caricati correttamente
-            const verifyUrl = `https://gateway.pinata.cloud/ipfs/${response.IpfsHash}`;
-            await axios_1.default.get(verifyUrl);
             return {
                 id: response.IpfsHash,
                 metadata: {
                     ...response,
-                    data: jsonData, // Includi i dati originali nella risposta
+                    data: jsonData
                 },
             };
         }
         catch (error) {
-            console.error("Error with Pinata:", error);
+            console.error("Errore con Pinata:", error);
+            throw error;
+        }
+    }
+    async getMetadata(hash) {
+        try {
+            const pinList = await this.serviceInstance.pinList({
+                hashContains: hash
+            });
+            if (pinList.rows && pinList.rows.length > 0) {
+                return pinList.rows[0].metadata;
+            }
+            return null;
+        }
+        catch (error) {
+            console.error('Errore nel recupero dei metadata:', error);
             throw error;
         }
     }
