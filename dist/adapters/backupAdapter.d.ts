@@ -1,6 +1,6 @@
 import { StorageService } from '../web3stash/services/base-storage';
 import type { VersionInfo } from '../versioning';
-import type { BackupMetadata } from '../types/mogu';
+import type { BackupMetadata, BackupData } from '../types/mogu';
 export interface BackupOptions {
     name?: string;
     description?: string;
@@ -10,10 +10,6 @@ export interface BackupOptions {
 export interface StorageServiceWithMetadata extends StorageService {
     get(hash: string): Promise<any>;
     getMetadata?(hash: string): Promise<any>;
-}
-export interface BackupData {
-    data: Record<string, any>;
-    metadata: BackupMetadata;
 }
 export declare class BackupAdapter {
     private storage;

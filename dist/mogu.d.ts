@@ -1,5 +1,5 @@
 import { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
-import type { MoguConfig } from './types/mogu';
+import type { MoguConfig, BackupData } from './types/mogu';
 import { BackupOptions } from './adapters/backupAdapter';
 export declare class Mogu {
     private versionManager;
@@ -20,4 +20,5 @@ export declare class Mogu {
     restore(hash: string): Promise<boolean>;
     compareBackup(backupHash: string): Promise<VersionComparison>;
     compareDetailedBackup(backupHash: string): Promise<DetailedComparison>;
+    getBackupState(hash: string): Promise<BackupData>;
 }

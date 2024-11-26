@@ -11,6 +11,7 @@ const ipfsAdapter_1 = require("./adapters/ipfsAdapter");
 const gun_1 = require("./config/gun");
 const path_1 = __importDefault(require("path"));
 const backupAdapter_1 = require("./adapters/backupAdapter");
+const js_sha3_1 = require("js-sha3");
 class Mogu {
     constructor(config, backupOptions) {
         const radataPath = config.radataPath || path_1.default.join(process.cwd(), "radata");
@@ -135,14 +136,60 @@ class Mogu {
                     localData[file] = content;
                 }
             }
-            // Converti i dati locali in Buffer
-            const localDataBuffer = Buffer.from(JSON.stringify(localData));
-            // Recupera i metadata del backup
+            // Recupera il backup completo
             const backup = await this.backupAdapter.getBackup(backupHash);
-            if (!backup?.metadata?.versionInfo) {
+            if (!backup?.data || !backup?.metadata?.versionInfo) {
                 throw new Error('Backup non valido: metadata mancanti');
             }
-            return this.versionManager.compareVersions(localDataBuffer, backup.metadata.versionInfo);
+            // Ordina le chiavi degli oggetti per un confronto consistente
+            const sortObject = (obj) => {
+                if (typeof obj !== 'object' || obj === null)
+                    return obj;
+                if (Array.isArray(obj))
+                    return obj.map(sortObject);
+                return Object.keys(obj).sort().reduce((result, key) => {
+                    result[key] = sortObject(obj[key]);
+                    return result;
+                }, {});
+            };
+            // Normalizza e ordina i dati per il confronto
+            const normalizedLocalData = sortObject(localData);
+            const normalizedRemoteData = sortObject(backup.data);
+            // Confronta i dati effettivi
+            const localDataStr = JSON.stringify(normalizedLocalData);
+            const remoteDataStr = JSON.stringify(normalizedRemoteData);
+            const localChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(localDataStr));
+            const remoteChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(remoteDataStr));
+            const localVersion = {
+                hash: localChecksum,
+                timestamp: Date.now(),
+                size: Buffer.from(localDataStr).length,
+                metadata: {
+                    createdAt: new Date().toISOString(),
+                    modifiedAt: new Date().toISOString(),
+                    checksum: localChecksum
+                }
+            };
+            const remoteVersion = backup.metadata.versionInfo;
+            // Se i contenuti sono uguali, usa i metadata remoti per mantenere la coerenza
+            if (localChecksum === remoteChecksum) {
+                return {
+                    isEqual: true,
+                    isNewer: false, // Non importa in questo caso
+                    localVersion: remoteVersion, // Usa la versione remota per coerenza
+                    remoteVersion,
+                    timeDiff: 0,
+                    formattedDiff: "meno di un minuto"
+                };
+            }
+            return {
+                isEqual: false,
+                isNewer: localVersion.timestamp > remoteVersion.timestamp,
+                localVersion,
+                remoteVersion,
+                timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
+                formattedDiff: this.versionManager.formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp)
+            };
         }
         catch (error) {
             console.error('Errore durante il confronto:', error);
@@ -180,6 +227,9 @@ class Mogu {
             console.error('Errore durante il confronto dettagliato:', error);
             throw error;
         }
+    }
+    async getBackupState(hash) {
+        return this.backupAdapter.getBackup(hash);
     }
 }
 exports.Mogu = Mogu;

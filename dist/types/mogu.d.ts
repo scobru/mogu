@@ -26,3 +26,7 @@ export interface FileChecksum {
 export interface RemoteChecksums {
     checksums: Map<string, FileChecksum>;
 }
+export interface BackupData {
+    data: Record<string, any>;
+    metadata: BackupMetadata;
+}

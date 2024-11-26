@@ -5,10 +5,6 @@ import fs from 'fs-extra';
 import { IPFSAdapter } from "./adapters/ipfsAdapter";
 import { initializeGun, initGun } from "./config/gun";
 import path from 'path';
-import { promisify } from 'util';
-import { createReadStream } from 'fs';
-import { createGzip } from 'zlib';
-import { pipeline } from 'stream';
 import { BackupAdapter, BackupOptions } from './adapters/backupAdapter';
 import { sha3_256 } from 'js-sha3';
 
