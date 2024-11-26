@@ -1,5 +1,11 @@
 # Mogu Project Documentation
 
+<img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" width="300" height="auto" alt="Mogu Logo">
+
+
+
+
+
 Mogu is a TypeScript-based project that integrates GunDB with IPFS to provide a decentralized and efficient data storage solution. It includes features for real-time updates, backups, and restores via Web3Stash and IPFS.
 
 ## Table of Contents

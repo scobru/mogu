@@ -1,6 +1,5 @@
 import express from 'express';
 import { initGun } from './config/gun';
-import { GunMogu } from './db/gunDb';
 
 const port = process.env.PORT || 8765;
 
@@ -15,7 +14,7 @@ export const startServer = async () => {
     file: 'radata',  // Usa lo stesso path dell'SDK
   });
   
-  const gunDb = new GunMogu(gunInstance);
+  const gunDb = gunInstance;
 
   // Middleware minimo per Gun
   app.use('/gun', (req, res) => {

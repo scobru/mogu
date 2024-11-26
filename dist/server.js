@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startServer = void 0;
 const express_1 = __importDefault(require("express"));
 const gun_1 = require("./config/gun");
-const gunDb_1 = require("./db/gunDb");
 const port = process.env.PORT || 8765;
 const startServer = async () => {
     const app = (0, express_1.default)();
@@ -17,7 +16,7 @@ const startServer = async () => {
     const gunInstance = (0, gun_1.initGun)(server, {
         file: 'radata', // Usa lo stesso path dell'SDK
     });
-    const gunDb = new gunDb_1.GunMogu(gunInstance);
+    const gunDb = gunInstance;
     // Middleware minimo per Gun
     app.use('/gun', (req, res) => {
         gunInstance.web(req, res);
