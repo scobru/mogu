@@ -1,4 +1,5 @@
-import { Mogu } from "../core/core";
+import { Mogu } from "../mogu";
+import type { FileDiff } from '../versioning';
 import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import path from 'path';
@@ -150,8 +151,9 @@ async function testBackup(mogu: Mogu) {
 
   // Crea il backup
   console.log("Creating backup...");
-  const hash = await mogu.backup();
-  console.log('Backup created with hash:', hash);
+  const backupResult = await mogu.backup();
+  const backupHash = backupResult.hash;
+  console.log('Backup created with hash:', backupHash);
 
   // Salva il contenuto originale dei file
   const originalFiles = new Map();
@@ -167,7 +169,7 @@ async function testBackup(mogu: Mogu) {
 
   // Ripristina dal backup
   console.log("Restoring from backup...");
-  const restoreResult = await mogu.restore(hash);
+  const restoreResult = await mogu.restore(backupHash);
   console.log('Backup restored:', restoreResult);
   
   // Attendi che i file siano ripristinati
@@ -212,7 +214,7 @@ async function testBackup(mogu: Mogu) {
   console.log('Testing backup comparison...');
   
   // Prima verifica: dovrebbe essere uguale
-  const comparison1 = await mogu.compareBackup(hash);
+  const comparison1 = await mogu.compareBackup(backupHash);
   console.log('Initial comparison:', comparison1);
   if (!comparison1.isEqual) {
     console.error('Comparison details:', comparison1.differences);
@@ -230,7 +232,7 @@ async function testBackup(mogu: Mogu) {
     await fs.writeFile(filePath, JSON.stringify({ modified: true }));
 
     // Seconda verifica: dovrebbe essere diverso
-    const comparison2 = await mogu.compareBackup(hash);
+    const comparison2 = await mogu.compareBackup(backupHash);
     console.log('Comparison after modification:', comparison2);
     if (comparison2.isEqual) {
       throw new Error('Backup should be different after local modification');
@@ -244,7 +246,7 @@ async function testBackup(mogu: Mogu) {
   }
 
   // Verifica finale dopo il ripristino
-  const comparison3 = await mogu.compareBackup(hash);
+  const comparison3 = await mogu.compareBackup(backupHash);
   console.log('Final comparison:', comparison3);
   if (!comparison3.isEqual) {
     console.error('Final comparison details:', comparison3.differences);
@@ -252,6 +254,73 @@ async function testBackup(mogu: Mogu) {
   }
 
   console.log('Backup comparison tests completed successfully');
+
+  console.log('Testing detailed backup comparison...');
+  
+  // Test iniziale del diff dettagliato
+  const detailedComparison1 = await mogu.compareDetailedBackup(backupHash);
+  console.log('Initial detailed comparison:', {
+    isEqual: detailedComparison1.isEqual,
+    totalChanges: detailedComparison1.totalChanges
+  });
+  
+  if (!detailedComparison1.isEqual) {
+    console.error('Unexpected differences:', detailedComparison1.differences);
+    throw new Error('Backup should be equal after restore');
+  }
+
+  // Modifica multipla dei file per testare il diff
+  const modifications = [
+    { file: '!', content: JSON.stringify({ modified: true }) },
+    { file: 'test.txt', content: 'new file' }
+  ];
+
+  for (const mod of modifications) {
+    const filePath = path.join(RADATA_PATH, mod.file);
+    await fs.writeFile(filePath, mod.content);
+  }
+
+  // Verifica che il diff rilevi correttamente le modifiche
+  const detailedComparison2 = await mogu.compareDetailedBackup(backupHash);
+  console.log('Detailed comparison after modifications:', {
+    isEqual: detailedComparison2.isEqual,
+    totalChanges: detailedComparison2.totalChanges,
+    differences: detailedComparison2.differences
+  });
+
+  // Verifica che le modifiche siano state rilevate correttamente
+  if (detailedComparison2.isEqual) {
+    throw new Error('Backup should detect differences after modifications');
+  }
+
+  if (detailedComparison2.totalChanges.modified < 1 || 
+      detailedComparison2.totalChanges.added < 1) {
+    throw new Error('Backup comparison should detect both modified and added files');
+  }
+
+  // Verifica che ogni modifica sia stata tracciata correttamente
+  const modifiedFiles = detailedComparison2.differences
+    .filter((d: FileDiff) => d.type === 'modified')
+    .map((d: FileDiff) => d.path);
+  
+  const addedFiles = detailedComparison2.differences
+    .filter((d: FileDiff) => d.type === 'added')
+    .map((d: FileDiff) => d.path);
+
+  console.log('Modified files:', modifiedFiles);
+  console.log('Added files:', addedFiles);
+
+  // Ripristina i file originali
+  await mogu.restore(backupHash);
+
+  // Verifica finale del diff
+  const detailedComparison3 = await mogu.compareDetailedBackup(backupHash);
+  if (!detailedComparison3.isEqual) {
+    console.error('Final comparison differences:', detailedComparison3.differences);
+    throw new Error('Backup should be equal after restore');
+  }
+
+  console.log('Detailed backup comparison tests completed successfully');
 }
 
 run().catch(err => {
