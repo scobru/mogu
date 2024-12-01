@@ -5,6 +5,7 @@ import Bundlr from '@bundlr-network/client';
 import {promises as fs} from 'fs';
 import * as mime from 'mime-types';
 import type {ChunkingUploader} from '@bundlr-network/client/build/common/chunkingUploader';
+import { BackupData } from '../../types/mogu';
 export class BundlrService extends StorageService {
 	public serviceBaseUrl = 'ar://';
 	public bundlrMainNetworkUrl = 'http://node2.bundlr.network';
@@ -134,5 +135,9 @@ export class BundlrService extends StorageService {
 	public async unpin(hash: string): Promise<void> {
 		// Bundlr non supporta l'unpin poiché è basato su Arweave
 		throw new Error('Unpin not supported on Bundlr - data is permanent');
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on Bundlr');
 	}
 }

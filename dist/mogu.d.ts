@@ -1,27 +1,35 @@
 import { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
 import type { MoguConfig, BackupData } from './types/mogu';
-import { BackupOptions } from './adapters/backupAdapter';
+import type { BackupOptions } from './types/backup';
+declare module 'gun' {
+    interface IGunInstance {
+        backup(config: Required<MoguConfig>, customPath?: string, options?: BackupOptions): Promise<{
+            hash: string;
+            versionInfo: VersionInfo;
+            name: string;
+        }>;
+        restore(config: Required<MoguConfig>, hash: string, customPath?: string, options?: BackupOptions): Promise<boolean>;
+        compareBackup(config: Required<MoguConfig>, hash: string): Promise<VersionComparison>;
+        compareDetailedBackup(config: Required<MoguConfig>, hash: string): Promise<DetailedComparison>;
+        getBackupState(config: Required<MoguConfig>, hash: string): Promise<BackupData>;
+    }
+}
 export declare class Mogu {
-    private versionManager;
-    gun: any;
+    private gun?;
+    private fileBackup;
     private storage;
-    private ipfsAdapter?;
-    private backupAdapter;
-    private backupPath;
     config: Required<MoguConfig>;
-    constructor(config: MoguConfig, backupOptions?: BackupOptions);
+    constructor(config: MoguConfig);
     get(key: string): any;
     put(key: string, data: any): any;
     on(key: string, callback: (data: any) => void): void;
-    backup(customBackupPath?: string): Promise<{
-        hash: string;
-        versionInfo: VersionInfo;
-        name: string;
-    }>;
-    restore(hash: string, customRestorePath?: string): Promise<boolean>;
-    compareBackup(backupHash: string): Promise<VersionComparison>;
-    compareDetailedBackup(backupHash: string): Promise<DetailedComparison>;
-    getBackupState(hash: string): Promise<BackupData>;
-    private isBinaryFile;
-    private getMimeType;
+    backupGun: (customPath?: string, options?: BackupOptions) => any;
+    restoreGun: (hash: string, customPath?: string, options?: BackupOptions) => Promise<any>;
+    backupFiles: (sourcePath: string, options?: import("./types/backup").BackupOptions) => Promise<import("./types/backup").BackupResult>;
+    restoreFiles: (hash: string, targetPath: string, options?: import("./types/backup").BackupOptions) => Promise<boolean>;
+    compareBackup: (hash: string, sourcePath?: string) => any;
+    compareDetailedBackup: (hash: string, sourcePath?: string) => any;
+    getBackupState: (hash: string) => any;
+    backup: (customPath?: string, options?: BackupOptions) => any;
+    restore: (hash: string, customPath?: string, options?: BackupOptions) => Promise<any>;
 }

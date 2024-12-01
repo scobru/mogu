@@ -4,6 +4,7 @@ import {StorageService} from './base-storage';
 import type {UploadOutput} from '../types';
 import * as fsHelper from './helpers/fsHelper';
 import lighthouse from '@lighthouse-web3/sdk';
+import { BackupData } from '../../types/mogu';
 
 export class LighthouseStorageService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
@@ -40,5 +41,9 @@ export class LighthouseStorageService extends StorageService {
 
 	public async unpin(hash: string): Promise<void> {
 		throw new Error('Unpin not directly supported on Lighthouse');
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on Lighthouse');
 	}
 }

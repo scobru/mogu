@@ -35,5 +35,8 @@ class IpfsService extends base_storage_1.StorageService {
     async unpin(hash) {
         await this.serviceInstance.pin.rm(hash);
     }
+    async get(hash) {
+        throw new Error('Get not supported on IPFS');
+    }
 }
 exports.IpfsService = IpfsService;

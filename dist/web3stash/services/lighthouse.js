@@ -70,5 +70,8 @@ class LighthouseStorageService extends base_storage_1.StorageService {
     async unpin(hash) {
         throw new Error('Unpin not directly supported on Lighthouse');
     }
+    async get(hash) {
+        throw new Error('Get not supported on Lighthouse');
+    }
 }
 exports.LighthouseStorageService = LighthouseStorageService;

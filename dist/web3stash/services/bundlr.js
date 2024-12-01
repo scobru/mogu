@@ -151,5 +151,8 @@ class BundlrService extends base_storage_1.StorageService {
         // Bundlr non supporta l'unpin poiché è basato su Arweave
         throw new Error('Unpin not supported on Bundlr - data is permanent');
     }
+    async get(hash) {
+        throw new Error('Get not supported on Bundlr');
+    }
 }
 exports.BundlrService = BundlrService;

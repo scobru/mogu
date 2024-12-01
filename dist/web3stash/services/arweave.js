@@ -113,6 +113,9 @@ class ArweaveService extends base_storage_1.StorageService {
         await this.getTxStatus(transaction.id, 0);
         return { id: transaction.id, metadata: { ...transaction } };
     }
+    async get(hash) {
+        throw new Error('Get not supported on Arweave');
+    }
     // Public async uploadImageFromStream(path: string, dataSize: number, imageType: string, options?: any): Promise<UploadOutput> {
     // 	const transaction = await pipeline(createReadStream(path), createTransactionAsync({}, this.serviceInstance, this.arweaveKey));
     // 	transaction.addTag('Content-Type', 'image/' + imageType);

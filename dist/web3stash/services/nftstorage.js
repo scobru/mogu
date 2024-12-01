@@ -81,5 +81,8 @@ class NftStorageService extends base_storage_1.StorageService {
     async unpin(hash) {
         await this.serviceInstance.delete(hash);
     }
+    async get(hash) {
+        throw new Error('Get not supported on NFT.storage');
+    }
 }
 exports.NftStorageService = NftStorageService;

@@ -81,5 +81,8 @@ class Web3StorageService extends base_storage_1.StorageService {
     async unpin(hash) {
         throw new Error('Unpin not supported on Web3.storage - data is retained based on the storage deal duration');
     }
+    async get(hash) {
+        throw new Error('Get not supported on Web3.storage');
+    }
 }
 exports.Web3StorageService = Web3StorageService;

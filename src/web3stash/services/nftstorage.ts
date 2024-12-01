@@ -4,6 +4,7 @@ import {NFTStorage, File, Blob} from 'nft.storage';
 import {promises as fs} from 'fs';
 import * as mime from 'mime-types';
 import Path from 'path';
+import { BackupData } from '../../types/mogu';
 
 export class NftStorageService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
@@ -50,5 +51,9 @@ export class NftStorageService extends StorageService {
 
 	public async unpin(hash: string): Promise<void> {
 		await this.serviceInstance.delete(hash);
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on NFT.storage');
 	}
 }

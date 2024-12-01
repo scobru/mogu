@@ -1,6 +1,7 @@
 import { StorageService } from './base-storage';
 import type { UploadOutput } from '../types';
 import { NFTStorage } from 'nft.storage';
+import { BackupData } from '../../types/mogu';
 export declare class NftStorageService extends StorageService {
     serviceBaseUrl: string;
     readonly serviceInstance: NFTStorage;
@@ -10,4 +11,5 @@ export declare class NftStorageService extends StorageService {
     uploadVideo(path: string, options?: any): Promise<UploadOutput>;
     uploadFile(path: string, options?: any): Promise<UploadOutput>;
     unpin(hash: string): Promise<void>;
+    get?(hash: string): Promise<BackupData>;
 }

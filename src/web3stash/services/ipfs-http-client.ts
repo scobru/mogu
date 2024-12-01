@@ -5,6 +5,7 @@ import type {UploadOutput} from '../types';
 import type {IPFSHTTPClient, Options} from 'ipfs-http-client';
 import {create} from 'ipfs-http-client';
 import {promises as fs} from 'fs';
+import { BackupData } from '../../types/mogu';
 
 export class IpfsService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
@@ -41,5 +42,9 @@ export class IpfsService extends StorageService {
 
 	public async unpin(hash: string): Promise<void> {
 		await this.serviceInstance.pin.rm(hash);
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on IPFS');
 	}
 }

@@ -3,6 +3,7 @@ import type { UploadOutput } from "../types";
 import type { PinataClient, PinataPinOptions } from "@pinata/sdk";
 import pinataSDK from "@pinata/sdk";
 import axios from "axios";
+import { BackupData } from '../../types/mogu';
 
 // Definiamo i tipi esatti come richiesto da Pinata
 type PinataMetadataValue = string | number | null;

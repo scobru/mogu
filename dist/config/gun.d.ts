@@ -5,7 +5,6 @@ interface GunOptions {
     peers?: string[];
     web?: any;
 }
-export declare const initGun: (server: any, inputOptions?: GunOptions) => any;
 export declare const initializeGun: (inputOptions?: GunOptions) => any;
 export declare const getGunInstance: () => any;
 export { Gun };

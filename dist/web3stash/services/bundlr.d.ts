@@ -1,6 +1,7 @@
 import { StorageService } from './base-storage';
 import type { UploadOutput } from '../types';
 import Bundlr from '@bundlr-network/client';
+import { BackupData } from '../../types/mogu';
 export declare class BundlrService extends StorageService {
     serviceBaseUrl: string;
     bundlrMainNetworkUrl: string;
@@ -24,4 +25,5 @@ export declare class BundlrService extends StorageService {
     private checkAndFundNode;
     private setChunkerLogger;
     unpin(hash: string): Promise<void>;
+    get?(hash: string): Promise<BackupData>;
 }

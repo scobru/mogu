@@ -4,10 +4,11 @@ export type UploadOutput = {
     id: string;
     metadata: Record<string, unknown>;
 };
-export type Web3StashServices = 'IPFS-CLIENT' | 'INFURA' | 'PINATA' | 'BUNDLR' | 'NFT.STORAGE' | 'WEB3.STORAGE' | 'ARWEAVE' | 'LIGHTHOUSE';
+export type Web3StashServices = 'PINATA' | 'BUNDLR' | 'NFT.STORAGE' | 'WEB3.STORAGE' | 'ARWEAVE' | 'IPFS-CLIENT' | 'LIGHTHOUSE';
 export type PinataServiceConfig = {
     apiKey: string;
     apiSecret: string;
+    gateway?: string;
 };
 export type BundlrServiceConfig = {
     currency: string;
@@ -26,11 +27,7 @@ export type ArweaveServiceConfig = {
 export type IpfsServiceConfig = {
     url: IpfsOptions;
 };
-export type InfuraServiceConfig = {
-    projectId: string;
-    projectSecret: string;
-};
 export type LighthouseServiceConfig = {
     lighthouseApiKey: string;
 };
-export type Web3StashConfig = BundlrServiceConfig | LighthouseServiceConfig | PinataServiceConfig | ArweaveServiceConfig | NftStorageServiceConfig | Web3StorageServiceConfig | IpfsServiceConfig | InfuraServiceConfig;
+export type Web3StashConfig = PinataServiceConfig | BundlrServiceConfig | NftStorageServiceConfig | Web3StorageServiceConfig | ArweaveServiceConfig | IpfsServiceConfig | LighthouseServiceConfig;

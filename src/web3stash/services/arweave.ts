@@ -8,6 +8,7 @@ import type {ApiConfig} from 'arweave/node/lib/api';
 import {uploadTransactionAsync, createTransactionAsync} from 'arweave-stream-tx';
 import {pipeline} from 'stream/promises';
 import type {JWKInterface} from 'arweave/node/lib/wallet';
+import { BackupData } from '../../types/mogu';
 
 export class ArweaveService extends StorageService {
 	public serviceBaseUrl = 'ar://';
@@ -93,6 +94,10 @@ export class ArweaveService extends StorageService {
 		await this.getTxStatus(transaction.id, 0);
 
 		return {id: transaction.id, metadata: {...transaction}};
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on Arweave');
 	}
 
 	// Public async uploadImageFromStream(path: string, dataSize: number, imageType: string, options?: any): Promise<UploadOutput> {

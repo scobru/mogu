@@ -8,58 +8,46 @@ const web3storage_1 = require("./services/web3storage");
 const arweave_1 = require("./services/arweave");
 const ipfs_http_client_1 = require("./services/ipfs-http-client");
 const lighthouse_1 = require("./services/lighthouse");
-// eslint-disable-next-line @typescript-eslint/naming-convention, complexity
-function Web3Stash(service, config, configOptions) {
+function Web3Stash(service, config) {
+    const defaultConfig = {}; // Config di base per tutti i servizi
     switch (service) {
         case "PINATA":
-            if ("apiKey" in config && config.apiKey && config.apiSecret) {
+            if ("apiKey" in config && "apiSecret" in config) {
                 return new pinata_1.PinataService(config.apiKey, config.apiSecret);
             }
-            throw new Error("Please provide pinata API Key and API Secret");
+            break;
         case "BUNDLR":
-            if ("currency" in config && config.currency && config.privateKey) {
-                return new bundlr_1.BundlrService(config.currency, config.privateKey, config.testing, configOptions);
+            if ("currency" in config && "privateKey" in config) {
+                return new bundlr_1.BundlrService(config.currency, config.privateKey, config.testing || false);
             }
-            throw new Error("Please provide Bundlr Currency and Private Key");
+            break;
         case "NFT.STORAGE":
-            if ("token" in config && config.token) {
-                return new nftstorage_1.NftStorageService(config.token, configOptions);
+            if ("token" in config) {
+                return new nftstorage_1.NftStorageService(config.token, defaultConfig);
             }
-            throw new Error("Please provide NFT.Storage Auth token");
+            break;
         case "WEB3.STORAGE":
-            if ("token" in config && config.token) {
-                return new web3storage_1.Web3StorageService(config.token, configOptions);
+            if ("token" in config) {
+                return new web3storage_1.Web3StorageService(config.token, defaultConfig);
             }
-            throw new Error("Please provide WEB3.Storage Auth token");
+            break;
         case "ARWEAVE":
-            if ("arweavePrivateKey" in config && config.arweavePrivateKey) {
-                return new arweave_1.ArweaveService(config.arweavePrivateKey, configOptions);
+            if ("arweavePrivateKey" in config) {
+                return new arweave_1.ArweaveService(config.arweavePrivateKey);
             }
-            throw new Error("Please provide Arweave Private Key ");
+            break;
         case "IPFS-CLIENT":
-            if ("url" in config && config.url) {
-                return new ipfs_http_client_1.IpfsService(config.url, configOptions);
+            if ("url" in config) {
+                return new ipfs_http_client_1.IpfsService(config.url);
             }
-            throw new Error("Please provide IPFS Connection URL");
-        case "INFURA":
-            if ("projectId" in config && config.projectId && config.projectSecret) {
-                const auth = "Basic " + Buffer.from(config.projectId + ":" + config.projectSecret).toString("base64");
-                return new ipfs_http_client_1.IpfsService({
-                    host: "ipfs.infura.io",
-                    port: 5001,
-                    protocol: "https",
-                    headers: {
-                        authorization: auth,
-                    },
-                }, configOptions);
-            }
-            throw new Error("Please provide INFURA Project ID and Project Secret");
+            break;
         case "LIGHTHOUSE":
-            if ("lighthouseApiKey" in config && config.lighthouseApiKey) {
-                return new lighthouse_1.LighthouseStorageService(config.lighthouseApiKey, configOptions);
+            if ("lighthouseApiKey" in config) {
+                return new lighthouse_1.LighthouseStorageService(config.lighthouseApiKey, defaultConfig);
             }
-            throw new Error("Please provide Lighthouse Api Key");
+            break;
         default:
-            throw new Error("Unknown Service Type");
+            throw new Error(`Unsupported storage service: ${service}`);
     }
+    throw new Error(`Invalid configuration for service: ${service}`);
 }

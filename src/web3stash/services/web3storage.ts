@@ -4,6 +4,7 @@ import {Web3Storage, File} from 'web3.storage';
 import {promises as fs} from 'fs';
 import * as mime from 'mime-types';
 import Path from 'path';
+import { BackupData } from '../../types/mogu';
 
 export class Web3StorageService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
@@ -50,5 +51,9 @@ export class Web3StorageService extends StorageService {
 
 	public async unpin(hash: string): Promise<void> {
 		throw new Error('Unpin not supported on Web3.storage - data is retained based on the storage deal duration');
+	}
+
+	public async get?(hash: string): Promise<BackupData> {
+		throw new Error('Get not supported on Web3.storage');
 	}
 }

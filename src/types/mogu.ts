@@ -4,11 +4,13 @@ import type { VersionInfo, VersionComparison, DetailedComparison } from "../vers
 export interface MoguConfig {
   storageService: Web3StashServices;
   storageConfig: Web3StashConfig;
+  useGun?: boolean;
   radataPath?: string;
-  useIPFS?: boolean;
-  server?: any;
   backupPath?: string;
   restorePath?: string;
+  storagePath?: string;
+  useIPFS?: boolean;
+  server?: any;
 }
 
 export interface BackupFileData {
@@ -20,8 +22,8 @@ export interface BackupMetadata {
   timestamp: number;
   type: string;
   versionInfo: VersionInfo;
-  name?: string;
-  description?: string;
+  sourcePath?: string;
+  isEncrypted?: boolean;
   [key: string]: any;
 }
 
