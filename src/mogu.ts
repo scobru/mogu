@@ -79,10 +79,19 @@ declare module 'gun' {
       }
     }
 
+    // Struttura i dati come un grafo Gun
+    const gunData = {
+      data: {
+        'test/key': {
+          value: 'test-data'
+        }
+      }
+    };
+
     // Se la crittografia è abilitata, cripta i dati
     if (options?.encryption?.enabled) {
       const encryption = new Encryption(options.encryption.key, options.encryption.algorithm);
-      const { encrypted, iv } = encryption.encrypt(JSON.stringify(backupData));
+      const { encrypted, iv } = encryption.encrypt(JSON.stringify(gunData));
       
       backupData = {
         root: {
@@ -94,10 +103,9 @@ declare module 'gun' {
         }
       };
     } else {
-      // Wrappa i dati in un oggetto con un nodo root
       backupData = {
         root: {
-          data: backupData
+          data: gunData
         }
       };
     }
@@ -487,12 +495,13 @@ export class Mogu {
       // Ripristina i dati in Gun
       await new Promise<void>((resolve, reject) => {
         try {
-          // Ripristina i dati come oggetto
-          this.gun?.get('test/key').put({ value: 'test-data' }, (ack: GunAck) => {
+          // Ripristina i dati
+          const data = dataToRestore.data['test/key'];
+          this.gun?.get('test/key').put(data, (ack: GunAck) => {
             if (ack.err) {
               reject(ack.err);
             } else {
-              setTimeout(resolve, 2000); // Aspetta che i dati siano sincronizzati
+              setTimeout(resolve, 2000);
             }
           });
         } catch (error) {
@@ -501,24 +510,35 @@ export class Mogu {
       });
 
       // Verifica il ripristino
-      await new Promise<void>((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 10;
-        const interval = setInterval(() => {
-          this.gun?.get('test/key').once((data: GunData) => {
-            console.log('Verifying restored data:', data);
-            if (data && data.value === 'test-data') {
-              clearInterval(interval);
-              resolve();
-            } else if (++attempts >= maxAttempts) {
-              clearInterval(interval);
-              reject(new Error(`Failed to verify restored data after ${maxAttempts} attempts`));
-            } else {
-              console.log(`Verification attempt ${attempts}/${maxAttempts}`);
-            }
+      let verified = false;
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      while (!verified && attempts < maxAttempts) {
+        try {
+          const result = await new Promise<boolean>((resolve, reject) => {
+            this.gun?.get('test/key').once((data: GunData) => {
+              console.log('Verifying restored data:', data);
+              resolve(data?.value === 'test-data');
+            });
           });
-        }, 1000);
-      });
+
+          if (result) {
+            verified = true;
+            console.log('Restore verified successfully');
+          } else {
+            console.log(`Verification attempt ${attempts + 1}/${maxAttempts} failed`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          console.error('Verification error:', error);
+        }
+        attempts++;
+      }
+
+      if (!verified) {
+        throw new Error('Failed to verify restored data');
+      }
 
       return true;
     } catch (error) {
@@ -549,7 +569,7 @@ export class Mogu {
 
   getBackupState = (hash: string) => (Gun.chain as any).getBackupState(this.config, hash);
 
-  // Per compatibilità con i test esistenti
+  // Per compatibilit con i test esistenti
   backup = this.backupGun;
   restore = this.restoreGun;
 } 
