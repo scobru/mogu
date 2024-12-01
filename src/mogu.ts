@@ -1,4 +1,4 @@
-import { VersionManager, VersionInfo, VersionComparison, DetailedComparison } from './versioning';
+import { VersionManager, VersionInfo, VersionComparison, DetailedComparison, FileDiff } from './versioning';
 import { Web3Stash } from "./web3stash";
 import type { MoguConfig, BackupMetadata, BackupData } from './types/mogu';
 import fs from 'fs-extra';
@@ -10,38 +10,46 @@ import { sha3_256 } from 'js-sha3';
 
 export class Mogu {
   private versionManager: VersionManager;
-  private gun: any;
+  public gun: any;
   private storage: any;
   private ipfsAdapter?: IPFSAdapter;
   private backupAdapter: BackupAdapter;
-  private config: Required<MoguConfig>;
+  private backupPath: string;
+  public config: Required<MoguConfig>;
 
   constructor(config: MoguConfig, backupOptions?: BackupOptions) {
     const radataPath = config.radataPath || path.join(process.cwd(), "radata");
+    this.backupPath = config.backupPath || path.join(process.cwd(), "backup");
     
     this.config = {
       ...config,
       radataPath,
+      backupPath: this.backupPath,
       useIPFS: config.useIPFS ?? false,
       server: config.server
     } as Required<MoguConfig>;
 
+    // Create backup directory if it doesn't exist
+    if (!fs.existsSync(this.backupPath)) {
+      fs.mkdirpSync(this.backupPath);
+    }
+
     this.versionManager = new VersionManager(this.config.radataPath);
     
-    // Inizializza Gun
+    // Initialize Gun
     this.gun = config.server ? 
       initGun(config.server, { file: this.config.radataPath }) : 
       initializeGun({ file: this.config.radataPath });
 
-    // Inizializza storage
+    // Initialize storage
     this.storage = Web3Stash(config.storageService, config.storageConfig);
 
-    // Inizializza IPFS se richiesto
+    // Initialize IPFS if requested
     if (this.config.useIPFS) {
       this.ipfsAdapter = new IPFSAdapter(config.storageConfig);
     }
 
-    // Inizializza il BackupAdapter
+    // Initialize BackupAdapter
     this.backupAdapter = new BackupAdapter(this.storage, backupOptions);
   }
 
@@ -57,94 +65,155 @@ export class Mogu {
     this.gun.get(key).on(callback);
   }
 
-  async backup(): Promise<{ hash: string; versionInfo: VersionInfo; name: string }> {
+  async backup(customBackupPath?: string): Promise<{ hash: string; versionInfo: VersionInfo; name: string }> {
     try {
-      // Leggi tutti i file nella directory radata
-      const files = await fs.readdir(this.config.radataPath);
+      const sourcePath = customBackupPath || this.config.radataPath;
+      
+      if (!fs.existsSync(sourcePath)) {
+        throw new Error(`Path ${sourcePath} does not exist`);
+      }
+
+      // Read all files in the specified directory
+      const files = await fs.readdir(sourcePath);
       const backupData: Record<string, any> = {};
 
-      // Leggi il contenuto di ogni file
+      // Read the content of each file
       for (const file of files) {
-        const filePath = path.join(this.config.radataPath, file);
+        const filePath = path.join(sourcePath, file);
         const stats = await fs.stat(filePath);
         
-        // Salta le directory
-        if (stats.isDirectory()) continue;
+        // Skip directories and backup files
+        if (stats.isDirectory() || file.startsWith('backup_')) continue;
         
-        const content = await fs.readFile(filePath, 'utf8');
-        try {
-          backupData[file] = JSON.parse(content);
-        } catch {
-          backupData[file] = content;
+        // Determine if the file is binary or text
+        const isBinary = this.isBinaryFile(file);
+        
+        if (isBinary) {
+          // For binary files, read as Buffer and convert to base64
+          const content = await fs.readFile(filePath);
+          backupData[file] = {
+            type: 'binary',
+            content: content.toString('base64'),
+            mimeType: this.getMimeType(file)
+          };
+        } else {
+          // For text files, read as UTF-8
+          const content = await fs.readFile(filePath, 'utf8');
+          try {
+            backupData[file] = {
+              type: 'text',
+              content: JSON.parse(content)
+            };
+          } catch {
+            backupData[file] = {
+              type: 'text',
+              content
+            };
+          }
         }
       }
 
-      // Converti i dati in Buffer
+      // Create version info
       const dataBuffer = Buffer.from(JSON.stringify(backupData));
-      
-      // Crea version info
       const versionInfo = await this.versionManager.createVersionInfo(dataBuffer);
       
       const metadata: BackupMetadata = {
         timestamp: Date.now(),
         type: 'mogu-backup',
-        versionInfo
+        versionInfo,
+        sourcePath
       };
 
-      return this.backupAdapter.createBackup(backupData, metadata);
+      const backupResult = await this.backupAdapter.createBackup(backupData, metadata);
+
+      // Save a local copy
+      const backupFileName = `backup_${Date.now()}.json`;
+      const backupFilePath = path.join(this.backupPath, backupFileName);
+      await fs.writeFile(backupFilePath, JSON.stringify({
+        data: backupData,
+        metadata
+      }, null, 2));
+
+      return backupResult;
     } catch (error) {
-      console.error('Errore durante il backup:', error);
+      console.error('Error during backup:', error);
       throw error;
     }
   }
 
-  async restore(hash: string): Promise<boolean> {
+  async restore(hash: string, customRestorePath?: string): Promise<boolean> {
     try {
-      // Assicurati che l'hash sia una stringa valida
       if (!hash || typeof hash !== 'string') {
-        throw new Error('Hash non valido');
+        throw new Error('Invalid hash');
       }
 
-      console.log('Recupero dati da hash:', hash);
+      console.log('Retrieving data from hash:', hash);
       const backup = await this.backupAdapter.getBackup(hash);
       
       if (!backup?.data) {
-        throw new Error('Nessun dato trovato per l\'hash fornito');
+        throw new Error('No data found for the provided hash');
       }
 
-      // Rimuovi la directory esistente
-      await fs.remove(this.config.radataPath);
-      console.log('Directory radata rimossa');
+      const restorePath = customRestorePath || this.config.radataPath;
+
+      // Remove existing directory
+      await fs.remove(restorePath);
+      console.log('Directory removed:', restorePath);
       
-      // Ricrea la directory
-      await fs.mkdirp(this.config.radataPath);
-      console.log('Directory radata ricreata');
+      // Recreate directory
+      await fs.mkdirp(restorePath);
+      console.log('Directory recreated:', restorePath);
 
-      // Ripristina i file dal backup
+      // Restore files from backup
       for (const [fileName, fileData] of Object.entries(backup.data)) {
-        const filePath = path.join(this.config.radataPath, fileName);
-        await fs.writeFile(filePath, JSON.stringify(fileData));
-        console.log(`File ripristinato: ${fileName}`);
+        // Skip backup files
+        if (fileName.startsWith('backup_')) continue;
+        
+        const filePath = path.join(restorePath, fileName);
+        
+        if (typeof fileData === 'object' && fileData.type) {
+          if (fileData.type === 'binary') {
+            // Restore binary file from base64
+            const buffer = Buffer.from(fileData.content, 'base64');
+            await fs.writeFile(filePath, buffer);
+          } else {
+            // Restore text file
+            const content = typeof fileData.content === 'string' 
+              ? fileData.content 
+              : JSON.stringify(fileData.content);
+            await fs.writeFile(filePath, content);
+          }
+        } else {
+          // Legacy handling for compatibility
+          const content = typeof fileData === 'string' ? fileData : JSON.stringify(fileData);
+          await fs.writeFile(filePath, content);
+        }
+        console.log(`File restored: ${fileName}`);
       }
 
-      // Reinizializza Gun con il nuovo path
-      this.gun = this.config.server ? 
-        initGun(this.config.server, { file: this.config.radataPath }) : 
-        initializeGun({ file: this.config.radataPath });
+      // Wait for files to be written
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Attendi che Gun si stabilizzi
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // If we're restoring to the radata directory, reinitialize Gun
+      if (restorePath === this.config.radataPath) {
+        this.gun = this.config.server ? 
+          initGun(this.config.server, { file: restorePath }) : 
+          initializeGun({ file: restorePath });
+
+        // Wait for Gun to stabilize
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
       return true;
     } catch (error) {
-      console.error('Errore durante il ripristino:', error);
-      return false;
+      console.error('Error during restore:', error);
+      throw error;
     }
   }
 
   async compareBackup(backupHash: string): Promise<VersionComparison> {
     try {
-      // Leggi tutti i file nella directory radata
+      // Read all files in the radata directory
       const files = await fs.readdir(this.config.radataPath);
       const localData: Record<string, any> = {};
 
@@ -153,14 +222,34 @@ export class Mogu {
         const filePath = path.join(this.config.radataPath, file);
         const stats = await fs.stat(filePath);
         
-        // Salta le directory
-        if (stats.isDirectory()) continue;
+        // Salta le directory e i file di backup
+        if (stats.isDirectory() || file.startsWith('backup_')) continue;
         
-        const content = await fs.readFile(filePath, 'utf8');
-        try {
-          localData[file] = JSON.parse(content);
-        } catch {
-          localData[file] = content;
+        // Determina se il file è binario o di testo
+        const isBinary = this.isBinaryFile(file);
+        
+        if (isBinary) {
+          // Per i file binari, leggi come Buffer e converti in base64
+          const content = await fs.readFile(filePath);
+          localData[file] = {
+            type: 'binary',
+            content: content.toString('base64'),
+            mimeType: this.getMimeType(file)
+          };
+        } else {
+          // Per i file di testo, leggi come UTF-8
+          const content = await fs.readFile(filePath, 'utf8');
+          try {
+            localData[file] = {
+              type: 'text',
+              content: JSON.parse(content)
+            };
+          } catch {
+            localData[file] = {
+              type: 'text',
+              content
+            };
+          }
         }
       }
 
@@ -168,15 +257,30 @@ export class Mogu {
       const backup = await this.backupAdapter.getBackup(backupHash);
       
       if (!backup?.data || !backup?.metadata?.versionInfo) {
-        throw new Error('Backup non valido: metadata mancanti');
+        throw new Error('Invalid backup: missing metadata');
       }
+
+      // Funzione per normalizzare i dati per il confronto
+      const normalizeData = (data: any): any => {
+        if (typeof data !== 'object' || data === null) return data;
+        if (data.type === 'binary') {
+          // Per i file binari, confronta solo il contenuto base64
+          return data.content;
+        }
+        if (data.type === 'text') {
+          // Per i file di testo, confronta il contenuto
+          return typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
+        }
+        // Gestione legacy
+        return JSON.stringify(data);
+      };
 
       // Ordina le chiavi degli oggetti per un confronto consistente
       const sortObject = (obj: any): any => {
         if (typeof obj !== 'object' || obj === null) return obj;
         if (Array.isArray(obj)) return obj.map(sortObject);
         return Object.keys(obj).sort().reduce((result: any, key) => {
-          result[key] = sortObject(obj[key]);
+          result[key] = normalizeData(obj[key]);
           return result;
         }, {});
       };
@@ -208,11 +312,11 @@ export class Mogu {
       if (localChecksum === remoteChecksum) {
         return {
           isEqual: true,
-          isNewer: false, // Non importa in questo caso
-          localVersion: remoteVersion, // Usa la versione remota per coerenza
+          isNewer: false,
+          localVersion: remoteVersion,
           remoteVersion,
           timeDiff: 0,
-          formattedDiff: "meno di un minuto"
+          formattedDiff: "less than a minute"
         };
       }
 
@@ -228,7 +332,7 @@ export class Mogu {
         )
       };
     } catch (error) {
-      console.error('Errore durante il confronto:', error);
+      console.error('Error during comparison:', error);
       throw error;
     }
   }
@@ -244,25 +348,137 @@ export class Mogu {
         const filePath = path.join(this.config.radataPath, file);
         const stats = await fs.stat(filePath);
         
-        // Salta le directory
-        if (stats.isDirectory()) continue;
+        // Salta le directory e i file di backup
+        if (stats.isDirectory() || file.startsWith('backup_')) continue;
         
-        const content = await fs.readFile(filePath, 'utf8');
-        try {
-          localData[file] = JSON.parse(content);
-        } catch {
-          localData[file] = content;
+        // Determina se il file è binario o di testo
+        const isBinary = this.isBinaryFile(file);
+        
+        if (isBinary) {
+          // Per i file binari, leggi come Buffer e converti in base64
+          const content = await fs.readFile(filePath);
+          localData[file] = {
+            type: 'binary',
+            content: content.toString('base64'),
+            mimeType: this.getMimeType(file)
+          };
+        } else {
+          // Per i file di testo, leggi come UTF-8
+          const content = await fs.readFile(filePath, 'utf8');
+          try {
+            localData[file] = {
+              type: 'text',
+              content: JSON.parse(content)
+            };
+          } catch {
+            localData[file] = {
+              type: 'text',
+              content
+            };
+          }
         }
       }
 
-      // Converti i dati locali in Buffer
-      const localDataBuffer = Buffer.from(JSON.stringify(localData));
-
       // Recupera il backup completo
       const backup = await this.backupAdapter.getBackup(backupHash);
+      
+      if (!backup?.data) {
+        throw new Error('Backup not valid: missing metadata');
+      }
+
+      // Funzione per calcolare il checksum di un file
+      const calculateChecksum = (data: any): string => {
+        if (typeof data === 'object' && data.type) {
+          if (data.type === 'binary') {
+            return sha3_256(data.content);
+          }
+          return sha3_256(JSON.stringify(data.content));
+        }
+        return sha3_256(JSON.stringify(data));
+      };
+
+      // Funzione per ottenere la dimensione di un file
+      const getFileSize = (data: any): number => {
+        if (typeof data === 'object' && data.type) {
+          if (data.type === 'binary') {
+            return Buffer.from(data.content, 'base64').length;
+          }
+          return Buffer.from(JSON.stringify(data.content)).length;
+        }
+        return Buffer.from(JSON.stringify(data)).length;
+      };
+
+      const differences: FileDiff[] = [];
+      const totalChanges = { added: 0, modified: 0, deleted: 0 };
+
+      // Trova file modificati e aggiunti
+      for (const [filePath, localContent] of Object.entries(localData)) {
+        const remoteContent = backup.data[filePath];
+        
+        if (!remoteContent) {
+          // File aggiunto
+          differences.push({
+            path: filePath,
+            type: 'added',
+            newChecksum: calculateChecksum(localContent),
+            size: { new: getFileSize(localContent) }
+          });
+          totalChanges.added++;
+        } else {
+          // Confronta i contenuti
+          const localChecksum = calculateChecksum(localContent);
+          const remoteChecksum = calculateChecksum(remoteContent);
+          
+          if (localChecksum !== remoteChecksum) {
+            // File modificato
+            differences.push({
+              path: filePath,
+              type: 'modified',
+              oldChecksum: remoteChecksum,
+              newChecksum: localChecksum,
+              size: {
+                old: getFileSize(remoteContent),
+                new: getFileSize(localContent)
+              }
+            });
+            totalChanges.modified++;
+          }
+        }
+      }
+
+      // Trova file eliminati
+      for (const filePath of Object.keys(backup.data)) {
+        if (!localData[filePath]) {
+          differences.push({
+            path: filePath,
+            type: 'deleted',
+            oldChecksum: calculateChecksum(backup.data[filePath]),
+            size: { old: getFileSize(backup.data[filePath]) }
+          });
+          totalChanges.deleted++;
+        }
+      }
+
+      // Crea version info per entrambe le versioni
+      const localDataBuffer = Buffer.from(JSON.stringify(localData));
       const remoteDataBuffer = Buffer.from(JSON.stringify(backup.data));
       
-      return this.versionManager.compareDetailedVersions(localDataBuffer, remoteDataBuffer);
+      const localVersion = await this.versionManager.createVersionInfo(localDataBuffer);
+      const remoteVersion = backup.metadata.versionInfo;
+
+      return {
+        isEqual: differences.length === 0,
+        isNewer: localVersion.timestamp > remoteVersion.timestamp,
+        localVersion,
+        remoteVersion,
+        timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
+        formattedDiff: this.versionManager.formatTimeDifference(
+          localVersion.timestamp,
+          remoteVersion.timestamp
+        ),
+        differences,
+        totalChanges
+      };
     } catch (error) {
       console.error('Errore durante il confronto dettagliato:', error);
       throw error;
@@ -271,5 +487,31 @@ export class Mogu {
 
   async getBackupState(hash: string): Promise<BackupData> {
     return this.backupAdapter.getBackup(hash);
+  }
+
+  // Utility per determinare se un file è binario basandosi sull'estensione
+  private isBinaryFile(filename: string): boolean {
+    const binaryExtensions = [
+      '.png', '.jpg', '.jpeg', '.gif', '.bmp',
+      '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+      '.zip', '.rar', '.7z', '.tar', '.gz'
+    ];
+    const ext = path.extname(filename).toLowerCase();
+    return binaryExtensions.includes(ext);
+  }
+
+  // Utility per ottenere il MIME type
+  private getMimeType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.bmp': 'image/bmp',
+      '.pdf': 'application/pdf',
+      // ... altri tipi MIME ...
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
   }
 } 

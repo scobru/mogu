@@ -7,6 +7,8 @@ export interface MoguConfig {
   radataPath?: string;
   useIPFS?: boolean;
   server?: any;
+  backupPath?: string;
+  restorePath?: string;
 }
 
 export interface BackupFileData {
@@ -35,4 +37,4 @@ export interface RemoteChecksums {
 export interface BackupData {
   data: Record<string, any>;
   metadata: BackupMetadata;
-} 
+}

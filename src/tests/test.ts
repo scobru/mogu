@@ -7,13 +7,12 @@ import path from 'path';
 dotenv.config();
 
 const TEST_TIMEOUT = 30000;
-const RADATA_PATH = path.join(process.cwd(), "radata");
 
 async function run() {
   try {
     console.log("Starting tests...");
     
-    // Test con IPFS disabilitato
+    // Test with IPFS disabled
     console.log("\n=== Running tests with IPFS disabled ===");
     const moguWithoutIPFS = new Mogu({
       storageService: 'PINATA',
@@ -25,7 +24,7 @@ async function run() {
     });
     await runTests(moguWithoutIPFS, "without IPFS");
 
-    // Test con IPFS abilitato
+    // Test with IPFS enabled
     console.log("\n=== Running tests with IPFS enabled ===");
     const moguWithIPFS = new Mogu({
       storageService: 'PINATA',
@@ -33,7 +32,10 @@ async function run() {
         apiKey: process.env.PINATA_API_KEY || '',
         apiSecret: process.env.PINATA_API_SECRET || ''
       },
-      useIPFS: true
+      useIPFS: true,
+      backupPath: path.join(process.cwd(), 'backup'),
+      radataPath: path.join(process.cwd(), 'radata'),
+      restorePath: path.join(process.cwd(), 'restore')
     });
     await runTests(moguWithIPFS, "with IPFS");
 
@@ -73,7 +75,7 @@ async function testBasicOperations(mogu: Mogu) {
   const data1 = await mogu.get('test/data1');
   console.log('Retrieved data1:', data1);
   
-  // Verifica dei dati
+  // Data verification
   if (!data1 || data1.value !== 'test1') {
     throw new Error('Data verification failed for test/data1');
   }
@@ -89,10 +91,10 @@ async function testBasicOperations(mogu: Mogu) {
     });
   });
 
-  // Aggiorna i dati
+  // Update data
   await mogu.put('test/data1', { value: 'updated' });
   
-  // Attendi l'aggiornamento
+  // Wait for update
   await Promise.race([
     updatePromise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('Update timeout')), 5000))
@@ -102,11 +104,11 @@ async function testBasicOperations(mogu: Mogu) {
 async function testIPFSOperations(mogu: Mogu) {
   console.log("Testing IPFS operations...");
   
-  // Test di scrittura su IPFS
+  // Test of writing to IPFS
   const testData = { value: 'ipfs-test' };
   await mogu.put('ipfs-test', testData);
   
-  // Test di lettura da IPFS
+  // Test of reading from IPFS
   const retrieved = await mogu.get('ipfs-test');
   console.log('Retrieved from IPFS:', retrieved);
   
@@ -114,7 +116,7 @@ async function testIPFSOperations(mogu: Mogu) {
     throw new Error('IPFS data verification failed');
   }
   
-  // Test di aggiornamento su IPFS
+  // Test of updating on IPFS
   const updatedData = { value: 'ipfs-updated' };
   await mogu.put('ipfs-test', updatedData);
   
@@ -125,204 +127,275 @@ async function testIPFSOperations(mogu: Mogu) {
 }
 
 async function testBackup(mogu: Mogu) {
-  // Salva alcuni dati di test
-  const testData = {
-    'test/1': { value: 'one' },
-    'test/2': { value: 'two' },
-    'test/nested/3': { value: 'three' }
-  };
-
-  // Inserisci i dati
-  console.log("Inserting test data...");
-  for (const [path, data] of Object.entries(testData)) {
-    await mogu.put(path, data);
-  }
-
-  // Attendi che i dati siano scritti su disco
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Verifica che i file radata esistano
   try {
-    await fs.access(RADATA_PATH);
-    console.log('Radata directory exists:', RADATA_PATH);
-  } catch (err) {
-    throw new Error(`Radata directory not found at ${RADATA_PATH}`);
-  }
+    // Save test data
+    const testData = {
+      'test/1': { value: 'one' },
+      'test/2': { value: 'two' },
+      'test/nested/3': { value: 'three' }
+    };
 
-  // Crea il backup
-  console.log("Creating backup...");
-  const backupResult = await mogu.backup();
-  const backupHash = backupResult.hash;
-  console.log('Backup created with hash:', backupHash);
-
-  // Salva il contenuto originale dei file
-  const originalFiles = new Map();
-  const files = await fs.readdir(RADATA_PATH);
-  for (const file of files) {
-    const content = await fs.readFile(path.join(RADATA_PATH, file), 'utf8');
-    originalFiles.set(file, content);
-  }
-
-  // Cancella la directory radata
-  await fs.rm(RADATA_PATH, { recursive: true, force: true });
-  console.log('Radata directory deleted');
-
-  // Ripristina dal backup
-  console.log("Restoring from backup...");
-  const restoreResult = await mogu.restore(backupHash);
-  console.log('Backup restored:', restoreResult);
-  
-  // Attendi che i file siano ripristinati
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Verifica che i file siano stati ripristinati correttamente
-  console.log("Verifying restored files...");
-  const restoredFiles = new Map();
-  const newFiles = await fs.readdir(RADATA_PATH);
-  for (const file of newFiles) {
-    const content = await fs.readFile(path.join(RADATA_PATH, file), 'utf8');
-    restoredFiles.set(file, content);
-  }
-
-  // Confronta i file originali con quelli ripristinati
-  for (const [file, content] of originalFiles) {
-    if (!restoredFiles.has(file)) {
-      throw new Error(`Missing restored file: ${file}`);
+    // Insert data
+    console.log("Inserting test data...");
+    for (const [path, data] of Object.entries(testData)) {
+      await mogu.put(path, data);
     }
+
+    // Wait for data to be written to disk
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Verify radata directory exists
+    try {
+      await fs.access(mogu.config.radataPath);
+      console.log('Radata directory exists:', mogu.config.radataPath);
+    } catch (err) {
+      throw new Error(`Radata directory not found at ${mogu.config.radataPath}`);
+    }
+
+    // Create backup
+    console.log("Creating backup...");
+    const backupResult = await mogu.backup();
+    const backupHash = backupResult.hash;
+    console.log('Backup created with hash:', backupHash);
+
+    // Save original file content
+    const originalFiles = new Map();
+    const files = await fs.readdir(mogu.config.radataPath);
+    for (const file of files) {
+      const content = await fs.readFile(path.join(mogu.config.radataPath, file), 'utf8');
+      originalFiles.set(file, content);
+    }
+
+    // Delete radata directory
+    await fs.rm(mogu.config.radataPath, { recursive: true, force: true });
+    console.log('Radata directory deleted');
+
+    // Restore from backup
+    console.log("Restoring from backup...");
+    const restoreResult = await mogu.restore(backupHash);
+    console.log('Backup restored:', restoreResult);
     
-    const restoredContent = restoredFiles.get(file);
-    if (restoredContent !== content) {
-      throw new Error(`Content mismatch in file: ${file}`);
-    }
-  }
+    // Wait for files to be restored
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Verifica che i dati siano accessibili tramite Gun
-  console.log("Verifying data accessibility...");
-  for (const [path, data] of Object.entries(testData)) {
-    const restored = await mogu.get(path);
-    console.log(`Original data at ${path}:`, data);
-    console.log(`Restored data at ${path}:`, restored);
+    // Verify restored files
+    console.log("Verifying restored files...");
+    const restoredFiles = new Map();
+    const newFiles = await fs.readdir(mogu.config.radataPath);
 
-    if (JSON.stringify(restored.value) !== JSON.stringify(data.value)) {
-      throw new Error(`Data mismatch at ${path}`);
-    }
-  }
+    // Wait to ensure all files are written
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-  console.log('Backup and restore verified successfully');
-
-  // Test di confronto backup
-  console.log('Testing backup comparison...');
-  
-  // Prima verifica: dovrebbe essere uguale
-  const comparison1 = await mogu.compareBackup(backupHash);
-  console.log('Initial comparison:', comparison1);
-  if (!comparison1.isEqual) {
-    console.error('Comparison details:', comparison1.differences);
-    throw new Error('Backup should be equal after restore');
-  }
-
-  // Salva lo stato originale prima delle modifiche
-  const originalState = await mogu.getBackupState(backupHash);
-
-  // Crea un nuovo file per il test
-  const testFile = '!';
-  const filePath = path.join(RADATA_PATH, testFile);
-  
-  try {
-    // Modifica il file
-    await fs.writeFile(filePath, JSON.stringify({ modified: true }));
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi che la modifica sia scritta
-
-    // Seconda verifica: dovrebbe essere diverso
-    const comparison2 = await mogu.compareBackup(backupHash);
-    console.log('Comparison after modification:', comparison2);
-    if (comparison2.isEqual) {
-      throw new Error('Backup should be different after local modification');
+    for (const file of newFiles) {
+      // Skip backup files during verification
+      if (file.startsWith('backup_')) continue;
+      
+      const content = await fs.readFile(path.join(mogu.config.radataPath, file), 'utf8');
+      restoredFiles.set(file, content);
     }
 
-    // Ripristina lo stato originale completamente
+    // Compare original files with restored ones
+    for (const [file, content] of originalFiles) {
+      // Skip backup files during comparison
+      if (file.startsWith('backup_')) continue;
+
+      if (!restoredFiles.has(file)) {
+        console.error('Files in backup:', Array.from(originalFiles.keys()).filter(f => !f.startsWith('backup_')));
+        console.error('Restored files:', Array.from(restoredFiles.keys()));
+        throw new Error(`Missing restored file: ${file}`);
+      }
+      
+      const restoredContent = restoredFiles.get(file);
+      try {
+        // Try to parse both contents as JSON for accurate comparison
+        const originalJson = JSON.parse(content);
+        const restoredJson = JSON.parse(restoredContent);
+        if (JSON.stringify(originalJson) !== JSON.stringify(restoredJson)) {
+          throw new Error(`Content mismatch in file: ${file}`);
+        }
+      } catch {
+        // If JSON parsing fails, compare strings directly
+        if (restoredContent !== content) {
+          throw new Error(`Content mismatch in file: ${file}`);
+        }
+      }
+    }
+
+    // Verify data accessibility through Gun
+    console.log("Verifying data accessibility...");
+    for (const [path, data] of Object.entries(testData)) {
+      const restored = await mogu.get(path);
+      console.log(`Original data at ${path}:`, data);
+      console.log(`Restored data at ${path}:`, restored);
+
+      if (JSON.stringify(restored.value) !== JSON.stringify(data.value)) {
+        throw new Error(`Data mismatch at ${path}`);
+      }
+    }
+
+    console.log('Backup and restore verified successfully');
+
+    // Backup comparison test
+    console.log('Testing backup comparison...');
+    
+    // First verification: should be equal
+    const comparison1 = await mogu.compareBackup(backupHash);
+    console.log('Initial comparison:', comparison1);
+    if (!comparison1.isEqual) {
+      console.error('Comparison details:', comparison1.differences);
+      throw new Error('Backup should be equal after restore');
+    }
+
+    // Save original state before modifications
+    const originalState = await mogu.getBackupState(backupHash);
+
+    // Create a new file for the test
+    const testFile = 'test_mod';
+    const filePath = path.join(mogu.config.radataPath, testFile);
+    
+    try {
+      // Modify the file
+      await fs.writeFile(filePath, JSON.stringify({ modified: true }));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Second verification: should be different
+      const comparison2 = await mogu.compareBackup(backupHash);
+      console.log('Comparison after modification:', comparison2);
+      if (comparison2.isEqual) {
+        throw new Error('Backup should be different after local modification');
+      }
+
+      // Restore original state completely
+      await mogu.restore(backupHash);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+    } catch (err) {
+      console.error(`Error during file operations:`, err);
+      throw err;
+    } finally {
+      // Cleanup test files
+      try {
+        await fs.unlink(filePath).catch(() => {});
+      } catch (err) {
+        console.warn('Could not cleanup test file:', err);
+      }
+    }
+
+    // Final verification after restore
+    const comparison3 = await mogu.compareBackup(backupHash);
+    console.log('Final comparison:', comparison3);
+    if (!comparison3.isEqual) {
+      console.error('Final comparison details:', comparison3.differences);
+      throw new Error('Backup should be equal after content restore');
+    }
+
+    console.log('Backup comparison tests completed successfully');
+
+    // Detailed backup comparison test
+    console.log('Testing detailed backup comparison...');
+    
+    // Initial detailed comparison
+    const detailedComparison1 = await mogu.compareDetailedBackup(backupHash);
+    console.log('Initial detailed comparison:', {
+      isEqual: detailedComparison1.isEqual,
+      totalChanges: detailedComparison1.totalChanges
+    });
+
+    // Modify an existing file and add a new file
+    const existingFile = '!'; // One of the existing files
+    const newFile = 'test.txt';
+
+    // Modify the existing file
+    await fs.writeFile(
+      path.join(mogu.config.radataPath, existingFile), 
+      JSON.stringify({ modified: true })
+    );
+
+    // Add a new file
+    await fs.writeFile(
+      path.join(mogu.config.radataPath, newFile),
+      'new file'
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for modifications to be written
+
+    // Verify that the diff correctly detects changes
+    const detailedComparison2 = await mogu.compareDetailedBackup(backupHash);
+    console.log('Detailed comparison after modifications:', {
+      isEqual: detailedComparison2.isEqual,
+      totalChanges: detailedComparison2.totalChanges,
+      differences: detailedComparison2.differences
+    });
+
+    // Verify that changes are correctly detected
+    if (detailedComparison2.isEqual) {
+      throw new Error('Backup should detect differences after modifications');
+    }
+
+    // Verify that there is at least one modification and one addition
+    const hasModified = detailedComparison2.differences.some(d => d.type === 'modified');
+    const hasAdded = detailedComparison2.differences.some(d => d.type === 'added');
+
+    if (!hasModified || !hasAdded) {
+      console.error('Changes detected:', {
+        modified: detailedComparison2.totalChanges.modified,
+        added: detailedComparison2.totalChanges.added,
+        differences: detailedComparison2.differences
+      });
+      throw new Error('Backup comparison should detect both modified and added files');
+    }
+
+    // Verify that each modification is correctly tracked
+    const modifiedFiles = detailedComparison2.differences
+      .filter((d: FileDiff) => d.type === 'modified')
+      .map((d: FileDiff) => d.path);
+
+    const addedFiles = detailedComparison2.differences
+      .filter((d: FileDiff) => d.type === 'added')
+      .map((d: FileDiff) => d.path);
+
+    console.log('Modified files:', modifiedFiles);
+    console.log('Added files:', addedFiles);
+
+    // Verify specific files modified and added
+    if (!modifiedFiles.includes(existingFile)) {
+      throw new Error(`Modified file ${existingFile} not detected`);
+    }
+
+    if (!addedFiles.includes(newFile)) {
+      throw new Error(`Added file ${newFile} not detected`);
+    }
+
+    // Restore original files
     await mogu.restore(backupHash);
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Attendi che il ripristino sia completo
 
+    // Final verification of the diff
+    const detailedComparison3 = await mogu.compareDetailedBackup(backupHash);
+    if (!detailedComparison3.isEqual) {
+      console.error('Final comparison differences:', detailedComparison3.differences);
+      throw new Error('Backup should be equal after restore');
+    }
+
+    console.log('Detailed backup comparison tests completed successfully');
   } catch (err) {
-    console.error(`Error during file operations:`, err);
+    console.error('Test backup failed:', err);
     throw err;
+  } finally {
+    // Cleanup all test files
+    try {
+      const modifications = [
+        { file: 'test_mod', content: JSON.stringify({ modified: true }) },
+        { file: 'test.txt', content: 'new file' }
+      ];
+      
+      for (const mod of modifications) {
+        const modFilePath = path.join(mogu.config.radataPath, mod.file);
+        await fs.unlink(modFilePath).catch(() => {});
+      }
+    } catch (cleanupErr) {
+      console.warn('Error during cleanup:', cleanupErr);
+    }
   }
-
-  // Verifica finale dopo il ripristino
-  const comparison3 = await mogu.compareBackup(backupHash);
-  console.log('Final comparison:', comparison3);
-  if (!comparison3.isEqual) {
-    console.error('Final comparison details:', comparison3.differences);
-    throw new Error('Backup should be equal after content restore');
-  }
-
-  console.log('Backup comparison tests completed successfully');
-
-  // Test del diff dettagliato
-  console.log('Testing detailed backup comparison...');
-  
-  // Test iniziale del diff dettagliato
-  const detailedComparison1 = await mogu.compareDetailedBackup(backupHash);
-  console.log('Initial detailed comparison:', {
-    isEqual: detailedComparison1.isEqual,
-    totalChanges: detailedComparison1.totalChanges
-  });
-
-  // Crea e modifica file per il test del diff
-  const modifications = [
-    { file: '!', content: JSON.stringify({ modified: true }) },
-    { file: 'test.txt', content: 'new file' }
-  ];
-
-  // Applica le modifiche
-  for (const mod of modifications) {
-    const modFilePath = path.join(RADATA_PATH, mod.file);
-    await fs.writeFile(modFilePath, mod.content);
-  }
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi che le modifiche siano scritte
-
-  // Verifica che il diff rilevi correttamente le modifiche
-  const detailedComparison2 = await mogu.compareDetailedBackup(backupHash);
-  console.log('Detailed comparison after modifications:', {
-    isEqual: detailedComparison2.isEqual,
-    totalChanges: detailedComparison2.totalChanges,
-    differences: detailedComparison2.differences
-  });
-
-  // Verifica che le modifiche siano state rilevate correttamente
-  if (detailedComparison2.isEqual) {
-    throw new Error('Backup should detect differences after modifications');
-  }
-
-  if (detailedComparison2.totalChanges.modified < 1 || 
-      detailedComparison2.totalChanges.added < 1) {
-    throw new Error('Backup comparison should detect both modified and added files');
-  }
-
-  // Verifica che ogni modifica sia stata tracciata correttamente
-  const modifiedFiles = detailedComparison2.differences
-    .filter((d: FileDiff) => d.type === 'modified')
-    .map((d: FileDiff) => d.path);
-  
-  const addedFiles = detailedComparison2.differences
-    .filter((d: FileDiff) => d.type === 'added')
-    .map((d: FileDiff) => d.path);
-
-  console.log('Modified files:', modifiedFiles);
-  console.log('Added files:', addedFiles);
-
-  // Ripristina i file originali
-  await mogu.restore(backupHash);
-
-  // Verifica finale del diff
-  const detailedComparison3 = await mogu.compareDetailedBackup(backupHash);
-  if (!detailedComparison3.isEqual) {
-    console.error('Final comparison differences:', detailedComparison3.differences);
-    throw new Error('Backup should be equal after restore');
-  }
-
-  console.log('Detailed backup comparison tests completed successfully');
 }
 
 run().catch(err => {
