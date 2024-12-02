@@ -8,7 +8,6 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
-const TEST_TIMEOUT = 30000;
 const TEST_DIR = path_1.default.join(process.cwd(), 'test-files');
 const RESTORE_DIR = path_1.default.join(process.cwd(), 'restored-files');
 const TEST_ENCRYPTION_KEY = 'test-encryption-key-123';
@@ -194,42 +193,41 @@ async function testGunBackupWithEncryption(mogu, useEncryption) {
         console.log("Data modification verified");
         // Test restore
         console.log("Restoring Gun backup...");
-        await mogu.restoreGun(backup.hash, undefined, backupOptions);
-        console.log("Restore completed, waiting for sync...");
-        // Aspetta che il restore sia completato e verifica con retry
-        const verifyRestore = async (retries = 10) => {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const checkRestore = () => {
-                    mogu.get('test/key').off(); // Rimuovi i vecchi listener
-                    mogu.get('test/key').on((data) => {
-                        console.log(`Restore check attempt ${attempts + 1}/${retries}:`, data);
-                        if (!data) {
-                            console.log('Data is null, waiting...');
-                            if (++attempts < retries) {
-                                setTimeout(checkRestore, 2000);
-                            }
-                            else {
-                                reject(new Error('Data is null after retries'));
-                            }
-                            return;
-                        }
-                        if (data.value === 'test-data') {
-                            resolve();
-                        }
-                        else if (++attempts < retries) {
-                            console.log(`Waiting for restore... (${attempts}/${retries})`);
-                            setTimeout(checkRestore, 2000);
+        let restored = false;
+        let attempts = 0;
+        const maxAttempts = 5;
+        while (!restored && attempts < maxAttempts) {
+            try {
+                await mogu.restoreGun(backup.hash, undefined, backupOptions);
+                // Verifica il ripristino
+                const verifyData = await new Promise((resolve, reject) => {
+                    mogu.get('test/key').once((data) => {
+                        console.log("Checking restored data:", data);
+                        if (data?.value === 'test-data') {
+                            resolve(true);
                         }
                         else {
-                            reject(new Error(`Restore failed: expected 'test-data', got '${data?.value}'`));
+                            resolve(false);
                         }
                     });
-                };
-                setTimeout(checkRestore, 2000); // Aspetta prima del primo check
-            });
-        };
-        await verifyRestore();
+                });
+                if (verifyData) {
+                    restored = true;
+                    console.log("Restore successful");
+                }
+                else {
+                    console.log(`Restore attempt ${attempts + 1} failed, retrying...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            catch (error) {
+                console.log(`Restore attempt ${attempts + 1} failed:`, error);
+            }
+            attempts++;
+        }
+        if (!restored) {
+            throw new Error('Failed to restore after maximum attempts');
+        }
         console.log("Gun backup test passed");
         // Test con chiave sbagliata se stiamo usando la crittografia
         if (useEncryption) {

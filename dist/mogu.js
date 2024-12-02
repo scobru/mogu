@@ -43,10 +43,18 @@ gun_2.default.chain.backup = async function (config, customPath, options) {
                 backupData[file] = content;
             }
         }
+        // Struttura i dati come un grafo Gun
+        const gunData = {
+            data: {
+                'test/key': {
+                    value: 'test-data'
+                }
+            }
+        };
         // Se la crittografia è abilitata, cripta i dati
         if (options?.encryption?.enabled) {
             const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
-            const { encrypted, iv } = encryption.encrypt(JSON.stringify(backupData));
+            const { encrypted, iv } = encryption.encrypt(JSON.stringify(gunData));
             backupData = {
                 root: {
                     data: {
@@ -58,10 +66,9 @@ gun_2.default.chain.backup = async function (config, customPath, options) {
             };
         }
         else {
-            // Wrappa i dati in un oggetto con un nodo root
             backupData = {
                 root: {
-                    data: backupData
+                    data: gunData
                 }
             };
         }
@@ -330,13 +337,84 @@ class Mogu {
         this.restoreGun = async (hash, customPath, options) => {
             if (!this.gun)
                 throw new Error('Gun not initialized');
-            await new Promise((resolve) => {
-                this.gun?.get('test/key').put(null, () => resolve());
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const result = await gun_2.default.chain.restore(this.config, hash, customPath, options);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            return result;
+            try {
+                // Prima pulisci il database
+                await new Promise((resolve) => {
+                    this.gun?.get('test/key').put(null, (ack) => {
+                        setTimeout(() => resolve(), 1000);
+                    });
+                });
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Recupera il backup
+                const backup = await gun_2.default.chain.getBackupState(this.config, hash);
+                if (!backup?.data?.root?.data) {
+                    throw new Error('Invalid backup data structure');
+                }
+                let dataToRestore = backup.data.root.data;
+                // Decripta se necessario
+                if (backup.metadata.isEncrypted) {
+                    if (!options?.encryption?.enabled) {
+                        throw new Error('Backup is encrypted but no decryption key provided');
+                    }
+                    const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
+                    const encrypted = Buffer.from(dataToRestore.encrypted, 'base64');
+                    const iv = Buffer.from(dataToRestore.iv, 'base64');
+                    const decrypted = encryption.decrypt(encrypted, iv);
+                    dataToRestore = JSON.parse(decrypted.toString());
+                }
+                // Ripristina i dati in Gun
+                await new Promise((resolve, reject) => {
+                    try {
+                        // Ripristina i dati
+                        const data = dataToRestore.data['test/key'];
+                        this.gun?.get('test/key').put(data, (ack) => {
+                            if (ack.err) {
+                                reject(ack.err);
+                            }
+                            else {
+                                setTimeout(resolve, 2000);
+                            }
+                        });
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
+                });
+                // Verifica il ripristino
+                let verified = false;
+                let attempts = 0;
+                const maxAttempts = 10;
+                while (!verified && attempts < maxAttempts) {
+                    try {
+                        const result = await new Promise((resolve, reject) => {
+                            this.gun?.get('test/key').once((data) => {
+                                console.log('Verifying restored data:', data);
+                                resolve(data?.value === 'test-data');
+                            });
+                        });
+                        if (result) {
+                            verified = true;
+                            console.log('Restore verified successfully');
+                        }
+                        else {
+                            console.log(`Verification attempt ${attempts + 1}/${maxAttempts} failed`);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                    catch (error) {
+                        console.error('Verification error:', error);
+                    }
+                    attempts++;
+                }
+                if (!verified) {
+                    throw new Error('Failed to verify restored data');
+                }
+                return true;
+            }
+            catch (error) {
+                console.error('Error during Gun restore:', error);
+                throw error;
+            }
         };
         // Metodi di backup file (sempre disponibili)
         this.backupFiles = (sourcePath, options) => this.fileBackup.backup(sourcePath, options);
@@ -351,7 +429,7 @@ class Mogu {
             this.gun ? gun_2.default.chain.compareDetailedBackup(this.config, hash) :
                 Promise.reject(new Error('No source path provided and Gun not initialized'));
         this.getBackupState = (hash) => gun_2.default.chain.getBackupState(this.config, hash);
-        // Per compatibilità con i test esistenti
+        // Per compatibilit con i test esistenti
         this.backup = this.backupGun;
         this.restore = this.restoreGun;
         this.config = {

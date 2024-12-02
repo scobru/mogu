@@ -24,12 +24,12 @@ export declare class Mogu {
     put(key: string, data: any): any;
     on(key: string, callback: (data: any) => void): void;
     backupGun: (customPath?: string, options?: BackupOptions) => any;
-    restoreGun: (hash: string, customPath?: string, options?: BackupOptions) => Promise<any>;
+    restoreGun: (hash: string, customPath?: string, options?: BackupOptions) => Promise<boolean>;
     backupFiles: (sourcePath: string, options?: import("./types/backup").BackupOptions) => Promise<import("./types/backup").BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: import("./types/backup").BackupOptions) => Promise<boolean>;
     compareBackup: (hash: string, sourcePath?: string) => any;
     compareDetailedBackup: (hash: string, sourcePath?: string) => any;
     getBackupState: (hash: string) => any;
     backup: (customPath?: string, options?: BackupOptions) => any;
-    restore: (hash: string, customPath?: string, options?: BackupOptions) => Promise<any>;
+    restore: (hash: string, customPath?: string, options?: BackupOptions) => Promise<boolean>;
 }
