@@ -6,6 +6,7 @@ interface GunOptions {
   file?: string;
   peers?: string[];
   web?: any;
+  radisk?: boolean
   // ... altre opzioni ...
 }
 
@@ -15,7 +16,8 @@ let gunInstance: any;
 export const initializeGun = (inputOptions: GunOptions = {}) => {
   const defaultOptions: GunOptions = {
     file: path.join(process.cwd(), "radata"),
-    peers: []
+    peers: [],
+    radisk: true
   };
 
   const options = { ...defaultOptions, ...inputOptions };

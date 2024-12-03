@@ -10,7 +10,6 @@ export interface MoguConfig {
   restorePath?: string;
   storagePath?: string;
   useIPFS?: boolean;
-  server?: any;
 }
 
 export interface BackupFileData {

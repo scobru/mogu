@@ -421,8 +421,6 @@ export class Mogu {
       restorePath: config.restorePath || path.join(process.cwd(), "restore"),
       useIPFS: false,
       useGun: config.useGun ?? false,
-      server: null,
-      storagePath: path.join(process.cwd(), "storage")
     };
 
     this.fileBackup = new FileBackupAdapter(
