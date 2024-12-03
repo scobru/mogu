@@ -4,6 +4,7 @@ export interface BackupOptions {
     includeBinaryFiles?: boolean;
     excludePatterns?: string[];
     maxFileSize?: number;
+    recursive?: boolean;
     encryption?: {
         enabled: boolean;
         key: string;

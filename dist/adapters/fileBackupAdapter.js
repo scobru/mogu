@@ -36,42 +36,48 @@ class FileBackupAdapter {
         return mimeTypes[ext] || 'application/octet-stream';
     }
     async backup(sourcePath, options) {
-        const files = await fs_extra_1.default.readdir(sourcePath);
         const backupData = {};
-        // Inizializza la crittografia se richiesta
-        const encryption = options?.encryption?.enabled ?
-            new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm) :
-            null;
-        for (const file of files) {
-            if (options?.excludePatterns?.some(pattern => file.match(pattern)))
-                continue;
-            const filePath = path_1.default.join(sourcePath, file);
-            const stats = await fs_extra_1.default.stat(filePath);
-            if (stats.isDirectory())
-                continue;
-            if (options?.maxFileSize && stats.size > options.maxFileSize)
-                continue;
-            const isBinary = this.isBinaryFile(file);
-            const content = await fs_extra_1.default.readFile(filePath);
-            let fileContent;
-            if (encryption) {
-                // Cripta il contenuto
-                const { encrypted, iv } = encryption.encrypt(content);
-                fileContent = {
-                    encrypted: encrypted.toString('base64'),
-                    iv: iv.toString('base64'),
-                    isEncrypted: true
-                };
+        // Funzione ricorsiva per processare le directory
+        const processDirectory = async (dirPath, baseDir = '') => {
+            const files = await fs_extra_1.default.readdir(dirPath);
+            for (const file of files) {
+                if (options?.excludePatterns?.some(pattern => file.match(pattern)))
+                    continue;
+                const fullPath = path_1.default.join(dirPath, file);
+                const relativePath = path_1.default.join(baseDir, file).replace(/\\/g, '/');
+                const stats = await fs_extra_1.default.stat(fullPath);
+                if (stats.isDirectory()) {
+                    if (options?.recursive) {
+                        await processDirectory(fullPath, relativePath);
+                    }
+                    continue;
+                }
+                if (options?.maxFileSize && stats.size > options.maxFileSize)
+                    continue;
+                const content = await fs_extra_1.default.readFile(fullPath);
+                const isBinary = this.isBinaryFile(file);
+                let fileData;
+                if (options?.encryption?.enabled && options.encryption.key) {
+                    const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
+                    const { encrypted, iv } = encryption.encrypt(content);
+                    fileData = {
+                        isEncrypted: true,
+                        encrypted: encrypted.toString('base64'),
+                        iv: iv.toString('base64'),
+                        mimeType: this.getMimeType(file)
+                    };
+                }
+                else {
+                    fileData = {
+                        type: isBinary ? 'binary' : 'text',
+                        content: isBinary ? content.toString('base64') : content.toString('utf8'),
+                        mimeType: this.getMimeType(file)
+                    };
+                }
+                backupData[relativePath] = fileData;
             }
-            else {
-                fileContent = {
-                    type: isBinary ? 'binary' : 'text',
-                    content: isBinary ? content.toString('base64') : content.toString('utf8'),
-                    mimeType: this.getMimeType(file)
-                };
-            }
-            backupData[file] = fileContent;
-        }
+        };
+        await processDirectory(sourcePath);
         const versionManager = new versioning_1.VersionManager(sourcePath);
         const versionInfo = await versionManager.createVersionInfo(Buffer.from(JSON.stringify(backupData)));
         const metadata = {
@@ -79,12 +85,10 @@ class FileBackupAdapter {
             type: 'file-backup',
             versionInfo
         };
-        // Prepara i dati per Pinata
         const uploadData = {
             data: backupData,
-            metadata: metadata
+            metadata
         };
-        // Usa il metodo uploadJson del servizio di storage
         const result = await this.storage.uploadJson(uploadData, {
             pinataMetadata: {
                 name: path_1.default.basename(sourcePath)

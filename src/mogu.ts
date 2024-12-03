@@ -407,7 +407,7 @@ declare module 'gun' {
 
 // Classe Mogu
 export class Mogu {
-  private gun?: IGunInstance;
+  public gun?: IGunInstance;
   private fileBackup: FileBackupAdapter;
   private storage: any;
   public config: Required<MoguConfig>;

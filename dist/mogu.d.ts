@@ -1,6 +1,11 @@
 import { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
 import type { MoguConfig, BackupData } from './types/mogu';
 import type { BackupOptions } from './types/backup';
+type IGunInstance = {
+    get(key: string): any;
+    put(data: any): any;
+    on(callback: (data: any) => void): void;
+};
 declare module 'gun' {
     interface IGunInstance {
         backup(config: Required<MoguConfig>, customPath?: string, options?: BackupOptions): Promise<{
@@ -15,7 +20,7 @@ declare module 'gun' {
     }
 }
 export declare class Mogu {
-    private gun?;
+    gun?: IGunInstance;
     private fileBackup;
     private storage;
     config: Required<MoguConfig>;
@@ -33,3 +38,4 @@ export declare class Mogu {
     backup: (customPath?: string, options?: BackupOptions) => any;
     restore: (hash: string, customPath?: string, options?: BackupOptions) => Promise<boolean>;
 }
+export {};

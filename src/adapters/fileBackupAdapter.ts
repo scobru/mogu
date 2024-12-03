@@ -55,72 +55,82 @@ export class FileBackupAdapter implements IBackupAdapter {
   }
 
   async backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult> {
-    const files = await fs.readdir(sourcePath);
     const backupData: Record<string, any> = {};
     
-    // Inizializza la crittografia se richiesta
-    const encryption = options?.encryption?.enabled ? 
-      new Encryption(options.encryption.key, options.encryption.algorithm) : 
-      null;
-
-    for (const file of files) {
-      if (options?.excludePatterns?.some(pattern => file.match(pattern))) continue;
+    // Funzione ricorsiva per processare le directory
+    const processDirectory = async (dirPath: string, baseDir: string = '') => {
+      const files = await fs.readdir(dirPath);
       
-      const filePath = path.join(sourcePath, file);
-      const stats = await fs.stat(filePath);
-      
-      if (stats.isDirectory()) continue;
-      if (options?.maxFileSize && stats.size > options.maxFileSize) continue;
-
-      const isBinary = this.isBinaryFile(file);
-      const content = await fs.readFile(filePath);
-      let fileContent: any;
-      
-      if (encryption) {
-        // Cripta il contenuto
-        const { encrypted, iv } = encryption.encrypt(content);
-        fileContent = {
-          encrypted: encrypted.toString('base64'),
-          iv: iv.toString('base64'),
-          isEncrypted: true
-        };
-      } else {
-        fileContent = {
-          type: isBinary ? 'binary' : 'text',
-          content: isBinary ? content.toString('base64') : content.toString('utf8'),
-          mimeType: this.getMimeType(file)
-        };
+      for (const file of files) {
+        if (options?.excludePatterns?.some(pattern => file.match(pattern))) continue;
+        
+        const fullPath = path.join(dirPath, file);
+        const relativePath = path.join(baseDir, file).replace(/\\/g, '/');
+        const stats = await fs.stat(fullPath);
+        
+        if (stats.isDirectory()) {
+          if (options?.recursive) {
+            await processDirectory(fullPath, relativePath);
+          }
+          continue;
+        }
+  
+        if (options?.maxFileSize && stats.size > options.maxFileSize) continue;
+  
+        const content = await fs.readFile(fullPath);
+        const isBinary = this.isBinaryFile(file);
+        
+        let fileData: FileData;
+        
+        if (options?.encryption?.enabled && options.encryption.key) {
+          const encryption = new Encryption(options.encryption.key, options.encryption.algorithm);
+          const { encrypted, iv } = encryption.encrypt(content);
+          fileData = {
+            isEncrypted: true,
+            encrypted: encrypted.toString('base64'),
+            iv: iv.toString('base64'),
+            mimeType: this.getMimeType(file)
+          };
+        } else {
+          fileData = {
+            type: isBinary ? 'binary' : 'text',
+            content: isBinary ? content.toString('base64') : content.toString('utf8'),
+            mimeType: this.getMimeType(file)
+          };
+        }
+        
+        backupData[relativePath] = fileData;
       }
-      
-      backupData[file] = fileContent;
-    }
-
+    };
+  
+    await processDirectory(sourcePath);
+  
     const versionManager = new VersionManager(sourcePath);
-    const versionInfo = await versionManager.createVersionInfo(Buffer.from(JSON.stringify(backupData)));
-
+    const versionInfo = await versionManager.createVersionInfo(
+      Buffer.from(JSON.stringify(backupData))
+    );
+  
     const metadata: BackupMetadata = {
       timestamp: Date.now(),
       type: 'file-backup',
       versionInfo
     };
-
-    // Prepara i dati per Pinata
+  
     const uploadData = {
       data: backupData,
-      metadata:metadata
+      metadata
     };
-
-    // Usa il metodo uploadJson del servizio di storage
+  
     const result = await this.storage.uploadJson(uploadData, {
       pinataMetadata: {
         name: path.basename(sourcePath)
       }
     });
-    
+  
     if (!result || !result.id) {
       throw new Error('Storage service did not return a valid hash');
     }
-
+  
     return {
       hash: result.id,
       versionInfo,
