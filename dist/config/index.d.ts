@@ -1,5 +1,5 @@
 import { z } from 'zod';
-declare const ConfigSchema: z.ZodObject<{
+export declare const configSchema: z.ZodObject<{
     storage: z.ZodObject<{
         service: z.ZodEnum<["PINATA", "BUNDLR", "NFT.STORAGE", "WEB3.STORAGE", "ARWEAVE", "IPFS-CLIENT", "LIGHTHOUSE"]>;
         config: z.ZodObject<{
@@ -31,68 +31,62 @@ declare const ConfigSchema: z.ZodObject<{
         };
     }>;
     paths: z.ZodObject<{
-        radata: z.ZodString;
-        backup: z.ZodString;
-        restore: z.ZodString;
-        storage: z.ZodString;
-        logs: z.ZodString;
+        backup: z.ZodOptional<z.ZodString>;
+        restore: z.ZodOptional<z.ZodString>;
+        storage: z.ZodOptional<z.ZodString>;
+        logs: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        storage: string;
-        radata: string;
-        backup: string;
-        restore: string;
-        logs: string;
+        storage?: string | undefined;
+        backup?: string | undefined;
+        restore?: string | undefined;
+        logs?: string | undefined;
     }, {
-        storage: string;
-        radata: string;
-        backup: string;
-        restore: string;
-        logs: string;
+        storage?: string | undefined;
+        backup?: string | undefined;
+        restore?: string | undefined;
+        logs?: string | undefined;
     }>;
     features: z.ZodObject<{
         useIPFS: z.ZodBoolean;
-        useGun: z.ZodBoolean;
-        encryption: z.ZodDefault<z.ZodObject<{
+        encryption: z.ZodObject<{
             enabled: z.ZodBoolean;
-            algorithm: z.ZodDefault<z.ZodEnum<["aes-256-gcm"]>>;
+            algorithm: z.ZodString;
         }, "strip", z.ZodTypeAny, {
             enabled: boolean;
-            algorithm: "aes-256-gcm";
+            algorithm: string;
         }, {
             enabled: boolean;
-            algorithm?: "aes-256-gcm" | undefined;
-        }>>;
+            algorithm: string;
+        }>;
     }, "strip", z.ZodTypeAny, {
         encryption: {
             enabled: boolean;
-            algorithm: "aes-256-gcm";
+            algorithm: string;
         };
         useIPFS: boolean;
-        useGun: boolean;
     }, {
-        useIPFS: boolean;
-        useGun: boolean;
-        encryption?: {
+        encryption: {
             enabled: boolean;
-            algorithm?: "aes-256-gcm" | undefined;
-        } | undefined;
+            algorithm: string;
+        };
+        useIPFS: boolean;
     }>;
-    performance: z.ZodDefault<z.ZodObject<{
-        maxConcurrent: z.ZodDefault<z.ZodNumber>;
-        chunkSize: z.ZodDefault<z.ZodNumber>;
-        cacheEnabled: z.ZodDefault<z.ZodBoolean>;
-        cacheSize: z.ZodDefault<z.ZodNumber>;
+    performance: z.ZodObject<{
+        maxConcurrent: z.ZodNumber;
+        chunkSize: z.ZodNumber;
+        cacheEnabled: z.ZodBoolean;
+        cacheSize: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         maxConcurrent: number;
         chunkSize: number;
         cacheEnabled: boolean;
         cacheSize: number;
     }, {
-        maxConcurrent?: number | undefined;
-        chunkSize?: number | undefined;
-        cacheEnabled?: boolean | undefined;
-        cacheSize?: number | undefined;
-    }>>;
+        maxConcurrent: number;
+        chunkSize: number;
+        cacheEnabled: boolean;
+        cacheSize: number;
+    }>;
 }, "strip", z.ZodTypeAny, {
     storage: {
         service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
@@ -103,19 +97,17 @@ declare const ConfigSchema: z.ZodObject<{
         };
     };
     paths: {
-        storage: string;
-        radata: string;
-        backup: string;
-        restore: string;
-        logs: string;
+        storage?: string | undefined;
+        backup?: string | undefined;
+        restore?: string | undefined;
+        logs?: string | undefined;
     };
     features: {
         encryption: {
             enabled: boolean;
-            algorithm: "aes-256-gcm";
+            algorithm: string;
         };
         useIPFS: boolean;
-        useGun: boolean;
     };
     performance: {
         maxConcurrent: number;
@@ -133,51 +125,17 @@ declare const ConfigSchema: z.ZodObject<{
         };
     };
     paths: {
-        storage: string;
-        radata: string;
-        backup: string;
-        restore: string;
-        logs: string;
-    };
-    features: {
-        useIPFS: boolean;
-        useGun: boolean;
-        encryption?: {
-            enabled: boolean;
-            algorithm?: "aes-256-gcm" | undefined;
-        } | undefined;
-    };
-    performance?: {
-        maxConcurrent?: number | undefined;
-        chunkSize?: number | undefined;
-        cacheEnabled?: boolean | undefined;
-        cacheSize?: number | undefined;
-    } | undefined;
-}>;
-export type Config = z.infer<typeof ConfigSchema>;
-export declare const config: {
-    storage: {
-        service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
-        config: {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
-        };
-    };
-    paths: {
-        storage: string;
-        radata: string;
-        backup: string;
-        restore: string;
-        logs: string;
+        storage?: string | undefined;
+        backup?: string | undefined;
+        restore?: string | undefined;
+        logs?: string | undefined;
     };
     features: {
         encryption: {
             enabled: boolean;
-            algorithm: "aes-256-gcm";
+            algorithm: string;
         };
         useIPFS: boolean;
-        useGun: boolean;
     };
     performance: {
         maxConcurrent: number;
@@ -185,5 +143,6 @@ export declare const config: {
         cacheEnabled: boolean;
         cacheSize: number;
     };
-};
-export {};
+}>;
+export type Config = z.infer<typeof configSchema>;
+export declare const defaultConfig: Config;

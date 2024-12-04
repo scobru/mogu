@@ -1,6 +1,7 @@
 import { BackupOptions, BackupResult } from './types/backup';
-import { config } from './config';
-type MoguConfig = typeof config;
+import { defaultConfig } from './config';
+import { VersionComparison, DetailedComparison } from './versioning';
+type MoguConfig = typeof defaultConfig;
 /**
  * Mogu - Sistema di backup decentralizzato
  * @class
@@ -53,6 +54,22 @@ export declare class Mogu {
      * @throws {Error} Se il ripristino fallisce
      */
     restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
+    /**
+     * Confronta una directory locale con un backup esistente
+     * @param {string} hash - Hash del backup da confrontare
+     * @param {string} sourcePath - Percorso della directory locale
+     * @returns {Promise<VersionComparison>} Risultato del confronto
+     * @throws {Error} Se il confronto fallisce
+     */
+    compare(hash: string, sourcePath: string): Promise<VersionComparison>;
+    /**
+     * Confronta in dettaglio una directory locale con un backup esistente
+     * @param {string} hash - Hash del backup da confrontare
+     * @param {string} sourcePath - Percorso della directory locale
+     * @returns {Promise<DetailedComparison>} Risultato dettagliato del confronto
+     * @throws {Error} Se il confronto fallisce
+     */
+    compareDetailed(hash: string, sourcePath: string): Promise<DetailedComparison>;
     backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }

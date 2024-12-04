@@ -143,6 +143,42 @@ The comparison system:
 - Calculates checksums for each file
 - Tracks file sizes
 
+## Testing Versioning
+
+The versioning tests verify Mogu's ability to handle different file versions and compare them accurately. The test suite includes:
+
+### Backup and Restore Testing
+- Verifies backup creation and restoration with automatic retries
+- Validates backup integrity through test restorations
+- Handles errors and multiple backup attempts
+
+### Version Testing
+1. **Version 1 (Initial)**
+   - Creates initial files with base content
+   - Verifies correct backup creation
+
+2. **Version 2 (Modifications)**
+   - Modifies existing files
+   - Verifies changes are tracked correctly
+
+3. **Version 3 (Additions and Deletions)**
+   - Adds new files
+   - Removes existing files
+   - Verifies all changes
+
+### Comparison Testing
+- Compares different versions to verify:
+  - Modified files
+  - Added files
+  - Deleted files
+  - Timestamps and time differences
+  - Checksums and data integrity
+
+### Restore Verification
+- Restores each version to separate directories
+- Verifies restored content against expected data
+- Validates restored file integrity
+
 ## Storage Providers
 
 Choose your preferred storage:

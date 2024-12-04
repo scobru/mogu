@@ -39,23 +39,21 @@ class FileBackupAdapter {
         const backupData = {};
         // Funzione ricorsiva per processare le directory
         const processDirectory = async (dirPath, baseDir = '') => {
-            const files = await fs_extra_1.default.readdir(dirPath);
+            const files = await fs_extra_1.default.readdir(dirPath, { withFileTypes: true });
             for (const file of files) {
-                if (options?.excludePatterns?.some((pattern) => file.match(pattern)))
+                if (options?.excludePatterns?.some((pattern) => file.name.match(pattern)))
                     continue;
-                const fullPath = path_1.default.join(dirPath, file);
-                const relativePath = path_1.default.join(baseDir, file).replace(/\\/g, '/');
-                const stats = await fs_extra_1.default.stat(fullPath);
-                if (stats.isDirectory()) {
-                    if (options?.recursive) {
-                        await processDirectory(fullPath, relativePath);
-                    }
+                const fullPath = path_1.default.join(dirPath, file.name);
+                const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, '/');
+                if (file.isDirectory()) {
+                    await processDirectory(fullPath, relativePath);
                     continue;
                 }
+                const stats = await fs_extra_1.default.stat(fullPath);
                 if (options?.maxFileSize && stats.size > options.maxFileSize)
                     continue;
                 const content = await fs_extra_1.default.readFile(fullPath);
-                const isBinary = this.isBinaryFile(file);
+                const isBinary = this.isBinaryFile(file.name);
                 let fileData;
                 if (options?.encryption?.enabled && options.encryption.key) {
                     const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
@@ -64,14 +62,14 @@ class FileBackupAdapter {
                         isEncrypted: true,
                         encrypted: encrypted.toString('base64'),
                         iv: iv.toString('base64'),
-                        mimeType: this.getMimeType(file)
+                        mimeType: this.getMimeType(file.name)
                     };
                 }
                 else {
                     fileData = {
                         type: isBinary ? 'binary' : 'text',
                         content: isBinary ? content.toString('base64') : content.toString('utf8'),
-                        mimeType: this.getMimeType(file)
+                        mimeType: this.getMimeType(file.name)
                     };
                 }
                 backupData[relativePath] = fileData;
@@ -110,9 +108,12 @@ class FileBackupAdapter {
         const encryption = options?.encryption?.enabled ?
             new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm) :
             null;
+        // Assicurati che la directory principale esista
         await fs_extra_1.default.ensureDir(targetPath);
         for (const [fileName, fileData] of Object.entries(backup.data)) {
             const filePath = path_1.default.join(targetPath, fileName);
+            // Assicurati che la directory del file esista
+            await fs_extra_1.default.ensureDir(path_1.default.dirname(filePath));
             if (fileData.isEncrypted && encryption && fileData.encrypted && fileData.iv) {
                 // Decripta il contenuto
                 const encrypted = Buffer.from(fileData.encrypted, 'base64');
@@ -139,59 +140,38 @@ class FileBackupAdapter {
     }
     async compare(hash, sourcePath) {
         try {
-            // Leggi i file locali
-            const files = await fs_extra_1.default.readdir(sourcePath);
-            const localData = {};
-            for (const file of files) {
-                const filePath = path_1.default.join(sourcePath, file);
-                const stats = await fs_extra_1.default.stat(filePath);
-                if (stats.isDirectory())
-                    continue;
-                const content = await fs_extra_1.default.readFile(filePath);
-                localData[file] = {
-                    type: this.isBinaryFile(file) ? 'binary' : 'text',
-                    content: content.toString('base64')
-                };
-            }
             // Recupera il backup
             const backup = await this.get(hash);
             if (!backup?.data || !backup?.metadata?.versionInfo) {
                 throw new Error('Invalid backup: missing metadata');
             }
-            // Calcola checksum
-            const localDataStr = JSON.stringify(localData);
-            const remoteDataStr = JSON.stringify(backup.data);
-            const localChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(localDataStr));
-            const remoteChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(remoteDataStr));
-            const localVersion = {
-                hash: localChecksum,
-                timestamp: Date.now(),
-                size: Buffer.from(localDataStr).length,
-                metadata: {
-                    createdAt: new Date().toISOString(),
-                    modifiedAt: new Date().toISOString(),
-                    checksum: localChecksum
+            // Prepara i dati locali nello stesso formato del backup
+            const localData = {};
+            const processDirectory = async (dirPath, baseDir = '') => {
+                const files = await fs_extra_1.default.readdir(dirPath, { withFileTypes: true });
+                for (const file of files) {
+                    const fullPath = path_1.default.join(dirPath, file.name);
+                    const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, '/');
+                    if (file.isDirectory()) {
+                        await processDirectory(fullPath, relativePath);
+                        continue;
+                    }
+                    const content = await fs_extra_1.default.readFile(fullPath);
+                    const isBinary = this.isBinaryFile(file.name);
+                    localData[relativePath] = {
+                        type: isBinary ? 'binary' : 'text',
+                        content: isBinary ? content.toString('base64') : content.toString('utf8'),
+                        mimeType: this.getMimeType(file.name)
+                    };
                 }
             };
-            const remoteVersion = backup.metadata.versionInfo;
-            if (localChecksum === remoteChecksum) {
-                return {
-                    isEqual: true,
-                    isNewer: false,
-                    localVersion: remoteVersion,
-                    remoteVersion,
-                    timeDiff: 0,
-                    formattedDiff: "less than a minute"
-                };
-            }
-            return {
-                isEqual: false,
-                isNewer: localVersion.timestamp > remoteVersion.timestamp,
-                localVersion,
-                remoteVersion,
-                timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
-                formattedDiff: new versioning_1.VersionManager(sourcePath).formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp)
-            };
+            await processDirectory(sourcePath);
+            // Crea buffer dei dati nello stesso formato
+            const localBuffer = Buffer.from(JSON.stringify(localData));
+            const remoteBuffer = Buffer.from(JSON.stringify(backup.data));
+            // Usa VersionManager per confrontare
+            const versionManager = new versioning_1.VersionManager(sourcePath);
+            return versionManager.compareVersions(localBuffer, backup.metadata.versionInfo);
         }
         catch (error) {
             console.error('Error during comparison:', error);

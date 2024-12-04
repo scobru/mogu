@@ -1,11 +1,11 @@
 import { FileBackupAdapter } from './adapters/fileBackupAdapter';
 import { BackupOptions, BackupResult } from './types/backup';
-import { config } from './config';
+import { defaultConfig } from './config';
 import { logger } from './utils/logger';
 import { backupCache } from './utils/cache';
 import { VersionComparison, DetailedComparison } from './versioning';
 
-type MoguConfig = typeof config;
+type MoguConfig = typeof defaultConfig;
 
 /**
  * Mogu - Sistema di backup decentralizzato

@@ -22,7 +22,7 @@ class Cache {
         }
         this.name = name;
         this.cache = new lru_cache_1.LRUCache({
-            max: options?.max || config_1.config.performance.cacheSize,
+            max: options?.max || config_1.defaultConfig.performance.cacheSize,
             ttl: options?.ttl || 1000 * 60 * 60, // 1 ora di default
             updateAgeOnGet: true,
             allowStale: false

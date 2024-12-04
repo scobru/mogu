@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache';
-import { config } from '../config';
+import { defaultConfig } from '../config';
 import { logger } from './logger';
 import { BackupResult } from '../types/backup';
 
@@ -36,7 +36,7 @@ export class Cache<K extends string | number, V extends Record<string, any> | Bu
 
     this.name = name;
     this.cache = new LRUCache<K, V>({
-      max: options?.max || config.performance.cacheSize,
+      max: options?.max || defaultConfig.performance.cacheSize,
       ttl: options?.ttl || 1000 * 60 * 60, // 1 ora di default
       updateAgeOnGet: true,
       allowStale: false

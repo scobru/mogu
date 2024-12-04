@@ -19,7 +19,6 @@ export const configSchema = z.object({
     })
   }),
   paths: z.object({
-    radata: z.string().optional(),
     backup: z.string().optional(),
     restore: z.string().optional(),
     storage: z.string().optional(),
@@ -51,7 +50,6 @@ export const defaultConfig: Config = {
     }
   },
   paths: {
-    radata: process.env.RADATA_PATH || './radata',
     backup: process.env.BACKUP_PATH || './backup',
     restore: process.env.RESTORE_PATH || './restore',
     storage: process.env.STORAGE_PATH || './storage',

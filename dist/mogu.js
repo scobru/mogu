@@ -95,5 +95,43 @@ class Mogu {
             throw error;
         }
     }
+    /**
+     * Confronta una directory locale con un backup esistente
+     * @param {string} hash - Hash del backup da confrontare
+     * @param {string} sourcePath - Percorso della directory locale
+     * @returns {Promise<VersionComparison>} Risultato del confronto
+     * @throws {Error} Se il confronto fallisce
+     */
+    async compare(hash, sourcePath) {
+        const operationId = logger_1.logger.startOperation('compare');
+        try {
+            const result = await this.fileBackup.compare(hash, sourcePath);
+            logger_1.logger.endOperation(operationId, 'compare');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Compare failed', error, { operationId });
+            throw error;
+        }
+    }
+    /**
+     * Confronta in dettaglio una directory locale con un backup esistente
+     * @param {string} hash - Hash del backup da confrontare
+     * @param {string} sourcePath - Percorso della directory locale
+     * @returns {Promise<DetailedComparison>} Risultato dettagliato del confronto
+     * @throws {Error} Se il confronto fallisce
+     */
+    async compareDetailed(hash, sourcePath) {
+        const operationId = logger_1.logger.startOperation('compareDetailed');
+        try {
+            const result = await this.fileBackup.compareDetailed(hash, sourcePath);
+            logger_1.logger.endOperation(operationId, 'compareDetailed');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Detailed compare failed', error, { operationId });
+            throw error;
+        }
+    }
 }
 exports.Mogu = Mogu;
