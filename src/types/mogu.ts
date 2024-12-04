@@ -4,7 +4,6 @@ import type { VersionInfo, VersionComparison, DetailedComparison } from "../vers
 export interface MoguConfig {
   storageService: Web3StashServices;
   storageConfig: Web3StashConfig;
-  useGun?: boolean;
   radataPath?: string;
   backupPath?: string;
   restorePath?: string;
