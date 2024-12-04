@@ -1,37 +1,60 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mogu - Modern Decentralized Backup</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            localStorage.setItem('darkMode', isDark);
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Check dark mode preference on load
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
         }
 
-        // Check for saved dark mode preference
-        if (localStorage.getItem('darkMode') === 'true' || 
-            (!localStorage.getItem('darkMode') && 
-             window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark')
+                localStorage.theme = 'light'
+            } else {
+                document.documentElement.classList.add('dark')
+                localStorage.theme = 'dark'
+            }
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
     <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm fixed w-full z-10 transition-colors duration-200">
+    <header class="fixed w-full bg-white dark:bg-gray-800 shadow-sm z-10">
         <nav class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="text-2xl font-bold text-gray-800 dark:text-white">Mogu</div>
                 <div class="flex items-center space-x-6">
                     <!-- Dark Mode Toggle -->
-                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                        <i class="fas fa-moon dark:hidden"></i>
-                        <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+                    <button onclick="toggleDarkMode()" 
+                            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <svg class="w-6 h-6 text-gray-800 dark:text-white hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <svg class="w-6 h-6 text-gray-800 dark:text-white block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
                     </button>
                     <a href="#features" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Features</a>
                     <a href="#quickstart" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Quick Start</a>
@@ -43,19 +66,17 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="pt-24 pb-16 px-6">
+    <section class="pt-32 pb-16 px-6">
         <div class="container mx-auto">
             <div class="flex flex-col items-center text-center max-w-3xl mx-auto">
                 <img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" 
-                     width="300" 
-                     height="auto" 
                      alt="Mogu Logo"
-                     class="mb-8 animate-fade-in dark:filter dark:brightness-90">
+                     class="mb-8 w-72 h-auto dark:invert">
                 <h1 class="text-5xl font-bold text-gray-800 dark:text-white mb-6">Modern Decentralized Backup</h1>
-                <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">Secure, fast, and reliable backups with encryption and IPFS storage</p>
+                <p class="text-xl text-gray-700 dark:text-gray-200 mb-8">Secure, fast, and reliable backups with encryption and IPFS storage</p>
                 <div class="space-x-4">
                     <a href="#quickstart" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">Get Started</a>
-                    <a href="https://github.com/mogu" class="border border-gray-300 dark:border-gray-600 px-8 py-3 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition dark:text-white">View on GitHub</a>
+                    <a href="https://github.com/mogu" class="border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white px-8 py-3 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition">View on GitHub</a>
                 </div>
             </div>
         </div>
@@ -68,18 +89,18 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
                     <i class="fas fa-bolt text-3xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2 dark:text-white">Simple to Use</h3>
-                    <p class="text-gray-600 dark:text-gray-300">Just a few lines of code to backup and restore your data</p>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">Simple to Use</h3>
+                    <p class="text-gray-700 dark:text-gray-200">Just a few lines of code to backup and restore your data</p>
                 </div>
                 <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
                     <i class="fas fa-lock text-3xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2 dark:text-white">End-to-End Encryption</h3>
-                    <p class="text-gray-600 dark:text-gray-300">Your data is always secure with AES-256-GCM encryption</p>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">End-to-End Encryption</h3>
+                    <p class="text-gray-700 dark:text-gray-200">Your data is always secure with AES-256-GCM encryption</p>
                 </div>
                 <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
                     <i class="fas fa-database text-3xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2 dark:text-white">IPFS Storage</h3>
-                    <p class="text-gray-600 dark:text-gray-300">Decentralized and reliable storage on IPFS network</p>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">IPFS Storage</h3>
+                    <p class="text-gray-700 dark:text-gray-200">Decentralized and reliable storage on IPFS network</p>
                 </div>
             </div>
         </div>

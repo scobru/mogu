@@ -1,3 +1,8 @@
 node_modules
-radata
 .env
+radata
+logs/*
+test-files/*
+test-radata/*
+restored-files/*    
+landing/*
