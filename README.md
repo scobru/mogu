@@ -1,188 +1,214 @@
-# Mogu v3
+# Mogu
 
 <img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" width="300" height="auto" alt="Mogu Logo">
 
-## What is Mogu?
-
-Mogu is a decentralized data management solution that bridges the gap between real-time databases and permanent storage. It combines GunDB's real-time capabilities with IPFS's distributed storage to provide a robust, versioned backup system with encryption support.
-
-### Core Features
-- **Real-time Database**: Uses GunDB for immediate data synchronization
-- **Permanent Storage**: Leverages IPFS and Web3 storage providers
-- **Version Control**: Maintains detailed version history
-- **Encryption**: End-to-end encryption for both files and Gun backups
-- **Binary Support**: Handles both text and binary files
-
-## Quick Start
-
-### Installation
-
-```bash
-# Using npm
-npm install @scobru/mogu
-
-# Using yarn
-yarn add @scobru/mogu
-```
-
-### Basic Configuration
-
-```typescript
-import { Mogu } from '@scobru/mogu';
-
-const mogu = new Mogu({
-  storageService: 'PINATA',
-  storageConfig: {
-    apiKey: process.env.PINATA_API_KEY,
-    apiSecret: process.env.PINATA_API_SECRET
-  },
-  useGun: true  // Enable GunDB support
-});
-```
-
-### Environment Setup
-
-Create a `.env` file:
-```env
-# Required: Storage Provider Configuration
-PINATA_API_KEY=<your-pinata-api-key>
-PINATA_API_SECRET=<your-pinata-api-secret>
-PINATA_GATEWAY=<your-pinata-gateway>
-
-# Optional: Encryption
-ENCRYPTION_KEY=<your-encryption-key>
-```
+A modern decentralized backup system with encryption and versioning.
 
 ## Features
 
-### Encrypted File Backup
+- 🚀 **Simple to Use**: Just a few lines of code to backup and restore
+- 🔒 **End-to-End Encryption**: Your data is always secure
+- 📦 **IPFS Storage**: Decentralized and reliable
+- 🔄 **Automatic Versioning**: Track changes over time
+- 💾 **Smart Caching**: Fast operations with intelligent caching
+- 📝 **Structured Logging**: Detailed operation tracking
+- 🔍 **Version Comparison**: Compare backups with local files
+
+## Quick Start
+
+```bash
+yarn add mogu
+```
 
 ```typescript
-// Create encrypted backup
-const backup = await mogu.backupFiles('./my-directory', {
-  encryption: {
-    enabled: true,
-    key: process.env.ENCRYPTION_KEY
+import { Mogu } from 'mogu';
+
+// Initialize Mogu
+const mogu = new Mogu({
+  storage: {
+    service: 'PINATA',
+    config: {
+      apiKey: 'your-api-key',
+      apiSecret: 'your-secret'
+    }
+  },
+  features: {
+    encryption: {
+      enabled: true,
+      algorithm: 'aes-256-gcm'
+    }
+  },
+  performance: {
+    maxConcurrent: 3,
+    chunkSize: 1024 * 1024,
+    cacheEnabled: true
   }
 });
 
-// Restore encrypted backup
-await mogu.restoreFiles(backup.hash, './restore-dir', {
-  encryption: {
-    enabled: true,
-    key: process.env.ENCRYPTION_KEY
+// Create a backup
+const backup = await mogu.backup('./data');
+console.log('Backup created:', backup.hash);
+
+// Compare changes
+const comparison = await mogu.compare(backup.hash, './data');
+if (!comparison.isEqual) {
+  console.log('Changes detected!');
+  console.log(`Time since backup: ${comparison.formattedDiff}`);
+}
+
+// Get detailed changes
+const details = await mogu.compareDetailed(backup.hash, './data');
+console.log(`Files added: ${details.totalChanges.added}`);
+console.log(`Files modified: ${details.totalChanges.modified}`);
+console.log(`Files deleted: ${details.totalChanges.deleted}`);
+
+// Restore from backup
+await mogu.restore(backup.hash, './restored');
+```
+
+## Configuration
+
+```typescript
+const mogu = new Mogu({
+  // Storage configuration
+  storage: {
+    service: 'PINATA',  // IPFS storage provider
+    config: {
+      apiKey: 'your-api-key',
+      apiSecret: 'your-secret'
+    }
+  },
+  
+  // File paths
+  paths: {
+    backup: './backup',    // Source directory
+    restore: './restore',  // Restore directory
+    storage: './storage',  // Local storage
+    logs: './logs'        // Log files
+  },
+  
+  // Features
+  features: {
+    encryption: {
+      enabled: true,
+      algorithm: 'aes-256-gcm'
+    }
+  },
+  
+  // Performance tuning
+  performance: {
+    maxConcurrent: 3,        // Concurrent operations
+    chunkSize: 1024 * 1024,  // 1MB chunks
+    cacheEnabled: true,      // Enable caching
+    cacheSize: 100          // Cache size
   }
 });
 ```
 
-### Gun Database Integration
+## Version Comparison
+
+Mogu provides powerful comparison features to track changes between your local files and backups:
 
 ```typescript
-// Store data in Gun
-await mogu.put('users/1', { name: 'John' });
+// Basic comparison
+const comparison = await mogu.compare(backup.hash, './data');
+console.log('Files changed:', !comparison.isEqual);
+console.log('Local version is newer:', comparison.isNewer);
+console.log('Time difference:', comparison.formattedDiff);
 
-// Create encrypted Gun backup
-const backup = await mogu.backupGun(undefined, {
-  encryption: {
-    enabled: true,
-    key: process.env.ENCRYPTION_KEY
+// Detailed comparison
+const details = await mogu.compareDetailed(backup.hash, './data');
+console.log('Added files:', details.totalChanges.added);
+console.log('Modified files:', details.totalChanges.modified);
+console.log('Deleted files:', details.totalChanges.deleted);
+
+// Inspect specific changes
+details.differences.forEach(diff => {
+  console.log(`File: ${diff.path}`);
+  console.log(`Change type: ${diff.type}`); // 'added', 'modified', or 'deleted'
+  if (diff.type === 'modified') {
+    console.log(`Old size: ${diff.size.old}`);
+    console.log(`New size: ${diff.size.new}`);
   }
 });
 
-// Restore Gun backup
-await mogu.restoreGun(backup.hash, undefined, {
-  encryption: {
-    enabled: true,
-    key: process.env.ENCRYPTION_KEY
-  }
-});
+// Compare specific versions
+const versionInfo = {
+  localVersion: details.localVersion,
+  remoteVersion: details.remoteVersion,
+  timeDiff: details.timeDiff,
+  formattedDiff: details.formattedDiff
+};
 ```
 
 ## Storage Providers
 
-Mogu supports multiple storage providers:
-- **PINATA**: Popular IPFS pinning service
-- **BUNDLR**: Arweave-based storage
-- **NFT.STORAGE**: Free IPFS storage for NFTs
-- **WEB3.STORAGE**: Decentralized storage platform
-- **ARWEAVE**: Permanent storage blockchain
-- **IPFS-CLIENT**: Direct IPFS node connection
-- **LIGHTHOUSE**: Decentralized storage network
+Choose your preferred storage:
 
-## Security Features
+- **PINATA**: Managed IPFS storage
+- **IPFS-CLIENT**: Local IPFS node
+- **BUNDLR**: Arweave storage
+- **NFT.STORAGE**: Free IPFS storage
+- **WEB3.STORAGE**: Decentralized IPFS
+- **ARWEAVE**: Permanent storage
+- **LIGHTHOUSE**: Decentralized storage
 
-### Encryption Support
-- AES-256-CBC encryption (default)
-- Custom algorithm support
-- Secure key handling
-- Binary file encryption
-- Metadata encryption
+## Advanced Usage
 
-### Supported File Types
-- **Text**: .txt, .json, .md, .csv
-- **Images**: .png, .jpg, .jpeg, .gif, .bmp
-- **Documents**: .pdf, .doc, .docx
-- **Spreadsheets**: .xls, .xlsx
-- **Archives**: .zip, .rar, .7z, .tar, .gz
+### Encrypted Backup
+
+```typescript
+// Backup with encryption
+const backup = await mogu.backup('./data', {
+  encryption: {
+    enabled: true,
+    key: 'your-encryption-key'
+  }
+});
+
+// Restore encrypted backup
+await mogu.restore(backup.hash, './restore', {
+  encryption: {
+    enabled: true,
+    key: 'your-encryption-key'
+  }
+});
+```
+
+### Backup Options
+
+```typescript
+const backup = await mogu.backup('./data', {
+  // Exclude patterns
+  excludePatterns: ['*.log', '.DS_Store'],
+  
+  // File size limits
+  maxFileSize: 100 * 1024 * 1024, // 100MB
+  
+  // Recursive backup
+  recursive: true,
+  
+  // Custom metadata
+  metadata: {
+    description: 'Daily backup',
+    tags: ['prod', 'db']
+  }
+});
+```
 
 ## Development
 
-### Running Tests
 ```bash
-# Run all tests
+# Install dependencies
+yarn install
+
+# Run tests
 yarn test
 
-# Tests cover:
-# - File encryption/decryption
-# - Gun backup encryption
-# - Wrong key scenarios
-# - Binary file handling
+# Build
+yarn build
 ```
-
-### Landing Page
-The project includes a modern landing page showcasing Mogu's features. To view it:
-1. Navigate to the `landing` directory
-2. Open `index.html` in your browser
-
-## Best Practices
-
-### Key Management
-```typescript
-// Generate secure key
-const key = crypto.randomBytes(32).toString('hex');
-
-// Store securely (use environment variables)
-process.env.ENCRYPTION_KEY = key;
-```
-
-### Error Handling
-```typescript
-try {
-  await mogu.restoreFiles(hash, './restore-dir', {
-    encryption: {
-      enabled: true,
-      key: process.env.ENCRYPTION_KEY
-    }
-  });
-} catch (error) {
-  if (error.message.includes('decrypt')) {
-    // Handle decryption errors
-  } else if (error.message.includes('not found')) {
-    // Handle missing file errors
-  }
-}
-```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Support
-
-- GitHub Issues: [Report a bug](https://github.com/tuouser/mogu/issues)
-- Documentation: [Read the docs](https://github.com/tuouser/mogu#readme)
-- Community: [Join our Discord](https://discord.gg/yourdiscord)
+MIT © [@scobru/mogu](https://github.com/scobru/mogu)

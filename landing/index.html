@@ -1,133 +1,328 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mogu - Decentralized Backup</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Mogu - Modern Decentralized Backup</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true' || 
+            (!localStorage.getItem('darkMode') && 
+             window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
 </head>
-<body>
-    <header>
-        <nav>
-            <div class="logo">
-                <img src="../mogu.png" alt="Mogu Logo" height="40">
-                <span>Mogu</span>
-            </div>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="https://github.com/tuouser/mogu" class="github-link">GitHub</a>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm fixed w-full z-10 transition-colors duration-200">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold text-gray-800 dark:text-white">Mogu</div>
+                <div class="flex items-center space-x-6">
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+                    </button>
+                    <a href="#features" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Features</a>
+                    <a href="#quickstart" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Quick Start</a>
+                    <a href="#docs" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">Docs</a>
+                    <a href="https://github.com/mogu" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">GitHub</a>
+                </div>
             </div>
         </nav>
     </header>
 
-    <main>
-        <section class="hero">
-            <div class="hero-content">
-                <h1>Simple and Secure<br>Decentralized Backup</h1>
-                <p class="subtitle">Protect your data with the power of decentralization</p>
-                <div class="cta-buttons">
-                    <a href="#get-started" class="btn primary">Get Started</a>
-                    <a href="https://github.com/tuouser/mogu" class="btn secondary">View on GitHub</a>
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 px-6">
+        <div class="container mx-auto">
+            <div class="flex flex-col items-center text-center max-w-3xl mx-auto">
+                <img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" 
+                     width="300" 
+                     height="auto" 
+                     alt="Mogu Logo"
+                     class="mb-8 animate-fade-in dark:filter dark:brightness-90">
+                <h1 class="text-5xl font-bold text-gray-800 dark:text-white mb-6">Modern Decentralized Backup</h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">Secure, fast, and reliable backups with encryption and IPFS storage</p>
+                <div class="space-x-4">
+                    <a href="#quickstart" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">Get Started</a>
+                    <a href="https://github.com/mogu" class="border border-gray-300 dark:border-gray-600 px-8 py-3 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition dark:text-white">View on GitHub</a>
                 </div>
             </div>
-            <div class="hero-image">
-                <div class="code-preview">
-                    <pre><code>
-// Example of using Mogu
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-16 bg-white dark:bg-gray-800 transition-colors duration-200">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-white mb-12">Why Choose Mogu?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
+                    <i class="fas fa-bolt text-3xl text-blue-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2 dark:text-white">Simple to Use</h3>
+                    <p class="text-gray-600 dark:text-gray-300">Just a few lines of code to backup and restore your data</p>
+                </div>
+                <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
+                    <i class="fas fa-lock text-3xl text-blue-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2 dark:text-white">End-to-End Encryption</h3>
+                    <p class="text-gray-600 dark:text-gray-300">Your data is always secure with AES-256-GCM encryption</p>
+                </div>
+                <div class="p-6 border dark:border-gray-700 rounded-lg hover:shadow-lg transition bg-white dark:bg-gray-700">
+                    <i class="fas fa-database text-3xl text-blue-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2 dark:text-white">IPFS Storage</h3>
+                    <p class="text-gray-600 dark:text-gray-300">Decentralized and reliable storage on IPFS network</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start -->
+    <section id="quickstart" class="py-16">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">Quick Start</h2>
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-gray-800 dark:bg-black rounded-lg p-6 mb-8">
+                    <pre class="text-green-400"><code>
+# Install Mogu
+yarn add mogu
+
+# Initialize and use
 import { Mogu } from 'mogu';
 
 const mogu = new Mogu({
-    storageService: 'PINATA',
-    encryption: {
-        enabled: true,
-        key: 'your-secret-key'
+  storage: {
+    service: 'PINATA',
+    config: {
+      apiKey: 'your-api-key',
+      apiSecret: 'your-secret'
     }
+  }
 });
 
-// Backup your data
-await mogu.backupFiles('./documents');
-                    </code></pre>
-                </div>
-            </div>
-        </section>
+// Create backup
+const backup = await mogu.backup('./data');
 
-        <section id="features" class="features">
-            <h2>Key Features</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🔒</div>
-                    <h3>End-to-End Encryption</h3>
-                    <p>Your data is always protected with advanced encryption before leaving your device.</p>
+// Restore
+await mogu.restore(backup.hash, './restore');</code></pre>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3>Decentralized Storage</h3>
-                    <p>Uses IPFS and Gun to ensure your data is always available and redundant.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Fast & Reliable</h3>
-                    <p>Quick backup and restore with data integrity verification.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🛠️</div>
-                    <h3>Easy to Use</h3>
-                    <p>Simple and intuitive API to integrate backup into your projects.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="how-it-works" class="how-it-works">
-            <h2>How It Works</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Initialize</h3>
-                    <p>Configure Mogu with your storage and encryption preferences.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Backup</h3>
-                    <p>Back up your files or data with a single function call.</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Restore</h3>
-                    <p>Restore your data whenever needed, from anywhere.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="get-started" class="get-started">
-            <h2>Get Started</h2>
-            <div class="installation">
-                <pre><code>npm install mogu</code></pre>
-                <p>or</p>
-                <pre><code>yarn add mogu</code></pre>
-            </div>
-            <a href="https://github.com/tuouser/mogu#readme" class="btn primary">Read the Docs</a>
-        </section>
-    </main>
-
-    <footer>
-        <div class="footer-content">
-            <div class="footer-logo">
-                <img src="../mogu.png" alt="Mogu Logo" height="30">
-                <span>Mogu</span>
-            </div>
-            <div class="footer-links">
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="https://github.com/tuouser/mogu">GitHub</a>
             </div>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; 2023 Mogu. All rights reserved.</p>
+    </section>
+
+    <!-- Documentation -->
+    <section id="docs" class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">Documentation</h2>
+            
+            <!-- Advanced Usage -->
+            <div class="max-w-4xl mx-auto mb-16">
+                <h3 class="text-2xl font-semibold mb-6">Advanced Usage</h3>
+                
+                <!-- Encrypted Backup -->
+                <div class="mb-8">
+                    <h4 class="text-xl font-semibold mb-4">Encrypted Backup</h4>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code>// Backup with encryption
+const backup = await mogu.backup('./data', {
+  encryption: {
+    enabled: true,
+    key: 'your-encryption-key'
+  }
+});
+
+// Restore encrypted backup
+await mogu.restore(backup.hash, './restore', {
+  encryption: {
+    enabled: true,
+    key: 'your-encryption-key'
+  }
+});</code></pre>
+                    </div>
+                </div>
+
+                <!-- Backup Options -->
+                <div class="mb-8">
+                    <h4 class="text-xl font-semibold mb-4">Backup Options</h4>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code>const backup = await mogu.backup('./data', {
+  // Exclude patterns
+  excludePatterns: ['*.log', '.DS_Store'],
+  
+  // File size limits
+  maxFileSize: 100 * 1024 * 1024, // 100MB
+  
+  // Recursive backup
+  recursive: true,
+  
+  // Custom metadata
+  metadata: {
+    description: 'Daily backup',
+    tags: ['prod', 'db']
+  }
+});</code></pre>
+                    </div>
+                </div>
+
+                <!-- Caching System -->
+                <div class="mb-8">
+                    <h4 class="text-xl font-semibold mb-4">Caching System</h4>
+                    <p class="text-gray-600 mb-4">Mogu includes a smart caching system for faster operations:</p>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code>// Cache is automatically used for faster operations
+const backup1 = await mogu.backup('./data');
+// First restore (slower)
+await mogu.restore(backup1.hash, './restore');
+// Second restore (faster, uses cache)
+await mogu.restore(backup1.hash, './restore');</code></pre>
+                    </div>
+                </div>
+
+                <!-- Configuration -->
+                <div class="mb-8">
+                    <h4 class="text-xl font-semibold mb-4">Full Configuration</h4>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code>const mogu = new Mogu({
+  // Storage configuration
+  storage: {
+    service: 'PINATA',  // IPFS storage provider
+    config: {
+      apiKey: 'your-api-key',
+      apiSecret: 'your-secret'
+    }
+  },
+  
+  // File paths
+  paths: {
+    backup: './backup',    // Source directory
+    restore: './restore',  // Restore directory
+    storage: './storage',  // Local storage
+    logs: './logs'        // Log files
+  },
+  
+  // Features
+  features: {
+    encryption: {
+      enabled: true,
+      algorithm: 'aes-256-gcm'
+    }
+  },
+  
+  // Performance tuning
+  performance: {
+    maxConcurrent: 3,        // Concurrent operations
+    chunkSize: 1024 * 1024,  // 1MB chunks
+    cacheEnabled: true,      // Enable caching
+    cacheSize: 100          // Cache size
+  }
+});</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Storage & Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Storage Providers</h3>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>PINATA - Managed IPFS storage</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>IPFS-CLIENT - Local IPFS node</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>BUNDLR - Arweave storage</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>NFT.STORAGE - Free IPFS storage</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>WEB3.STORAGE - Decentralized IPFS</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>ARWEAVE - Permanent storage</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>LIGHTHOUSE - Decentralized storage</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Development</h3>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code># Install dependencies
+yarn install
+
+# Run tests
+yarn test
+
+# Build
+yarn build</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <h3 class="text-2xl font-bold">Mogu</h3>
+                    <p class="text-gray-400">Modern Decentralized Backup</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="https://github.com/mogu" class="hover:text-gray-300 transition">
+                        <i class="fab fa-github text-2xl"></i>
+                    </a>
+                    <a href="https://twitter.com/mogu" class="hover:text-gray-300 transition">
+                        <i class="fab fa-twitter text-2xl"></i>
+                    </a>
+                    <a href="https://discord.gg/mogu" class="hover:text-gray-300 transition">
+                        <i class="fab fa-discord text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-8 text-center text-gray-400">
+                <p>MIT © Mogu</p>
+            </div>
         </div>
     </footer>
+
+    <style>
+    /* Dark mode transitions */
+    .transition-colors {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 200ms;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Dark mode styles */
+    .dark .dark\:filter {
+        filter: brightness(0.9) contrast(1.1);
+    }
+    </style>
+
+    <script>
+    // Check system dark mode preference on load
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+    }
+
+    // Listen for system dark mode changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (e.matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    });
+    </script>
 </body>
 </html> 

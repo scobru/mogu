@@ -62,7 +62,7 @@ export class FileBackupAdapter implements IBackupAdapter {
       const files = await fs.readdir(dirPath);
       
       for (const file of files) {
-        if (options?.excludePatterns?.some(pattern => file.match(pattern))) continue;
+        if (options?.excludePatterns?.some((pattern: string) => file.match(pattern))) continue;
         
         const fullPath = path.join(dirPath, file);
         const relativePath = path.join(baseDir, file).replace(/\\/g, '/');
@@ -347,6 +347,4 @@ export class FileBackupAdapter implements IBackupAdapter {
       throw error;
     }
   }
-
-  // ... implementazione degli altri metodi ...
 } 

@@ -1,15 +1,25 @@
 import type { VersionInfo, VersionComparison, DetailedComparison } from '../versioning';
 import type { BackupData } from './mogu';
 export interface BackupOptions {
-    includeBinaryFiles?: boolean;
-    excludePatterns?: string[];
-    maxFileSize?: number;
-    recursive?: boolean;
+    name?: string;
+    description?: string;
+    tags?: string[];
+    type?: string;
+    timestamp?: number;
     encryption?: {
         enabled: boolean;
         key: string;
         algorithm?: string;
     };
+    metadata?: {
+        isEncrypted?: boolean;
+        gunData?: any;
+        [key: string]: any;
+    };
+    excludePatterns?: string[];
+    recursive?: boolean;
+    maxFileSize?: number;
+    includeBinaryFiles?: boolean;
 }
 export interface BackupResult {
     hash: string;

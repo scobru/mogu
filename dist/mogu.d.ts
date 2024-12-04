@@ -1,41 +1,59 @@
-import { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
-import type { MoguConfig, BackupData } from './types/mogu';
-import type { BackupOptions } from './types/backup';
-type IGunInstance = {
-    get(key: string): any;
-    put(data: any): any;
-    on(callback: (data: any) => void): void;
-};
-declare module 'gun' {
-    interface IGunInstance {
-        backup(config: Required<MoguConfig>, customPath?: string, options?: BackupOptions): Promise<{
-            hash: string;
-            versionInfo: VersionInfo;
-            name: string;
-        }>;
-        restore(config: Required<MoguConfig>, hash: string, customPath?: string, options?: BackupOptions): Promise<boolean>;
-        compareBackup(config: Required<MoguConfig>, hash: string): Promise<VersionComparison>;
-        compareDetailedBackup(config: Required<MoguConfig>, hash: string): Promise<DetailedComparison>;
-        getBackupState(config: Required<MoguConfig>, hash: string): Promise<BackupData>;
-    }
-}
+import { BackupOptions, BackupResult } from './types/backup';
+import { config } from './config';
+type MoguConfig = typeof config;
+/**
+ * Mogu - Sistema di backup decentralizzato
+ * @class
+ * @description
+ * Mogu è un sistema di backup decentralizzato.
+ * Fornisce funzionalità di backup criptato, versionamento e ripristino.
+ *
+ * @example
+ * ```typescript
+ * const mogu = new Mogu({
+ *   storage: {
+ *     service: 'PINATA',
+ *     config: {
+ *       apiKey: 'your-api-key',
+ *       apiSecret: 'your-secret'
+ *     }
+ *   }
+ * });
+ *
+ * // Backup di file
+ * const backup = await mogu.backup('./data');
+ *
+ * // Ripristino
+ * await mogu.restore(backup.hash, './restore');
+ * ```
+ */
 export declare class Mogu {
-    gun?: IGunInstance;
+    private config;
     private fileBackup;
-    private storage;
-    config: Required<MoguConfig>;
+    /**
+     * Crea una nuova istanza di Mogu
+     * @param {MoguConfig} config - Configurazione
+     * @throws {Error} Se la configurazione non è valida
+     */
     constructor(config: MoguConfig);
-    get(key: string): any;
-    put(key: string, data: any): any;
-    on(key: string, callback: (data: any) => void): void;
-    backupGun: (customPath?: string, options?: BackupOptions) => any;
-    restoreGun: (hash: string, customPath?: string, options?: BackupOptions) => Promise<boolean>;
-    backupFiles: (sourcePath: string, options?: import("./types/backup").BackupOptions) => Promise<import("./types/backup").BackupResult>;
-    restoreFiles: (hash: string, targetPath: string, options?: import("./types/backup").BackupOptions) => Promise<boolean>;
-    compareBackup: (hash: string, sourcePath?: string) => any;
-    compareDetailedBackup: (hash: string, sourcePath?: string) => any;
-    getBackupState: (hash: string) => any;
-    backup: (customPath?: string, options?: BackupOptions) => any;
-    restore: (hash: string, customPath?: string, options?: BackupOptions) => Promise<boolean>;
+    /**
+     * Esegue il backup di una directory
+     * @param {string} sourcePath - Percorso della directory da backuppare
+     * @param {BackupOptions} [options] - Opzioni di backup
+     * @returns {Promise<BackupResult>} Risultato del backup
+     * @throws {Error} Se il backup fallisce
+     */
+    backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;
+    /**
+     * Ripristina un backup
+     * @param {string} hash - Hash del backup da ripristinare
+     * @param {string} targetPath - Percorso dove ripristinare
+     * @param {BackupOptions} [options] - Opzioni di ripristino
+     * @returns {Promise<boolean>} true se il ripristino è riuscito
+     * @throws {Error} Se il ripristino fallisce
+     */
+    restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
+    backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
+    restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }
 export {};

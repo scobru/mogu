@@ -1,10 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BackupAdapter = void 0;
+const web3stash_1 = require("../web3stash");
 class BackupAdapter {
-    constructor(storage, options = {}) {
-        this.storage = storage;
+    constructor(storageService, storageConfig, options = {}) {
         this.options = options;
+        const storage = (0, web3stash_1.Web3Stash)(storageService, storageConfig);
+        this.storage = {
+            ...storage,
+            get: async (hash) => {
+                if (!storage.get) {
+                    throw new Error('Storage service does not support get operation');
+                }
+                const result = await storage.get(hash);
+                if (!result?.data || !result?.metadata) {
+                    throw new Error('Invalid backup format');
+                }
+                return result;
+            }
+        };
     }
     generateBackupName(metadata) {
         const timestamp = new Date().toISOString()
@@ -46,39 +60,28 @@ class BackupAdapter {
         }
         return serialized;
     }
-    async createBackup(data, metadata) {
-        const backupName = this.generateBackupName(metadata);
-        // Crea l'oggetto backup che include sia i dati che i metadata
-        const backupData = {
-            data,
-            metadata: {
-                ...metadata,
-                name: backupName,
-                description: this.options.description,
-                timestamp: Date.now()
+    async createBackupMetadata(data, options, name) {
+        const now = Date.now();
+        return {
+            timestamp: options?.timestamp || now,
+            type: options?.type || 'backup',
+            name: name || this.generateBackupName({ type: options?.type }),
+            description: options?.description,
+            metadata: options?.metadata,
+            versionInfo: {
+                hash: '',
+                timestamp: now,
+                size: Buffer.from(JSON.stringify(data)).length,
+                metadata: {
+                    createdAt: new Date(now).toISOString(),
+                    modifiedAt: new Date(now).toISOString(),
+                    checksum: ''
+                }
             }
         };
-        const storageMetadata = {
-            name: backupName,
-            description: this.options.description || 'Mogu backup',
-            keyvalues: this.serializeMetadata({
-                ...this.options.metadata,
-                backupName,
-                description: this.options.description,
-                versionInfo: metadata.versionInfo,
-                size: Buffer.from(JSON.stringify(data)).length
-            })
-        };
-        const result = await this.storage.uploadJson(backupData, {
-            pinataMetadata: storageMetadata
-        });
-        return {
-            hash: result.id,
-            versionInfo: metadata.versionInfo,
-            name: backupName
-        };
     }
-    async getBackup(hash) {
+    // Metodi comuni che possono essere usati da tutte le implementazioni
+    async get(hash) {
         if (!this.storage.get) {
             throw new Error('Storage service does not support get operation');
         }
@@ -88,12 +91,15 @@ class BackupAdapter {
         }
         return result;
     }
-    async getBackupMetadata(hash) {
-        const backup = await this.getBackup(hash);
+    async getMetadata(hash) {
+        const backup = await this.get(hash);
         return backup.metadata;
     }
-    async deleteBackup(hash) {
-        return this.storage.unpin?.(hash);
+    async delete(hash) {
+        if (!this.storage.unpin) {
+            throw new Error('Storage service does not support delete operation');
+        }
+        return this.storage.unpin(hash);
     }
 }
 exports.BackupAdapter = BackupAdapter;

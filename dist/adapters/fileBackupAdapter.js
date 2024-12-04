@@ -41,7 +41,7 @@ class FileBackupAdapter {
         const processDirectory = async (dirPath, baseDir = '') => {
             const files = await fs_extra_1.default.readdir(dirPath);
             for (const file of files) {
-                if (options?.excludePatterns?.some(pattern => file.match(pattern)))
+                if (options?.excludePatterns?.some((pattern) => file.match(pattern)))
                     continue;
                 const fullPath = path_1.default.join(dirPath, file);
                 const relativePath = path_1.default.join(baseDir, file).replace(/\\/g, '/');

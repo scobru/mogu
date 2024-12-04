@@ -1,469 +1,99 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Mogu = void 0;
-const versioning_1 = require("./versioning");
-const web3stash_1 = require("./web3stash");
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const gun_1 = require("./config/gun");
-const path_1 = __importDefault(require("path"));
-const backupAdapter_1 = require("./adapters/backupAdapter");
-const gun_2 = __importDefault(require("gun"));
-const js_sha3_1 = require("js-sha3");
 const fileBackupAdapter_1 = require("./adapters/fileBackupAdapter");
-const encryption_1 = require("./utils/encryption");
-// Registra i metodi nella chain di Gun
-gun_2.default.chain.backup = async function (config, customPath, options) {
-    try {
-        const sourcePath = customPath || config.radataPath || path_1.default.join(process.cwd(), "radata");
-        if (!fs_extra_1.default.existsSync(sourcePath)) {
-            throw new Error(`Path ${sourcePath} does not exist`);
-        }
-        // Inizializza storage e adapter
-        const storage = (0, web3stash_1.Web3Stash)(config.storageService, config.storageConfig);
-        const backupAdapter = new backupAdapter_1.BackupAdapter(storage);
-        const versionManager = new versioning_1.VersionManager(sourcePath);
-        // Leggi tutti i file nella directory specificata
-        const files = await fs_extra_1.default.readdir(sourcePath);
-        let backupData = {};
-        // Leggi il contenuto di ogni file
-        for (const file of files) {
-            const filePath = path_1.default.join(sourcePath, file);
-            const stats = await fs_extra_1.default.stat(filePath);
-            // Salta le directory e i file di backup
-            if (stats.isDirectory() || file.startsWith('backup_'))
-                continue;
-            const content = await fs_extra_1.default.readFile(filePath, 'utf8');
-            try {
-                backupData[file] = JSON.parse(content);
-            }
-            catch {
-                backupData[file] = content;
-            }
-        }
-        // Struttura i dati come un grafo Gun
-        const gunData = {
-            data: {
-                'test/key': {
-                    value: 'test-data'
-                }
-            }
-        };
-        // Se la crittografia è abilitata, cripta i dati
-        if (options?.encryption?.enabled) {
-            const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
-            const { encrypted, iv } = encryption.encrypt(JSON.stringify(gunData));
-            backupData = {
-                root: {
-                    data: {
-                        encrypted: encrypted.toString('base64'),
-                        iv: iv.toString('base64'),
-                        isEncrypted: true
-                    }
-                }
-            };
-        }
-        else {
-            backupData = {
-                root: {
-                    data: gunData
-                }
-            };
-        }
-        // Crea version info
-        const dataBuffer = Buffer.from(JSON.stringify(backupData));
-        const versionInfo = await versionManager.createVersionInfo(dataBuffer);
-        const metadata = {
-            timestamp: Date.now(),
-            type: 'mogu-backup',
-            versionInfo,
-            sourcePath,
-            isEncrypted: options?.encryption?.enabled || false
-        };
-        return await backupAdapter.createBackup(backupData, metadata);
-    }
-    catch (error) {
-        console.error('Error during backup:', error);
-        throw error;
-    }
-};
-gun_2.default.chain.restore = async function (config, hash, customPath, options) {
-    try {
-        if (!hash || typeof hash !== 'string') {
-            throw new Error('Invalid hash');
-        }
-        const storage = (0, web3stash_1.Web3Stash)(config.storageService, config.storageConfig);
-        const backupAdapter = new backupAdapter_1.BackupAdapter(storage);
-        console.log('Retrieving data from hash:', hash);
-        const backup = await backupAdapter.getBackup(hash);
-        if (!backup?.data) {
-            throw new Error('No data found for the provided hash');
-        }
-        let dataToRestore = backup.data.root.data; // Accedi ai dati attraverso il nodo root
-        // Se il backup è criptato, decripta i dati
-        if (backup.metadata.isEncrypted) {
-            if (!options?.encryption?.enabled) {
-                throw new Error('Backup is encrypted but no decryption key provided');
-            }
-            const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
-            const encrypted = Buffer.from(dataToRestore.encrypted, 'base64');
-            const iv = Buffer.from(dataToRestore.iv, 'base64');
-            const decrypted = encryption.decrypt(encrypted, iv);
-            dataToRestore = JSON.parse(decrypted.toString());
-        }
-        const restorePath = customPath || config.radataPath || path_1.default.join(process.cwd(), "radata");
-        // Remove existing directory
-        await fs_extra_1.default.remove(restorePath);
-        console.log('Directory removed:', restorePath);
-        // Recreate directory
-        await fs_extra_1.default.mkdirp(restorePath);
-        console.log('Directory recreated:', restorePath);
-        // Restore files from backup
-        for (const [fileName, fileData] of Object.entries(dataToRestore)) {
-            if (fileName.startsWith('backup_'))
-                continue;
-            const filePath = path_1.default.join(restorePath, fileName);
-            // Verifica che fileData non sia undefined
-            if (fileData === undefined) {
-                console.warn(`Skipping ${fileName}: no data available`);
-                continue;
-            }
-            // Converti il contenuto in stringa in modo sicuro
-            let content;
-            if (typeof fileData === 'object') {
-                content = JSON.stringify(fileData);
-            }
-            else if (typeof fileData === 'string') {
-                content = fileData;
-            }
-            else {
-                content = String(fileData); // Fallback per altri tipi
-            }
-            await fs_extra_1.default.writeFile(filePath, content);
-            console.log(`File restored: ${fileName}`);
-        }
-        // Wait for files to be written
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return true;
-    }
-    catch (error) {
-        console.error('Error during restore:', error);
-        throw error;
-    }
-};
-gun_2.default.chain.compareBackup = async function (config, hash) {
-    try {
-        // Leggi tutti i file nella directory radata
-        const files = await fs_extra_1.default.readdir(config.radataPath);
-        const localData = {};
-        // Leggi il contenuto di ogni file
-        for (const file of files) {
-            const filePath = path_1.default.join(config.radataPath, file);
-            const stats = await fs_extra_1.default.stat(filePath);
-            // Salta le directory e i file di backup
-            if (stats.isDirectory() || file.startsWith('backup_'))
-                continue;
-            const content = await fs_extra_1.default.readFile(filePath, 'utf8');
-            try {
-                localData[file] = JSON.parse(content);
-            }
-            catch {
-                localData[file] = content;
-            }
-        }
-        // Recupera il backup completo
-        const storage = (0, web3stash_1.Web3Stash)(config.storageService, config.storageConfig);
-        const backupAdapter = new backupAdapter_1.BackupAdapter(storage);
-        const backup = await backupAdapter.getBackup(hash);
-        if (!backup?.data || !backup?.metadata?.versionInfo) {
-            throw new Error('Backup non valido: metadata mancanti');
-        }
-        // Normalizza e ordina i dati per il confronto
-        const localDataStr = JSON.stringify(localData);
-        const remoteDataStr = JSON.stringify(backup.data);
-        const localChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(localDataStr));
-        const remoteChecksum = (0, js_sha3_1.sha3_256)(Buffer.from(remoteDataStr));
-        const localVersion = {
-            hash: localChecksum,
-            timestamp: Date.now(),
-            size: Buffer.from(localDataStr).length,
-            metadata: {
-                createdAt: new Date().toISOString(),
-                modifiedAt: new Date().toISOString(),
-                checksum: localChecksum
-            }
-        };
-        const remoteVersion = backup.metadata.versionInfo;
-        // Se i contenuti sono uguali, usa i metadata remoti
-        if (localChecksum === remoteChecksum) {
-            return {
-                isEqual: true,
-                isNewer: false,
-                localVersion: remoteVersion,
-                remoteVersion,
-                timeDiff: 0,
-                formattedDiff: "less than a minute"
-            };
-        }
-        return {
-            isEqual: false,
-            isNewer: localVersion.timestamp > remoteVersion.timestamp,
-            localVersion,
-            remoteVersion,
-            timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
-            formattedDiff: new versioning_1.VersionManager(config.radataPath).formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp)
-        };
-    }
-    catch (error) {
-        console.error('Error during comparison:', error);
-        throw error;
-    }
-};
-gun_2.default.chain.compareDetailedBackup = async function (config, hash) {
-    try {
-        // Leggi tutti i file nella directory radata
-        const files = await fs_extra_1.default.readdir(config.radataPath);
-        const localData = {};
-        // Leggi il contenuto di ogni file
-        for (const file of files) {
-            const filePath = path_1.default.join(config.radataPath, file);
-            const stats = await fs_extra_1.default.stat(filePath);
-            // Salta le directory e i file di backup
-            if (stats.isDirectory() || file.startsWith('backup_'))
-                continue;
-            const content = await fs_extra_1.default.readFile(filePath, 'utf8');
-            try {
-                localData[file] = JSON.parse(content);
-            }
-            catch {
-                localData[file] = content;
-            }
-        }
-        // Recupera il backup completo
-        const storage = (0, web3stash_1.Web3Stash)(config.storageService, config.storageConfig);
-        const backupAdapter = new backupAdapter_1.BackupAdapter(storage);
-        const backup = await backupAdapter.getBackup(hash);
-        if (!backup?.data) {
-            throw new Error('Backup non valido: dati mancanti');
-        }
-        const differences = [];
-        const totalChanges = { added: 0, modified: 0, deleted: 0 };
-        // Funzione per calcolare il checksum
-        const calculateChecksum = (data) => {
-            return (0, js_sha3_1.sha3_256)(JSON.stringify(data));
-        };
-        // Funzione per ottenere la dimensione
-        const getFileSize = (data) => {
-            return Buffer.from(JSON.stringify(data)).length;
-        };
-        // Trova file modificati e aggiunti
-        for (const [filePath, localContent] of Object.entries(localData)) {
-            const remoteContent = backup.data[filePath];
-            if (!remoteContent) {
-                differences.push({
-                    path: filePath,
-                    type: 'added',
-                    newChecksum: calculateChecksum(localContent),
-                    size: { new: getFileSize(localContent) }
-                });
-                totalChanges.added++;
-            }
-            else {
-                const localChecksum = calculateChecksum(localContent);
-                const remoteChecksum = calculateChecksum(remoteContent);
-                if (localChecksum !== remoteChecksum) {
-                    differences.push({
-                        path: filePath,
-                        type: 'modified',
-                        oldChecksum: remoteChecksum,
-                        newChecksum: localChecksum,
-                        size: {
-                            old: getFileSize(remoteContent),
-                            new: getFileSize(localContent)
-                        }
-                    });
-                    totalChanges.modified++;
-                }
-            }
-        }
-        // Trova file eliminati
-        for (const filePath of Object.keys(backup.data)) {
-            if (!localData[filePath]) {
-                differences.push({
-                    path: filePath,
-                    type: 'deleted',
-                    oldChecksum: calculateChecksum(backup.data[filePath]),
-                    size: { old: getFileSize(backup.data[filePath]) }
-                });
-                totalChanges.deleted++;
-            }
-        }
-        // Crea version info
-        const localDataBuffer = Buffer.from(JSON.stringify(localData));
-        const localVersion = await new versioning_1.VersionManager(config.radataPath).createVersionInfo(localDataBuffer);
-        const remoteVersion = backup.metadata.versionInfo;
-        return {
-            isEqual: differences.length === 0,
-            isNewer: localVersion.timestamp > remoteVersion.timestamp,
-            localVersion,
-            remoteVersion,
-            timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
-            formattedDiff: new versioning_1.VersionManager(config.radataPath).formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp),
-            differences,
-            totalChanges
-        };
-    }
-    catch (error) {
-        console.error('Error during detailed comparison:', error);
-        throw error;
-    }
-};
-gun_2.default.chain.getBackupState = async function (config, hash) {
-    const storage = (0, web3stash_1.Web3Stash)(config.storageService, config.storageConfig);
-    const backupAdapter = new backupAdapter_1.BackupAdapter(storage);
-    return backupAdapter.getBackup(hash);
-};
-// Classe Mogu
+const logger_1 = require("./utils/logger");
+const cache_1 = require("./utils/cache");
+/**
+ * Mogu - Sistema di backup decentralizzato
+ * @class
+ * @description
+ * Mogu è un sistema di backup decentralizzato.
+ * Fornisce funzionalità di backup criptato, versionamento e ripristino.
+ *
+ * @example
+ * ```typescript
+ * const mogu = new Mogu({
+ *   storage: {
+ *     service: 'PINATA',
+ *     config: {
+ *       apiKey: 'your-api-key',
+ *       apiSecret: 'your-secret'
+ *     }
+ *   }
+ * });
+ *
+ * // Backup di file
+ * const backup = await mogu.backup('./data');
+ *
+ * // Ripristino
+ * await mogu.restore(backup.hash, './restore');
+ * ```
+ */
 class Mogu {
+    /**
+     * Crea una nuova istanza di Mogu
+     * @param {MoguConfig} config - Configurazione
+     * @throws {Error} Se la configurazione non è valida
+     */
     constructor(config) {
-        // Metodi di backup Gun
-        this.backupGun = (customPath, options) => {
-            if (!this.gun)
-                throw new Error('Gun not initialized');
-            return gun_2.default.chain.backup(this.config, customPath, options);
-        };
-        this.restoreGun = async (hash, customPath, options) => {
-            if (!this.gun)
-                throw new Error('Gun not initialized');
-            try {
-                // Prima pulisci il database
-                await new Promise((resolve) => {
-                    this.gun?.get('test/key').put(null, (ack) => {
-                        setTimeout(() => resolve(), 1000);
-                    });
-                });
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                // Recupera il backup
-                const backup = await gun_2.default.chain.getBackupState(this.config, hash);
-                if (!backup?.data?.root?.data) {
-                    throw new Error('Invalid backup data structure');
-                }
-                let dataToRestore = backup.data.root.data;
-                // Decripta se necessario
-                if (backup.metadata.isEncrypted) {
-                    if (!options?.encryption?.enabled) {
-                        throw new Error('Backup is encrypted but no decryption key provided');
-                    }
-                    const encryption = new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm);
-                    const encrypted = Buffer.from(dataToRestore.encrypted, 'base64');
-                    const iv = Buffer.from(dataToRestore.iv, 'base64');
-                    const decrypted = encryption.decrypt(encrypted, iv);
-                    dataToRestore = JSON.parse(decrypted.toString());
-                }
-                // Ripristina i dati in Gun
-                await new Promise((resolve, reject) => {
-                    try {
-                        // Ripristina i dati
-                        const data = dataToRestore.data['test/key'];
-                        this.gun?.get('test/key').put(data, (ack) => {
-                            if (ack.err) {
-                                reject(ack.err);
-                            }
-                            else {
-                                setTimeout(resolve, 2000);
-                            }
-                        });
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                });
-                // Verifica il ripristino
-                let verified = false;
-                let attempts = 0;
-                const maxAttempts = 10;
-                while (!verified && attempts < maxAttempts) {
-                    try {
-                        const result = await new Promise((resolve, reject) => {
-                            this.gun?.get('test/key').once((data) => {
-                                console.log('Verifying restored data:', data);
-                                resolve(data?.value === 'test-data');
-                            });
-                        });
-                        if (result) {
-                            verified = true;
-                            console.log('Restore verified successfully');
-                        }
-                        else {
-                            console.log(`Verification attempt ${attempts + 1}/${maxAttempts} failed`);
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-                        }
-                    }
-                    catch (error) {
-                        console.error('Verification error:', error);
-                    }
-                    attempts++;
-                }
-                if (!verified) {
-                    throw new Error('Failed to verify restored data');
-                }
-                return true;
+        // Alias per compatibilità
+        this.backupFiles = this.backup;
+        this.restoreFiles = this.restore;
+        this.config = config;
+        this.fileBackup = new fileBackupAdapter_1.FileBackupAdapter(config.storage.service, {
+            apiKey: config.storage.config.apiKey,
+            apiSecret: config.storage.config.apiSecret,
+            endpoint: config.storage.config.endpoint
+        });
+        logger_1.logger.info('Mogu initialized', { config: this.config });
+    }
+    /**
+     * Esegue il backup di una directory
+     * @param {string} sourcePath - Percorso della directory da backuppare
+     * @param {BackupOptions} [options] - Opzioni di backup
+     * @returns {Promise<BackupResult>} Risultato del backup
+     * @throws {Error} Se il backup fallisce
+     */
+    async backup(sourcePath, options) {
+        const operationId = logger_1.logger.startOperation('backup');
+        try {
+            // Verifica cache
+            const cacheKey = `${sourcePath}:${JSON.stringify(options)}`;
+            const cached = await cache_1.backupCache.get(cacheKey);
+            if (cached) {
+                logger_1.logger.info('Using cached backup', { operationId });
+                return cached;
             }
-            catch (error) {
-                console.error('Error during Gun restore:', error);
-                throw error;
-            }
-        };
-        // Metodi di backup file (sempre disponibili)
-        this.backupFiles = (sourcePath, options) => this.fileBackup.backup(sourcePath, options);
-        this.restoreFiles = (hash, targetPath, options) => this.fileBackup.restore(hash, targetPath, options);
-        // Metodi comuni
-        this.compareBackup = (hash, sourcePath) => sourcePath ?
-            this.fileBackup.compare(hash, sourcePath) :
-            this.gun ? gun_2.default.chain.compareBackup(this.config, hash) :
-                Promise.reject(new Error('No source path provided and Gun not initialized'));
-        this.compareDetailedBackup = (hash, sourcePath) => sourcePath ?
-            this.fileBackup.compareDetailed(hash, sourcePath) :
-            this.gun ? gun_2.default.chain.compareDetailedBackup(this.config, hash) :
-                Promise.reject(new Error('No source path provided and Gun not initialized'));
-        this.getBackupState = (hash) => gun_2.default.chain.getBackupState(this.config, hash);
-        // Per compatibilit con i test esistenti
-        this.backup = this.backupGun;
-        this.restore = this.restoreGun;
-        this.config = {
-            storageService: config.storageService,
-            storageConfig: config.storageConfig,
-            radataPath: config.radataPath || path_1.default.join(process.cwd(), "radata"),
-            backupPath: config.backupPath || path_1.default.join(process.cwd(), "backup"),
-            restorePath: config.restorePath || path_1.default.join(process.cwd(), "restore"),
-            useIPFS: false,
-            useGun: config.useGun ?? false,
-            server: null,
-            storagePath: path_1.default.join(process.cwd(), "storage")
-        };
-        this.fileBackup = new fileBackupAdapter_1.FileBackupAdapter(config.storageService, config.storageConfig);
-        // Inizializza Gun solo se necessario
-        if (config.useGun) {
-            this.gun = (0, gun_1.initializeGun)({ file: this.config.radataPath });
+            const result = await this.fileBackup.backup(sourcePath, options);
+            await cache_1.backupCache.set(cacheKey, result);
+            logger_1.logger.endOperation(operationId, 'backup');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Backup failed', error, { operationId });
+            throw error;
         }
     }
-    // Metodi Gun (disponibili solo se Gun è inizializzato)
-    get(key) {
-        if (!this.gun)
-            throw new Error('Gun not initialized');
-        return this.gun.get(key);
-    }
-    put(key, data) {
-        if (!this.gun)
-            throw new Error('Gun not initialized');
-        return this.gun.get(key).put(data);
-    }
-    on(key, callback) {
-        if (!this.gun)
-            throw new Error('Gun not initialized');
-        this.gun.get(key).on(callback);
+    /**
+     * Ripristina un backup
+     * @param {string} hash - Hash del backup da ripristinare
+     * @param {string} targetPath - Percorso dove ripristinare
+     * @param {BackupOptions} [options] - Opzioni di ripristino
+     * @returns {Promise<boolean>} true se il ripristino è riuscito
+     * @throws {Error} Se il ripristino fallisce
+     */
+    async restore(hash, targetPath, options) {
+        const operationId = logger_1.logger.startOperation('restore');
+        try {
+            const result = await this.fileBackup.restore(hash, targetPath, options);
+            logger_1.logger.endOperation(operationId, 'restore');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Restore failed', error, { operationId });
+            throw error;
+        }
     }
 }
 exports.Mogu = Mogu;
