@@ -5,3 +5,4 @@ logs/*
 test-files/*
 test-radata/*
 restored-files/*
+test-restored/*
