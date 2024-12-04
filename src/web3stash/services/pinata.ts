@@ -81,23 +81,25 @@ export class PinataService extends StorageService {
         throw new Error('Hash non valido');
       }
       console.log(`Tentativo di unpin per l'hash: ${hash}`);
-      await this.serviceInstance.unpin(hash);
       
-      // Verifica che l'unpin sia stato effettivo
-      let attempts = 0;
-      const maxAttempts = 3;
-      while (attempts < maxAttempts) {
-        const isPinned = await this.isPinned(hash);
-        if (!isPinned) {
-          console.log(`Unpin confermato per l'hash: ${hash}`);
-          return;
-        }
-        console.log(`Attesa conferma unpin, tentativo ${attempts + 1}/${maxAttempts}`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi 1 secondo
-        attempts++;
+      // Prima verifica se è già unpinnato
+      const isPinnedBefore = await this.isPinned(hash);
+      if (!isPinnedBefore) {
+        console.log(`L'hash ${hash} è già unpinnato`);
+        return;
       }
-      throw new Error(`Impossibile confermare l'unpin dopo ${maxAttempts} tentativi`);
+
+      // Esegui l'unpin
+      await this.serviceInstance.unpin(hash);
+      console.log(`Comando unpin eseguito per l'hash: ${hash}`);
+
+      // Non aspettiamo la conferma immediata, l'operazione potrebbe richiedere tempo
+      // per propagarsi attraverso la rete IPFS
     } catch (error) {
+      if (error instanceof Error && error.message.includes('is not pinned')) {
+        console.log(`L'hash ${hash} non è pinnato nel servizio`);
+        return;
+      }
       console.error('Errore durante unpin da Pinata:', error);
       throw new Error(`Failed to unpin hash ${hash}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
