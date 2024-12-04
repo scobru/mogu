@@ -2,6 +2,10 @@ import { StorageService } from "./base-storage";
 import type { UploadOutput } from "../types";
 import { PinataSDK } from "pinata-web3";
 import { BackupData } from '../../types/mogu';
+interface PinataConfig {
+    jwt: string;
+    gateway?: string;
+}
 interface PinataOptions {
     pinataMetadata?: {
         name?: string;
@@ -11,7 +15,9 @@ interface PinataOptions {
 export declare class PinataService extends StorageService {
     serviceBaseUrl: string;
     readonly serviceInstance: PinataSDK;
-    constructor(apiKey: string, apiSecret: string);
+    private readonly gateway;
+    constructor(config: PinataConfig);
+    private createVersionInfo;
     get(hash: string): Promise<BackupData>;
     getEndpoint(): string;
     unpin(hash: string): Promise<void>;

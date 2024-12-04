@@ -5,17 +5,11 @@ export const configSchema = z.object({
   storage: z.object({
     service: z.enum([
       'PINATA',
-      'BUNDLR',
-      'NFT.STORAGE',
-      'WEB3.STORAGE',
-      'ARWEAVE',
       'IPFS-CLIENT',
-      'LIGHTHOUSE'
     ] as const),
     config: z.object({
-      apiKey: z.string(),
-      apiSecret: z.string(),
-      endpoint: z.string().optional()
+      pinataJwt: z.string(),
+      pinataGateway: z.string().optional()
     })
   }),
   paths: z.object({
@@ -45,8 +39,8 @@ export const defaultConfig: Config = {
   storage: {
     service: 'PINATA',
     config: {
-      apiKey: process.env.PINATA_API_KEY || '',
-      apiSecret: process.env.PINATA_API_SECRET || ''
+      pinataJwt: process.env.PINATA_JWT || '',
+      pinataGateway: process.env.PINATA_GATEWAY || ''
     }
   },
   paths: {

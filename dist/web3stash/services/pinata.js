@@ -6,24 +6,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PinataService = void 0;
 const base_storage_1 = require("./base-storage");
 const pinata_web3_1 = require("pinata-web3");
-const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
+const crypto_1 = __importDefault(require("crypto"));
 class PinataService extends base_storage_1.StorageService {
-    constructor(apiKey, apiSecret) {
+    constructor(config) {
         super();
         this.serviceBaseUrl = "ipfs://";
         this.serviceInstance = new pinata_web3_1.PinataSDK({
-            pinataJwt: apiKey,
-            pinataGateway: "gateway.pinata.cloud"
+            pinataJwt: config.jwt,
+            pinataGateway: config.gateway || "gateway.pinata.cloud"
         });
+        this.gateway = config.gateway || "gateway.pinata.cloud";
+    }
+    createVersionInfo(data) {
+        const now = Date.now();
+        const dataBuffer = Buffer.from(JSON.stringify(data));
+        return {
+            hash: crypto_1.default.createHash('sha256').update(dataBuffer).digest('hex'),
+            timestamp: now,
+            size: dataBuffer.length,
+            metadata: {
+                createdAt: new Date(now).toISOString(),
+                modifiedAt: new Date(now).toISOString(),
+                checksum: crypto_1.default.createHash('md5').update(dataBuffer).digest('hex')
+            }
+        };
     }
     async get(hash) {
         try {
             if (!hash || typeof hash !== 'string') {
                 throw new Error('Hash non valido');
             }
-            const response = await axios_1.default.get(`https://gateway.pinata.cloud/ipfs/${hash}`);
-            return response.data;
+            const response = await this.serviceInstance.gateways.get(hash);
+            const versionInfo = this.createVersionInfo(response);
+            return {
+                data: response,
+                metadata: {
+                    timestamp: Date.now(),
+                    type: 'json',
+                    versionInfo
+                }
+            };
         }
         catch (error) {
             console.error('Errore nel recupero da Pinata:', error);
@@ -31,7 +54,7 @@ class PinataService extends base_storage_1.StorageService {
         }
     }
     getEndpoint() {
-        return "https://gateway.pinata.cloud/ipfs/";
+        return `https://${this.gateway}/ipfs/`;
     }
     async unpin(hash) {
         try {
@@ -60,8 +83,8 @@ class PinataService extends base_storage_1.StorageService {
     }
     async uploadJson(jsonData, options) {
         try {
-            const blob = new Blob([JSON.stringify(jsonData)], { type: 'application/json' });
-            const file = new File([blob], 'data.json', { type: 'application/json' });
+            const content = JSON.stringify(jsonData);
+            const file = new File([content], 'data.json', { type: 'application/json' });
             const response = await this.serviceInstance.upload.file(file, {
                 metadata: options?.pinataMetadata
             });
@@ -69,7 +92,7 @@ class PinataService extends base_storage_1.StorageService {
                 id: response.IpfsHash,
                 metadata: {
                     timestamp: Date.now(),
-                    size: JSON.stringify(jsonData).length,
+                    size: content.length,
                     type: 'json',
                     ...response
                 }
@@ -83,9 +106,8 @@ class PinataService extends base_storage_1.StorageService {
     async uploadFile(path, options) {
         try {
             const fileContent = await fs_1.default.promises.readFile(path);
-            const file = new File([fileContent], path.split('/').pop() || 'file', {
-                type: 'application/octet-stream'
-            });
+            const fileName = path.split('/').pop() || 'file';
+            const file = new File([fileContent], fileName, { type: 'application/octet-stream' });
             const response = await this.serviceInstance.upload.file(file, {
                 metadata: options?.pinataMetadata
             });
@@ -105,14 +127,11 @@ class PinataService extends base_storage_1.StorageService {
     }
     async getMetadata(hash) {
         try {
-            const response = await this.serviceInstance.query.files({
-                hashContains: hash,
-                limit: 1
-            });
-            if (response.items.length > 0) {
-                return response.items[0];
+            if (!hash || typeof hash !== 'string') {
+                throw new Error('Hash non valido');
             }
-            return null;
+            const response = await this.serviceInstance.gateways.get(hash);
+            return response;
         }
         catch (error) {
             console.error('Errore nel recupero dei metadata:', error);
@@ -125,11 +144,8 @@ class PinataService extends base_storage_1.StorageService {
                 throw new Error('Hash non valido');
             }
             console.log(`Verifica pin per l'hash: ${hash}`);
-            const response = await this.serviceInstance.query.files({
-                hashContains: hash,
-                limit: 1
-            });
-            const isPinned = response.items.length > 0;
+            const response = await this.serviceInstance.gateways.get(hash);
+            const isPinned = !!response;
             console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
             return isPinned;
         }

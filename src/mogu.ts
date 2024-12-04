@@ -48,12 +48,12 @@ export class Mogu {
   private storage: StorageService;
 
   private createStorageService(config: MoguConfig): StorageService {
-    switch (config.storage.service) {
+    switch (config.storage.service as Web3StashServices) {
       case 'PINATA':
-        return new PinataService(
-          config.storage.config.apiKey,
-          config.storage.config.apiSecret
-        );
+        return new PinataService({
+          pinataJwt: config.storage.config.pinataJwt,
+          pinataGateway: config.storage.config.pinataGateway
+        });
       // Altri servizi verranno aggiunti qui
       default:
         throw new Error(`Servizio di storage non supportato: ${config.storage.service}`);

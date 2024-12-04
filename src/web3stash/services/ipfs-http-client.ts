@@ -2,49 +2,74 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {StorageService} from './base-storage';
 import type {UploadOutput} from '../types';
-import type {IPFSHTTPClient, Options} from 'ipfs-http-client';
+import type {Options as IpfsOptions} from 'ipfs-http-client';
 import {create} from 'ipfs-http-client';
-import {promises as fs} from 'fs';
-import { BackupData } from '../../types/mogu';
+import {BackupData} from '../../types/mogu';
 
 export class IpfsService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
-	public readonly serviceInstance: IPFSHTTPClient;
+	public readonly serviceInstance: any;
 
-	constructor(url: Options, config?: any) {
+	constructor(options: IpfsOptions) {
 		super();
-		this.serviceInstance = create(url);
+		this.serviceInstance = create(options);
 	}
 
-	public async uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<UploadOutput> {
-		const data = Buffer.from(JSON.stringify(jsonData));
-		const response = await this.serviceInstance.add(data, options);
-		return {id: response.cid.toString(), metadata: {...response}};
+	public async get(hash: string): Promise<BackupData> {
+		const chunks = [];
+		for await (const chunk of this.serviceInstance.cat(hash)) {
+			chunks.push(chunk);
+		}
+		const content = Buffer.concat(chunks).toString();
+		return JSON.parse(content);
 	}
 
-	public async uploadImage(path: string, options?: any): Promise<UploadOutput> {
-		const imageData = await fs.readFile(path);
-		const response = await this.serviceInstance.add(imageData, options);
-		return {id: response.cid.toString(), metadata: {...response}};
+	public async uploadJson(jsonData: Record<string, unknown>): Promise<UploadOutput> {
+		const content = JSON.stringify(jsonData);
+		const result = await this.serviceInstance.add(content);
+		return {
+			id: result.path,
+			metadata: {
+				size: result.size,
+				type: 'json'
+			}
+		};
 	}
 
-	public async uploadVideo(path: string, options?: any): Promise<UploadOutput> {
-		const videoData = await fs.readFile(path);
-		const response = await this.serviceInstance.add(videoData, options);
-		return {id: response.cid.toString(), metadata: {...response}};
+	public async uploadFile(path: string): Promise<UploadOutput> {
+		const result = await this.serviceInstance.add(path);
+		return {
+			id: result.path,
+			metadata: {
+				size: result.size,
+				type: 'file'
+			}
+		};
 	}
 
-	public async uploadFile(path: string, options?: any): Promise<UploadOutput> {
-		const fileData = await fs.readFile(path);
-		const response = await this.serviceInstance.add(fileData, options);
-		return {id: response.cid.toString(), metadata: {...response}};
+	public async uploadImage(path: string): Promise<UploadOutput> {
+		return this.uploadFile(path);
+	}
+
+	public async uploadVideo(path: string): Promise<UploadOutput> {
+		return this.uploadFile(path);
 	}
 
 	public async unpin(hash: string): Promise<void> {
 		await this.serviceInstance.pin.rm(hash);
 	}
 
-	public async get?(hash: string): Promise<BackupData> {
-		throw new Error('Get not supported on IPFS');
+	public async getMetadata(hash: string): Promise<any> {
+		const stat = await this.serviceInstance.files.stat(`/ipfs/${hash}`);
+		return stat;
+	}
+
+	public async isPinned(hash: string): Promise<boolean> {
+		try {
+			const pins = await this.serviceInstance.pin.ls({paths: [hash]});
+			return pins.length > 0;
+		} catch {
+			return false;
+		}
 	}
 }

@@ -5,38 +5,62 @@ exports.IpfsService = void 0;
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 const base_storage_1 = require("./base-storage");
 const ipfs_http_client_1 = require("ipfs-http-client");
-const fs_1 = require("fs");
 class IpfsService extends base_storage_1.StorageService {
-    constructor(url, config) {
+    constructor(options) {
         super();
         this.serviceBaseUrl = 'ipfs://';
-        this.serviceInstance = (0, ipfs_http_client_1.create)(url);
+        this.serviceInstance = (0, ipfs_http_client_1.create)(options);
     }
-    async uploadJson(jsonData, options) {
-        const data = Buffer.from(JSON.stringify(jsonData));
-        const response = await this.serviceInstance.add(data, options);
-        return { id: response.cid.toString(), metadata: { ...response } };
+    async get(hash) {
+        const chunks = [];
+        for await (const chunk of this.serviceInstance.cat(hash)) {
+            chunks.push(chunk);
+        }
+        const content = Buffer.concat(chunks).toString();
+        return JSON.parse(content);
     }
-    async uploadImage(path, options) {
-        const imageData = await fs_1.promises.readFile(path);
-        const response = await this.serviceInstance.add(imageData, options);
-        return { id: response.cid.toString(), metadata: { ...response } };
+    async uploadJson(jsonData) {
+        const content = JSON.stringify(jsonData);
+        const result = await this.serviceInstance.add(content);
+        return {
+            id: result.path,
+            metadata: {
+                size: result.size,
+                type: 'json'
+            }
+        };
     }
-    async uploadVideo(path, options) {
-        const videoData = await fs_1.promises.readFile(path);
-        const response = await this.serviceInstance.add(videoData, options);
-        return { id: response.cid.toString(), metadata: { ...response } };
+    async uploadFile(path) {
+        const result = await this.serviceInstance.add(path);
+        return {
+            id: result.path,
+            metadata: {
+                size: result.size,
+                type: 'file'
+            }
+        };
     }
-    async uploadFile(path, options) {
-        const fileData = await fs_1.promises.readFile(path);
-        const response = await this.serviceInstance.add(fileData, options);
-        return { id: response.cid.toString(), metadata: { ...response } };
+    async uploadImage(path) {
+        return this.uploadFile(path);
+    }
+    async uploadVideo(path) {
+        return this.uploadFile(path);
     }
     async unpin(hash) {
         await this.serviceInstance.pin.rm(hash);
     }
-    async get(hash) {
-        throw new Error('Get not supported on IPFS');
+    async getMetadata(hash) {
+        const stat = await this.serviceInstance.files.stat(`/ipfs/${hash}`);
+        return stat;
+    }
+    async isPinned(hash) {
+        try {
+            const pins = await this.serviceInstance.pin.ls({ paths: [hash] });
+            return pins.length > 0;
+        }
+        catch {
+            return false;
+        }
     }
 }
 exports.IpfsService = IpfsService;

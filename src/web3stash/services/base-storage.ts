@@ -1,6 +1,6 @@
 import type {UploadOutput} from '../types';
 import {EventEmitter} from 'events';
-import type {  BackupData } from '../../types/mogu';
+import type { BackupData } from '../../types/mogu';
 
 export abstract class StorageService extends EventEmitter {
 	abstract readonly serviceBaseUrl: string;

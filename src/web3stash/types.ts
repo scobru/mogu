@@ -1,24 +1,30 @@
 export type Web3StashServices = 
   | "PINATA"
-  | "BUNDLR"
-  | "NFT.STORAGE"
-  | "WEB3.STORAGE"
-  | "ARWEAVE"
-  | "IPFS-CLIENT"
-  | "LIGHTHOUSE";
+  | "IPFS-CLIENT";
 
-export interface Web3StashConfig {
-  apiKey?: string;
-  apiSecret?: string;
-  token?: string;
-  url?: string;
-  arweavePrivateKey?: any;
-  lighthouseApiKey?: string;
-  currency?: string;
-  privateKey?: string;
-  testing?: boolean;
-  endpoint?: string;
+export interface BaseConfig {
+  pinataJwt?: string;
+  pinataGateway?: string;
 }
+
+export interface PinataServiceConfig {
+  pinataJwt: string;
+  pinataGateway?: string;
+}
+
+export interface IpfsServiceConfig {
+  url: string;
+}
+
+export interface StorageServiceWithMetadata extends StorageService {
+  getMetadata(hash: string): Promise<any>;
+  isPinned(hash: string): Promise<boolean>;
+}
+
+export type Web3StashConfig = {
+  service: Web3StashServices;
+  config: PinataServiceConfig | IpfsServiceConfig;
+};
 
 export interface UploadOutput {
   id: string;
@@ -30,12 +36,6 @@ export interface UploadOptions {
   name?: string;
   type?: string;
   metadata?: Record<string, any>;
-}
-
-export interface StorageConfig {
-  apiKey: string;
-  apiSecret: string;
-  endpoint?: string;
 }
 
 export interface StorageService {

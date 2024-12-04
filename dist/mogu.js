@@ -41,7 +41,10 @@ class Mogu {
     createStorageService(config) {
         switch (config.storage.service) {
             case 'PINATA':
-                return new pinata_1.PinataService(config.storage.config.apiKey, config.storage.config.apiSecret);
+                return new pinata_1.PinataService({
+                    jwt: config.storage.config.apiKey,
+                    gateway: config.storage.config.endpoint
+                });
             // Altri servizi verranno aggiunti qui
             default:
                 throw new Error(`Servizio di storage non supportato: ${config.storage.service}`);

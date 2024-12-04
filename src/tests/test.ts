@@ -12,6 +12,36 @@ const RESTORE_DIR = path.join(process.cwd(), 'test-restored');
 const STORAGE_DIR = path.join(process.cwd(), 'test-storage');
 const TEST_ENCRYPTION_KEY = 'test-encryption-key-123';
 
+// Configurazione base di Mogu per i test
+const baseConfig = {
+  storage: {
+    service: 'PINATA' as const,
+    config: {
+      pinataJwt: process.env.PINATA_JWT || '',
+      pinataGateway: process.env.PINATA_GATEWAY || ''
+    }
+  },
+  paths: {
+    backup: TEST_DIR,
+    restore: RESTORE_DIR,
+    storage: STORAGE_DIR,
+    logs: path.join(process.cwd(), 'logs')
+  },
+  features: {
+    encryption: {
+      enabled: false,
+      algorithm: 'aes-256-gcm'
+    },
+    useIPFS: false
+  },
+  performance: {
+    chunkSize: 1024 * 1024, // 1MB
+    maxConcurrent: 3,
+    cacheEnabled: true,
+    cacheSize: 100
+  }
+};
+
 async function run() {
   try {
     console.log("Starting tests...");
@@ -58,31 +88,13 @@ async function run() {
 
 async function testFileBackup(useEncryption: boolean) {
   const mogu = new Mogu({
-    storage: {
-      service: 'PINATA',
-      config: {
-        apiKey: process.env.PINATA_API_KEY || '',
-        apiSecret: process.env.PINATA_API_SECRET || ''
-      }
-    },
-    paths: {
-      backup: TEST_DIR,
-      restore: RESTORE_DIR,
-      storage: STORAGE_DIR,
-      logs: path.join(process.cwd(), 'logs')
-    },
+    ...baseConfig,
     features: {
+      ...baseConfig.features,
       encryption: {
-        enabled: false,
-        algorithm: 'aes-256-gcm'
-      },
-      useIPFS: false
-    },
-    performance: {
-      chunkSize: 1024 * 1024, // 1MB
-      maxConcurrent: 3,
-      cacheEnabled: true,
-      cacheSize: 100
+        ...baseConfig.features.encryption,
+        enabled: useEncryption
+      }
     }
   });
 
@@ -160,37 +172,16 @@ async function testFileBackup(useEncryption: boolean) {
 }
 
 async function testCacheSystem() {
-  console.log("\n=== Testing Cache System ===");
-  
   const mogu = new Mogu({
-    storage: {
-      service: 'PINATA',
-      config: {
-        apiKey: process.env.PINATA_API_KEY || '',
-        apiSecret: process.env.PINATA_API_SECRET || ''
-      }
-    },
-    paths: {
-      backup: TEST_DIR,
-      restore: RESTORE_DIR,
-      storage: STORAGE_DIR,
-      logs: path.join(process.cwd(), 'logs')
-    },
-    features: {
-      encryption: {
-        enabled: false,
-        algorithm: 'aes-256-gcm'
-      },
-      useIPFS: false
-    },
+    ...baseConfig,
     performance: {
-      chunkSize: 1024 * 1024, // 1MB
-      maxConcurrent: 3,
-      cacheEnabled: true,
+      ...baseConfig.performance,
       cacheSize: 2  // Dimensione piccola per testare il limite
     }
   });
 
+  console.log("\n=== Testing Cache System ===");
+  
   // Test 1: Verify file caching
   console.log("Test 1: Verify file caching...");
   
@@ -348,34 +339,7 @@ async function testCacheSystem() {
 }
 
 async function testCompare() {
-  const mogu = new Mogu({
-    storage: {
-      service: 'PINATA',
-      config: {
-        apiKey: process.env.PINATA_API_KEY || '',
-        apiSecret: process.env.PINATA_API_SECRET || ''
-      }
-    },
-    paths: {
-      backup: TEST_DIR,
-      restore: RESTORE_DIR,
-      storage: path.join(process.cwd(), 'storage'),
-      logs: path.join(process.cwd(), 'logs')
-    },
-    features: {
-      encryption: {
-        enabled: false,
-        algorithm: 'aes-256-gcm'
-      },
-      useIPFS: false
-    },
-    performance: {
-      chunkSize: 1024 * 1024, // 1MB
-      maxConcurrent: 3,
-      cacheEnabled: false,
-      cacheSize: 100
-    }
-  });
+  const mogu = new Mogu(baseConfig);
 
   try {
     // Test 1: Compare identical directories
@@ -623,34 +587,7 @@ async function testCompare() {
 }
 
 async function testVersioning() {
-  const mogu = new Mogu({
-    storage: {
-      service: 'PINATA',
-      config: {
-        apiKey: process.env.PINATA_API_KEY || '',
-        apiSecret: process.env.PINATA_API_SECRET || ''
-      }
-    },
-    paths: {
-      backup: TEST_DIR,
-      restore: RESTORE_DIR,
-      storage: path.join(process.cwd(), 'storage'),
-      logs: path.join(process.cwd(), 'logs')
-    },
-    features: {
-      encryption: {
-        enabled: false,
-        algorithm: 'aes-256-gcm'
-      },
-      useIPFS: false
-    },
-    performance: {
-      chunkSize: 1024 * 1024, // 1MB
-      maxConcurrent: 3,
-      cacheEnabled: false,
-      cacheSize: 0
-    }
-  });
+  const mogu = new Mogu(baseConfig);
 
   // Create separate directories for each version
   const version1Dir = path.join(TEST_DIR, 'version1');
@@ -775,34 +712,7 @@ async function testVersioning() {
 }
 
 async function testDelete() {
-  const mogu = new Mogu({
-    storage: {
-      service: 'PINATA',
-      config: {
-        apiKey: process.env.PINATA_API_KEY || '',
-        apiSecret: process.env.PINATA_API_SECRET || ''
-      }
-    },
-    paths: {
-      backup: TEST_DIR,
-      restore: RESTORE_DIR,
-      storage: path.join(process.cwd(), 'storage'),
-      logs: path.join(process.cwd(), 'logs')
-    },
-    features: {
-      encryption: {
-        enabled: false,
-        algorithm: 'aes-256-gcm'
-      },
-      useIPFS: false
-    },
-    performance: {
-      chunkSize: 1024 * 1024,
-      maxConcurrent: 3,
-      cacheEnabled: true,
-      cacheSize: 100
-    }
-  });
+  const mogu = new Mogu(baseConfig);
 
   // Create test directory and file
   const testDir = path.join(TEST_DIR, 'delete-test');
