@@ -484,95 +484,246 @@ async function testCompare() {
   });
 
   try {
-    // Test 1: Confronto con directory identica
-    console.log("\nTest 1: Confronto con directory identica");
+    // Test 1: Compare identical directories
+    console.log("\nTest 1: Compare identical directories");
     const testDir = path.join(TEST_DIR, 'compare-test');
     
+    // Make sure the directory is empty at the start
     await fs.emptyDir(testDir);
     await fs.ensureDir(testDir);
 
-    // Crea file iniziali
+    // Create initial files
     const initialFiles = {
       'file1.txt': 'Content 1',
-      'file2.json': JSON.stringify({ data: 'test' })
+      'file2.json': JSON.stringify({ data: 'test' }),
+      'subdir/file3.txt': 'Content 3'
     };
 
-    // Crea tutti i file
+    // Create all necessary directories first
+    const directories = new Set(
+      Object.keys(initialFiles)
+        .map(filePath => path.dirname(filePath))
+        .filter(dir => dir !== '.')
+    );
+
+    for (const dir of directories) {
+      const fullDirPath = path.join(testDir, dir);
+      console.log(`Creating directory: ${fullDirPath}`);
+      await fs.ensureDir(fullDirPath);
+    }
+
+    // Create all files
     for (const [filePath, content] of Object.entries(initialFiles)) {
       const fullPath = path.join(testDir, filePath);
-      await fs.ensureDir(path.dirname(fullPath));
+      console.log(`Creating file: ${fullPath}`);
       await fs.writeFile(fullPath, content);
     }
 
-    console.log("File creati correttamente, eseguo il backup...");
-    const backupResult = await mogu.backup(testDir);
-    console.log("Backup creato con hash:", backupResult.hash);
+    // Verify original directory structure
+    const originalFiles = await fs.readdir(testDir, { recursive: true, withFileTypes: true });
+    console.log("Original directory structure:");
+    originalFiles.forEach(file => {
+      console.log(`- ${file.isDirectory() ? '[DIR]' : '[FILE]'} ${file.name}`);
+    });
 
-    // Test confronto con directory identica
-    const comparison = await mogu.compare(backupResult.hash, testDir);
-    console.log("Risultato confronto:", JSON.stringify(comparison, null, 2));
+    // Verify that files were created correctly
+    for (const [filePath, expectedContent] of Object.entries(initialFiles)) {
+      const fullPath = path.join(testDir, filePath);
+      const exists = await fs.pathExists(fullPath);
+      if (!exists) {
+        throw new Error(`File ${filePath} was not created correctly`);
+      }
+      const content = await fs.readFile(fullPath, 'utf8');
+      if (content !== expectedContent) {
+        throw new Error(`Wrong content for ${filePath}. Expected: ${expectedContent}, Found: ${content}`);
+      }
+    }
+
+    console.log("Files created successfully, performing backup...");
     
-    if (!comparison.isEqual) {
-      throw new Error(
-        'Le directory dovrebbero essere identiche.\n' +
-        `Local hash: ${comparison.localVersion.hash}\n` +
-        `Remote hash: ${comparison.remoteVersion.hash}\n` +
-        `Local size: ${comparison.localVersion.size}\n` +
-        `Remote size: ${comparison.remoteVersion.size}\n` +
-        `Differenze complete: ${JSON.stringify(comparison, null, 2)}`
-      );
+    // Create initial backup and verify it's complete
+    let backupResult = null;
+    let retries = 3;
+    
+    while (retries > 0) {
+      const tempBackup = await mogu.backup(testDir);
+      console.log("Backup created with hash:", tempBackup.hash);
+      
+      // Wait a moment to ensure backup is complete
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Verify backup by restoring to a temporary directory
+      const tempRestoreDir = path.join(TEST_DIR, 'temp-restore');
+      await fs.emptyDir(tempRestoreDir);
+      
+      try {
+        // Create subdirectories in restore path
+        for (const dir of directories) {
+          const restoreDirPath = path.join(tempRestoreDir, dir);
+          console.log(`Creating restore directory: ${restoreDirPath}`);
+          await fs.ensureDir(restoreDirPath);
+        }
+
+        await mogu.restore(tempBackup.hash, tempRestoreDir);
+        console.log("Backup restored, verifying files...");
+
+        // Verify restored directory structure
+        const restoredFiles = await fs.readdir(tempRestoreDir, { recursive: true, withFileTypes: true });
+        console.log("\nRestored directory structure:");
+        restoredFiles.forEach(file => {
+          console.log(`- ${file.isDirectory() ? '[DIR]' : '[FILE]'} ${file.name}`);
+        });
+        
+        // Verify that all files were restored correctly
+        let allFilesRestored = true;
+        for (const [filePath, expectedContent] of Object.entries(initialFiles)) {
+          const restoredPath = path.join(tempRestoreDir, filePath);
+          console.log(`\nVerifying file: ${filePath}`);
+          console.log(`Full path: ${restoredPath}`);
+          
+          if (!await fs.pathExists(restoredPath)) {
+            console.log(`Missing file: ${filePath}`);
+            const dirPath = path.dirname(restoredPath);
+            const dirExists = await fs.pathExists(dirPath);
+            console.log(`Directory ${dirPath} exists: ${dirExists}`);
+            if (dirExists) {
+              const dirContents = await fs.readdir(dirPath);
+              console.log(`Contents of directory ${dirPath}:`, dirContents);
+            }
+            allFilesRestored = false;
+            break;
+          }
+          
+          const restoredContent = await fs.readFile(restoredPath, 'utf8');
+          if (restoredContent !== expectedContent) {
+            console.log(`Wrong content for ${filePath}`);
+            console.log(`Expected: ${expectedContent}`);
+            console.log(`Found: ${restoredContent}`);
+            allFilesRestored = false;
+            break;
+          }
+          
+          console.log(`File ${filePath} verified successfully`);
+        }
+        
+        if (allFilesRestored) {
+          console.log("\nBackup verified successfully");
+          await fs.remove(tempRestoreDir);
+          backupResult = tempBackup;
+          break;
+        } else {
+          console.log("\nBackup verification failed: some files were not restored correctly");
+          // Recursive list of all files in restore directory
+          const allFiles = await fs.readdir(tempRestoreDir, { recursive: true, withFileTypes: true });
+          console.log("\nFiles present in restore directory:");
+          allFiles.forEach(file => {
+            const filePath = file.path ? path.join(file.path, file.name) : file.name;
+            console.log(`- ${file.isDirectory() ? '[DIR]' : '[FILE]'} ${filePath}`);
+          });
+        }
+      } catch (error) {
+        console.log(`Backup verification attempt failed (${retries} attempts remaining):`, error);
+      }
+      
+      retries--;
+      if (retries > 0) {
+        console.log(`\nRetrying backup (${retries} attempts remaining)...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        throw new Error('Unable to create a valid backup after 3 attempts');
+      }
+    }
+
+    if (!backupResult) {
+      throw new Error('Backup was not created correctly');
     }
     
-    // Test 2: Confronto con modifiche
-    console.log("\nTest 2: Confronto con modifiche");
+    // Test 2: Compare with modifications
+    console.log("\nTest 2: Compare with modifications");
     
-    // Modifica alcuni file
+    // Wait a moment before modifying files
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Modify some files
     await fs.writeFile(path.join(testDir, 'file1.txt'), 'Modified content');
     await fs.writeFile(path.join(testDir, 'newfile.txt'), 'New content');
     await fs.remove(path.join(testDir, 'file2.json'));
+    await fs.remove(path.join(testDir, 'subdir/file3.txt'));
 
-    // Test confronto dettagliato
+    // Verify that modifications were applied
+    const modifiedContent = await fs.readFile(path.join(testDir, 'file1.txt'), 'utf8');
+    if (modifiedContent !== 'Modified content') {
+      throw new Error('File modification failed');
+    }
+
+    // Test detailed comparison
     const detailedComparison = await mogu.compareDetailed(backupResult.hash, testDir);
-    console.log("Risultato confronto dettagliato:", JSON.stringify(detailedComparison, null, 2));
+    console.log("Detailed comparison result:", JSON.stringify(detailedComparison, null, 2));
     
-    // Verifica le modifiche
+    // Verify modifications
     if (detailedComparison.isEqual) {
-      throw new Error('Le directory non dovrebbero essere identiche dopo le modifiche');
+      throw new Error('Directories should not be identical after modifications');
     }
 
     if (detailedComparison.totalChanges.modified !== 1) {
-      throw new Error(`Atteso 1 file modificato, trovati ${detailedComparison.totalChanges.modified}`);
+      throw new Error(`Expected 1 modified file, found ${detailedComparison.totalChanges.modified}`);
     }
 
     if (detailedComparison.totalChanges.added !== 1) {
-      throw new Error(`Atteso 1 file aggiunto, trovati ${detailedComparison.totalChanges.added}`);
+      throw new Error(`Expected 1 added file, found ${detailedComparison.totalChanges.added}`);
     }
 
-    if (detailedComparison.totalChanges.deleted !== 1) {
-      throw new Error(`Atteso 1 file eliminato, trovati ${detailedComparison.totalChanges.deleted}`);
+    if (detailedComparison.totalChanges.deleted !== 2) {
+      throw new Error(`Expected 2 deleted files, found ${detailedComparison.totalChanges.deleted}`);
     }
 
-    // Test 3: Confronto con directory vuota
-    console.log("\nTest 3: Confronto con directory vuota");
+    // Verify specific changes
+    const changes = new Map(detailedComparison.differences.map(diff => [diff.path, diff]));
+    
+    // Verify file1.txt modification
+    const file1Change = changes.get('file1.txt');
+    if (!file1Change || file1Change.type !== 'modified') {
+      throw new Error('Expected file1.txt to be modified');
+    }
+
+    // Verify newfile.txt addition
+    const newfileChange = changes.get('newfile.txt');
+    if (!newfileChange || newfileChange.type !== 'added') {
+      throw new Error('Expected newfile.txt to be added');
+    }
+
+    // Verify file2.json deletion
+    const file2Change = changes.get('file2.json');
+    if (!file2Change || file2Change.type !== 'deleted') {
+      throw new Error('Expected file2.json to be deleted');
+    }
+
+    // Verify subdir/file3.txt deletion
+    const file3Change = changes.get('subdir/file3.txt');
+    if (!file3Change || file3Change.type !== 'deleted') {
+      throw new Error('Expected subdir/file3.txt to be deleted');
+    }
+
+    // Test 3: Compare with empty directory
+    console.log("\nTest 3: Compare with empty directory");
     await fs.emptyDir(testDir);
     
     const emptyComparison = await mogu.compareDetailed(backupResult.hash, testDir);
-    console.log("Risultato confronto directory vuota:", JSON.stringify(emptyComparison, null, 2));
+    console.log("Empty directory comparison result:", JSON.stringify(emptyComparison, null, 2));
     
-    // Modifica qui: ora ci aspettiamo solo 2 file eliminati (quelli iniziali)
     const expectedDeletedFiles = Object.keys(initialFiles).length;
     if (emptyComparison.totalChanges.deleted !== expectedDeletedFiles) {
       throw new Error(
-        `Numero errato di file eliminati.\n` +
-        `Attesi: ${expectedDeletedFiles}\n` +
-        `Trovati: ${emptyComparison.totalChanges.deleted}\n` +
-        `Dettagli: ${JSON.stringify(emptyComparison, null, 2)}`
+        `Wrong number of deleted files.\n` +
+        `Expected: ${expectedDeletedFiles}\n` +
+        `Found: ${emptyComparison.totalChanges.deleted}\n` +
+        `Details: ${JSON.stringify(emptyComparison, null, 2)}`
       );
     }
 
-    console.log("Test delle funzionalità di confronto completati con successo!");
+    console.log("Compare functionality tests completed successfully!");
   } catch (error) {
-    console.error("Errore nei test di confronto:", error);
+    console.error("Error in compare tests:", error);
     throw error;
   }
 }

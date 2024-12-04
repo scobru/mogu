@@ -593,3 +593,178 @@
 {"level":"info","message":"Completed operation: compareDetailed","operationId":"m49ldrhf","timestamp":"2024-12-04T07:54:09.225Z"}
 {"level":"info","message":"Starting operation: compareDetailed","operationId":"m49ldrke","timestamp":"2024-12-04T07:54:09.230Z"}
 {"level":"info","message":"Completed operation: compareDetailed","operationId":"m49ldrke","timestamp":"2024-12-04T07:54:09.322Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:14:27.999Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjdbh","timestamp":"2024-12-04T11:14:28.013Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjdbh","timestamp":"2024-12-04T11:14:31.160Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjfr9","timestamp":"2024-12-04T11:14:31.173Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjfr9","timestamp":"2024-12-04T11:14:32.413Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":true},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:14:32.416Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjgpz","timestamp":"2024-12-04T11:14:32.423Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjgpz","timestamp":"2024-12-04T11:14:34.397Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sji8x","timestamp":"2024-12-04T11:14:34.401Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sji8x","timestamp":"2024-12-04T11:14:34.739Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjiie","timestamp":"2024-12-04T11:14:34.742Z"}
+{"error":"Error: error:1C800064:Provider routines::bad decrypt\n    at Decipheriv.final (node:internal/crypto/cipher:184:29)\n    at Encryption.decrypt (D:\\mogu\\src\\utils\\encryption.ts:24:64)\n    at FileBackupAdapter.restore (D:\\mogu\\src\\adapters\\fileBackupAdapter.ts:160:38)\n    at async Mogu.restore (D:\\mogu\\src\\mogu.ts:95:22)\n    at async testFileBackup (D:\\mogu\\src\\tests\\test.ts:142:7)\n    at async run (D:\\mogu\\src\\tests\\test.ts:29:5)","level":"error","message":"Restore failed","operationId":"m49sjiie","timestamp":"2024-12-04T11:14:34.830Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:14:34.835Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjimb","timestamp":"2024-12-04T11:14:34.883Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjimb","timestamp":"2024-12-04T11:14:36.765Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjk2v","timestamp":"2024-12-04T11:14:36.775Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjk2v","timestamp":"2024-12-04T11:14:37.117Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":2,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:14:38.130Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjl62","timestamp":"2024-12-04T11:14:38.187Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjl62","timestamp":"2024-12-04T11:14:40.401Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjmw4","timestamp":"2024-12-04T11:14:40.420Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjmw4","timestamp":"2024-12-04T11:14:41.448Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjnos","timestamp":"2024-12-04T11:14:41.452Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjnos","timestamp":"2024-12-04T11:14:41.564Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjns0","timestamp":"2024-12-04T11:14:41.568Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjns0","timestamp":"2024-12-04T11:14:41.684Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjnve","timestamp":"2024-12-04T11:14:41.690Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjnve","timestamp":"2024-12-04T11:14:41.798Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjnyj","timestamp":"2024-12-04T11:14:41.803Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjnyj","timestamp":"2024-12-04T11:14:41.908Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjo1k","timestamp":"2024-12-04T11:14:41.912Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjo1k","timestamp":"2024-12-04T11:14:42.023Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjo4v","timestamp":"2024-12-04T11:14:42.031Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjo4v","timestamp":"2024-12-04T11:14:43.919Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjpld","timestamp":"2024-12-04T11:14:43.921Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjpld","timestamp":"2024-12-04T11:14:44.259Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjput","timestamp":"2024-12-04T11:14:44.261Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjput","timestamp":"2024-12-04T11:14:46.373Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjrhk","timestamp":"2024-12-04T11:14:46.376Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjrhk","timestamp":"2024-12-04T11:14:46.724Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjrra","timestamp":"2024-12-04T11:14:46.726Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjrra","timestamp":"2024-12-04T11:14:48.681Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjt9o","timestamp":"2024-12-04T11:14:48.684Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjt9o","timestamp":"2024-12-04T11:14:49.025Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjtjd","timestamp":"2024-12-04T11:14:49.033Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjtjd","timestamp":"2024-12-04T11:14:51.550Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjw9i","timestamp":"2024-12-04T11:14:52.566Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjw9i","timestamp":"2024-12-04T11:14:54.472Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sjxqk","timestamp":"2024-12-04T11:14:54.476Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sjxqk","timestamp":"2024-12-04T11:14:54.949Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":false,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:14:54.954Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sjy44","timestamp":"2024-12-04T11:14:54.964Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sjy44","timestamp":"2024-12-04T11:14:56.856Z"}
+{"level":"info","message":"Starting operation: compare","operationId":"m49sjzkq","timestamp":"2024-12-04T11:14:56.858Z"}
+{"level":"info","message":"Completed operation: compare","operationId":"m49sjzkq","timestamp":"2024-12-04T11:14:57.202Z"}
+{"level":"info","message":"Starting operation: compareDetailed","operationId":"m49sjzuk","timestamp":"2024-12-04T11:14:57.212Z"}
+{"level":"info","message":"Completed operation: compareDetailed","operationId":"m49sjzuk","timestamp":"2024-12-04T11:14:57.283Z"}
+{"level":"info","message":"Starting operation: compareDetailed","operationId":"m49sjzwr","timestamp":"2024-12-04T11:14:57.292Z"}
+{"level":"info","message":"Completed operation: compareDetailed","operationId":"m49sjzwr","timestamp":"2024-12-04T11:14:57.350Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:17:04.793Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49smqav","timestamp":"2024-12-04T11:17:04.807Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49smqav","timestamp":"2024-12-04T11:17:07.922Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49smspq","timestamp":"2024-12-04T11:17:07.934Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49smspq","timestamp":"2024-12-04T11:17:09.108Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":true},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:17:09.111Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49smtmm","timestamp":"2024-12-04T11:17:09.118Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49smtmm","timestamp":"2024-12-04T11:17:11.085Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49smv5c","timestamp":"2024-12-04T11:17:11.088Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49smv5c","timestamp":"2024-12-04T11:17:11.437Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49smvf3","timestamp":"2024-12-04T11:17:11.439Z"}
+{"error":"Error: error:1C800064:Provider routines::bad decrypt\n    at Decipheriv.final (node:internal/crypto/cipher:184:29)\n    at Encryption.decrypt (D:\\mogu\\src\\utils\\encryption.ts:24:64)\n    at FileBackupAdapter.restore (D:\\mogu\\src\\adapters\\fileBackupAdapter.ts:160:38)\n    at async Mogu.restore (D:\\mogu\\src\\mogu.ts:95:22)\n    at async testFileBackup (D:\\mogu\\src\\tests\\test.ts:142:7)\n    at async run (D:\\mogu\\src\\tests\\test.ts:29:5)","level":"error","message":"Restore failed","operationId":"m49smvf3","timestamp":"2024-12-04T11:17:11.507Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:17:11.508Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49smvh9","timestamp":"2024-12-04T11:17:11.517Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49smvh9","timestamp":"2024-12-04T11:17:13.394Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49smwxk","timestamp":"2024-12-04T11:17:13.400Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49smwxk","timestamp":"2024-12-04T11:17:13.762Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":2,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:17:14.770Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49smy0x","timestamp":"2024-12-04T11:17:14.817Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49smy0x","timestamp":"2024-12-04T11:17:17.164Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49smzul","timestamp":"2024-12-04T11:17:17.181Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49smzul","timestamp":"2024-12-04T11:17:18.129Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn0l1","timestamp":"2024-12-04T11:17:18.133Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn0l1","timestamp":"2024-12-04T11:17:18.217Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn0nh","timestamp":"2024-12-04T11:17:18.221Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn0nh","timestamp":"2024-12-04T11:17:18.313Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn0q7","timestamp":"2024-12-04T11:17:18.319Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn0q7","timestamp":"2024-12-04T11:17:18.422Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn0t7","timestamp":"2024-12-04T11:17:18.427Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn0t7","timestamp":"2024-12-04T11:17:18.526Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn0w2","timestamp":"2024-12-04T11:17:18.530Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn0w2","timestamp":"2024-12-04T11:17:18.621Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sn0ys","timestamp":"2024-12-04T11:17:18.628Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sn0ys","timestamp":"2024-12-04T11:17:20.500Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn2eu","timestamp":"2024-12-04T11:17:20.502Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn2eu","timestamp":"2024-12-04T11:17:20.847Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sn2oh","timestamp":"2024-12-04T11:17:20.849Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sn2oh","timestamp":"2024-12-04T11:17:23.096Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn4ey","timestamp":"2024-12-04T11:17:23.098Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn4ey","timestamp":"2024-12-04T11:17:23.482Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sn4po","timestamp":"2024-12-04T11:17:23.484Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sn4po","timestamp":"2024-12-04T11:17:25.587Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sn6c6","timestamp":"2024-12-04T11:17:25.590Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sn6c6","timestamp":"2024-12-04T11:17:25.926Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sn6lp","timestamp":"2024-12-04T11:17:25.933Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sn6lp","timestamp":"2024-12-04T11:17:28.117Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sn92h","timestamp":"2024-12-04T11:17:29.129Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sn92h","timestamp":"2024-12-04T11:17:30.987Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49snai5","timestamp":"2024-12-04T11:17:30.989Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49snai5","timestamp":"2024-12-04T11:17:32.507Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":false,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:17:32.511Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49snbp1","timestamp":"2024-12-04T11:17:32.533Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49snbp1","timestamp":"2024-12-04T11:17:34.412Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49snfh3","timestamp":"2024-12-04T11:17:37.431Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49snfh3","timestamp":"2024-12-04T11:17:37.769Z"}
+{"level":"info","message":"Starting operation: compareDetailed","operationId":"m49snhaw","timestamp":"2024-12-04T11:17:39.800Z"}
+{"level":"info","message":"Completed operation: compareDetailed","operationId":"m49snhaw","timestamp":"2024-12-04T11:17:39.854Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:18:50.112Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sozka","timestamp":"2024-12-04T11:18:50.122Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sozka","timestamp":"2024-12-04T11:18:53.474Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp25r","timestamp":"2024-12-04T11:18:53.487Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp25r","timestamp":"2024-12-04T11:18:54.620Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":true},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:18:54.623Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sp31i","timestamp":"2024-12-04T11:18:54.630Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sp31i","timestamp":"2024-12-04T11:18:56.509Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp4hs","timestamp":"2024-12-04T11:18:56.512Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp4hs","timestamp":"2024-12-04T11:18:56.856Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp4rf","timestamp":"2024-12-04T11:18:56.859Z"}
+{"error":"Error: error:1C800064:Provider routines::bad decrypt\n    at Decipheriv.final (node:internal/crypto/cipher:184:29)\n    at Encryption.decrypt (D:\\mogu\\src\\utils\\encryption.ts:24:64)\n    at FileBackupAdapter.restore (D:\\mogu\\src\\adapters\\fileBackupAdapter.ts:160:38)\n    at async Mogu.restore (D:\\mogu\\src\\mogu.ts:95:22)\n    at async testFileBackup (D:\\mogu\\src\\tests\\test.ts:142:7)\n    at async run (D:\\mogu\\src\\tests\\test.ts:29:5)","level":"error","message":"Restore failed","operationId":"m49sp4rf","timestamp":"2024-12-04T11:18:56.926Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:18:56.930Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sp4tn","timestamp":"2024-12-04T11:18:56.940Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sp4tn","timestamp":"2024-12-04T11:18:58.832Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp6af","timestamp":"2024-12-04T11:18:58.839Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp6af","timestamp":"2024-12-04T11:18:59.181Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":true,"cacheSize":2,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:19:00.203Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49sp7ds","timestamp":"2024-12-04T11:19:00.256Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49sp7ds","timestamp":"2024-12-04T11:19:02.327Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp8zv","timestamp":"2024-12-04T11:19:02.347Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp8zv","timestamp":"2024-12-04T11:19:03.300Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp9qh","timestamp":"2024-12-04T11:19:03.305Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp9qh","timestamp":"2024-12-04T11:19:03.430Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp9u2","timestamp":"2024-12-04T11:19:03.434Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp9u2","timestamp":"2024-12-04T11:19:03.539Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49sp9x4","timestamp":"2024-12-04T11:19:03.544Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49sp9x4","timestamp":"2024-12-04T11:19:03.660Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spa0g","timestamp":"2024-12-04T11:19:03.664Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spa0g","timestamp":"2024-12-04T11:19:03.798Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spa4a","timestamp":"2024-12-04T11:19:03.802Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spa4a","timestamp":"2024-12-04T11:19:03.909Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49spa7h","timestamp":"2024-12-04T11:19:03.917Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49spa7h","timestamp":"2024-12-04T11:19:06.346Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spc30","timestamp":"2024-12-04T11:19:06.348Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spc30","timestamp":"2024-12-04T11:19:07.728Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49spd5d","timestamp":"2024-12-04T11:19:07.729Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49spd5d","timestamp":"2024-12-04T11:19:09.634Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spemc","timestamp":"2024-12-04T11:19:09.636Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spemc","timestamp":"2024-12-04T11:19:09.984Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49spew1","timestamp":"2024-12-04T11:19:09.985Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49spew1","timestamp":"2024-12-04T11:19:11.830Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spgbb","timestamp":"2024-12-04T11:19:11.831Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spgbb","timestamp":"2024-12-04T11:19:12.174Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49spgkz","timestamp":"2024-12-04T11:19:12.179Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49spgkz","timestamp":"2024-12-04T11:19:14.045Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49spit5","timestamp":"2024-12-04T11:19:15.065Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49spit5","timestamp":"2024-12-04T11:19:17.184Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spkg1","timestamp":"2024-12-04T11:19:17.185Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spkg1","timestamp":"2024-12-04T11:19:18.333Z"}
+{"config":{"features":{"encryption":{"algorithm":"aes-256-gcm","enabled":false},"useGun":false,"useIPFS":false},"paths":{"backup":"D:\\mogu\\test-files","logs":"D:\\mogu\\logs","radata":"D:\\mogu\\test-radata","restore":"D:\\mogu\\restored-files","storage":"D:\\mogu\\storage"},"performance":{"cacheEnabled":false,"cacheSize":100,"chunkSize":1048576,"maxConcurrent":3},"storage":{"config":{"apiKey":"e535845af1ce0e5cba32","apiSecret":"5ae8b3a26ceb9aa6b28959b4117966876e21dc817fc5bfa6d4507e29b782e8b9"},"service":"PINATA"}},"level":"info","message":"Mogu initialized","timestamp":"2024-12-04T11:19:18.336Z"}
+{"level":"info","message":"Starting operation: backup","operationId":"m49splcf","timestamp":"2024-12-04T11:19:18.351Z"}
+{"level":"info","message":"Completed operation: backup","operationId":"m49splcf","timestamp":"2024-12-04T11:19:20.428Z"}
+{"level":"info","message":"Starting operation: restore","operationId":"m49spp9z","timestamp":"2024-12-04T11:19:23.448Z"}
+{"level":"info","message":"Completed operation: restore","operationId":"m49spp9z","timestamp":"2024-12-04T11:19:25.009Z"}
+{"level":"info","message":"Starting operation: compareDetailed","operationId":"m49sps1l","timestamp":"2024-12-04T11:19:27.033Z"}
+{"level":"info","message":"Completed operation: compareDetailed","operationId":"m49sps1l","timestamp":"2024-12-04T11:19:27.114Z"}
+{"level":"info","message":"Starting operation: compareDetailed","operationId":"m49sps48","timestamp":"2024-12-04T11:19:27.129Z"}
+{"level":"info","message":"Completed operation: compareDetailed","operationId":"m49sps48","timestamp":"2024-12-04T11:19:27.226Z"}
