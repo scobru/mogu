@@ -12,55 +12,63 @@ export function Web3Stash(service: Web3StashServices, config: Web3StashConfig): 
   const defaultConfig = {};  // Config di base per tutti i servizi
 
   switch (service) {
-    case "PINATA":
-      if ("apiKey" in config && "apiSecret" in config) {
-        return new PinataService(config.apiKey, config.apiSecret);
+    case "PINATA": {
+      const { apiKey, apiSecret } = config;
+      if (!apiKey || !apiSecret) {
+        throw new Error('Configurazione Pinata non valida: richiesti apiKey e apiSecret');
       }
-      break;
+      return new PinataService(apiKey, apiSecret);
+    }
 
-    case "BUNDLR":
-      if ("currency" in config && "privateKey" in config) {
-        return new BundlrService(
-          config.currency,
-          config.privateKey,
-          config.testing || false
-        );
+    case "BUNDLR": {
+      const { currency, privateKey, testing = false } = config;
+      if (!currency || !privateKey) {
+        throw new Error('Configurazione Bundlr non valida: richiesti currency e privateKey');
       }
-      break;
+      return new BundlrService(currency, privateKey, testing);
+    }
 
-    case "NFT.STORAGE":
-      if ("token" in config) {
-        return new NftStorageService(config.token, defaultConfig);
+    case "NFT.STORAGE": {
+      const { token } = config;
+      if (!token) {
+        throw new Error('Configurazione NFT.Storage non valida: richiesto token');
       }
-      break;
+      return new NftStorageService(token, defaultConfig);
+    }
 
-    case "WEB3.STORAGE":
-      if ("token" in config) {
-        return new Web3StorageService(config.token, defaultConfig);
+    case "WEB3.STORAGE": {
+      const { token } = config;
+      if (!token) {
+        throw new Error('Configurazione Web3.Storage non valida: richiesto token');
       }
-      break;
+      return new Web3StorageService(token, defaultConfig);
+    }
 
-    case "ARWEAVE":
-      if ("arweavePrivateKey" in config) {
-        return new ArweaveService(config.arweavePrivateKey);
+    case "ARWEAVE": {
+      const { arweavePrivateKey } = config;
+      if (!arweavePrivateKey || typeof arweavePrivateKey !== 'object') {
+        throw new Error('Configurazione Arweave non valida: richiesto arweavePrivateKey come oggetto JWK');
       }
-      break;
+      return new ArweaveService(arweavePrivateKey);
+    }
 
-    case "IPFS-CLIENT":
-      if ("url" in config) {
-        return new IpfsService(config.url);
+    case "IPFS-CLIENT": {
+      const { url } = config;
+      if (!url) {
+        throw new Error('Configurazione IPFS non valida: richiesto url');
       }
-      break;
+      return new IpfsService({ url });
+    }
 
-    case "LIGHTHOUSE":
-      if ("lighthouseApiKey" in config) {
-        return new LighthouseStorageService(config.lighthouseApiKey, defaultConfig);
+    case "LIGHTHOUSE": {
+      const { lighthouseApiKey } = config;
+      if (!lighthouseApiKey) {
+        throw new Error('Configurazione Lighthouse non valida: richiesto lighthouseApiKey');
       }
-      break;
+      return new LighthouseStorageService(lighthouseApiKey, defaultConfig);
+    }
 
     default:
-      throw new Error(`Unsupported storage service: ${service}`);
+      throw new Error(`Servizio di storage non supportato: ${service}`);
   }
-
-  throw new Error(`Invalid configuration for service: ${service}`);
 }

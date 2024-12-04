@@ -5,11 +5,11 @@ const fileBackupAdapter_1 = require("./adapters/fileBackupAdapter");
 const logger_1 = require("./utils/logger");
 const cache_1 = require("./utils/cache");
 /**
- * Mogu - Sistema di backup decentralizzato
+ * Mogu - Modern Decentralized Backup System
  * @class
  * @description
- * Mogu è un sistema di backup decentralizzato.
- * Fornisce funzionalità di backup criptato, versionamento e ripristino.
+ * Mogu is a decentralized backup system.
+ * It provides encrypted backup, versioning, and restore capabilities.
  *
  * @example
  * ```typescript
@@ -23,21 +23,27 @@ const cache_1 = require("./utils/cache");
  *   }
  * });
  *
- * // Backup di file
+ * // Create a backup
  * const backup = await mogu.backup('./data');
  *
- * // Ripristino
+ * // Restore from backup
  * await mogu.restore(backup.hash, './restore');
+ *
+ * // Compare versions
+ * const changes = await mogu.compare(backup.hash, './data');
+ *
+ * // Delete a backup when no longer needed
+ * const deleted = await mogu.delete(backup.hash);
  * ```
  */
 class Mogu {
     /**
-     * Crea una nuova istanza di Mogu
-     * @param {MoguConfig} config - Configurazione
-     * @throws {Error} Se la configurazione non è valida
+     * Creates a new instance of Mogu
+     * @param {MoguConfig} config - Configuration object
+     * @throws {Error} If the configuration is invalid
      */
     constructor(config) {
-        // Alias per compatibilità
+        // Compatibility aliases
         this.backupFiles = this.backup;
         this.restoreFiles = this.restore;
         this.config = config;
@@ -49,16 +55,72 @@ class Mogu {
         logger_1.logger.info('Mogu initialized', { config: this.config });
     }
     /**
-     * Esegue il backup di una directory
-     * @param {string} sourcePath - Percorso della directory da backuppare
-     * @param {BackupOptions} [options] - Opzioni di backup
-     * @returns {Promise<BackupResult>} Risultato del backup
-     * @throws {Error} Se il backup fallisce
+     * Compare a local directory with an existing backup
+     * @param {string} hash - Hash of the backup to compare
+     * @param {string} sourcePath - Path of the local directory
+     * @returns {Promise<VersionComparison>} Comparison result
+     * @throws {Error} If comparison fails
+     */
+    async compare(hash, sourcePath) {
+        const operationId = logger_1.logger.startOperation('compare');
+        try {
+            const result = await this.fileBackup.compare(hash, sourcePath);
+            logger_1.logger.endOperation(operationId, 'compare');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Compare failed', error, { operationId });
+            throw error;
+        }
+    }
+    /**
+     * Compare a local directory with an existing backup in detail
+     * @param {string} hash - Hash of the backup to compare
+     * @param {string} sourcePath - Path of the local directory
+     * @returns {Promise<DetailedComparison>} Detailed comparison result
+     * @throws {Error} If comparison fails
+     */
+    async compareDetailed(hash, sourcePath) {
+        const operationId = logger_1.logger.startOperation('compareDetailed');
+        try {
+            const result = await this.fileBackup.compareDetailed(hash, sourcePath);
+            logger_1.logger.endOperation(operationId, 'compareDetailed');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Detailed compare failed', error, { operationId });
+            throw error;
+        }
+    }
+    /**
+     * Delete an existing backup
+     * @param {string} hash - Hash of the backup to delete
+     * @returns {Promise<boolean>} true if deletion was successful
+     * @throws {Error} If deletion fails
+     */
+    async delete(hash) {
+        const operationId = logger_1.logger.startOperation('delete');
+        try {
+            const result = await this.fileBackup.delete(hash);
+            logger_1.logger.endOperation(operationId, 'delete');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Delete failed', error, { operationId });
+            throw error;
+        }
+    }
+    /**
+     * Create a backup of a directory
+     * @param {string} sourcePath - Path of the directory to backup
+     * @param {BackupOptions} [options] - Backup options
+     * @returns {Promise<BackupResult>} Backup result
+     * @throws {Error} If backup fails
      */
     async backup(sourcePath, options) {
         const operationId = logger_1.logger.startOperation('backup');
         try {
-            // Verifica cache
+            // Check cache
             const cacheKey = `${sourcePath}:${JSON.stringify(options)}`;
             const cached = await cache_1.backupCache.get(cacheKey);
             if (cached) {
@@ -76,12 +138,12 @@ class Mogu {
         }
     }
     /**
-     * Ripristina un backup
-     * @param {string} hash - Hash del backup da ripristinare
-     * @param {string} targetPath - Percorso dove ripristinare
-     * @param {BackupOptions} [options] - Opzioni di ripristino
-     * @returns {Promise<boolean>} true se il ripristino è riuscito
-     * @throws {Error} Se il ripristino fallisce
+     * Restore a backup
+     * @param {string} hash - Hash of the backup to restore
+     * @param {string} targetPath - Path where to restore
+     * @param {BackupOptions} [options] - Restore options
+     * @returns {Promise<boolean>} true if restore was successful
+     * @throws {Error} If restore fails
      */
     async restore(hash, targetPath, options) {
         const operationId = logger_1.logger.startOperation('restore');
@@ -92,57 +154,6 @@ class Mogu {
         }
         catch (error) {
             logger_1.logger.error('Restore failed', error, { operationId });
-            throw error;
-        }
-    }
-    /**
-     * Confronta una directory locale con un backup esistente
-     * @param {string} hash - Hash del backup da confrontare
-     * @param {string} sourcePath - Percorso della directory locale
-     * @returns {Promise<VersionComparison>} Risultato del confronto
-     * @throws {Error} Se il confronto fallisce
-     */
-    async compare(hash, sourcePath) {
-        const operationId = logger_1.logger.startOperation('compare');
-        try {
-            const result = await this.fileBackup.compare(hash, sourcePath);
-            logger_1.logger.endOperation(operationId, 'compare');
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error('Compare failed', error, { operationId });
-            throw error;
-        }
-    }
-    /**
-     * Confronta in dettaglio una directory locale con un backup esistente
-     * @param {string} hash - Hash del backup da confrontare
-     * @param {string} sourcePath - Percorso della directory locale
-     * @returns {Promise<DetailedComparison>} Risultato dettagliato del confronto
-     * @throws {Error} Se il confronto fallisce
-     */
-    async compareDetailed(hash, sourcePath) {
-        const operationId = logger_1.logger.startOperation('compareDetailed');
-        try {
-            const result = await this.fileBackup.compareDetailed(hash, sourcePath);
-            logger_1.logger.endOperation(operationId, 'compareDetailed');
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error('Detailed compare failed', error, { operationId });
-            throw error;
-        }
-    }
-    // use unping to create a "remove" method
-    async remove(hash) {
-        const operationId = logger_1.logger.startOperation('remove');
-        try {
-            const result = await this.fileBackup.remove(hash);
-            logger_1.logger.endOperation(operationId, 'remove');
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error('Remove failed', error, { operationId });
             throw error;
         }
     }

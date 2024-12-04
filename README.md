@@ -65,9 +65,9 @@ console.log(`Files deleted: ${details.totalChanges.deleted}`);
 // Restore from backup
 await mogu.restore(backup.hash, "./restored");
 
-// Remove a backup
-const removed = await mogu.remove(backup.hash);
-console.log("Backup removed:", removed);
+// Delete a backup
+const deleted = await mogu.delete(backup.hash);
+console.log("Backup deleted:", deleted);
 ```
 
 ## Configuration

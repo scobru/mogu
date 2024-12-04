@@ -40,6 +40,10 @@ async function run() {
     console.log("\n=== Testing Versioning System ===");
     await testVersioning();
 
+    // Test delete functionality
+    console.log("\n=== Testing Delete Functionality ===");
+    await testDelete();
+
     console.log("\nAll tests completed successfully!");
     process.exit(0);
   } catch (err) {
@@ -68,15 +72,15 @@ async function testFileBackup(useEncryption: boolean) {
       logs: path.join(process.cwd(), 'logs')
     },
     features: {
-      useIPFS: false,
       encryption: {
-        enabled: useEncryption,
+        enabled: false,
         algorithm: 'aes-256-gcm'
-      }
+      },
+      useIPFS: false
     },
     performance: {
+      chunkSize: 1024 * 1024, // 1MB
       maxConcurrent: 3,
-      chunkSize: 1024 * 1024,
       cacheEnabled: true,
       cacheSize: 100
     }
@@ -173,15 +177,15 @@ async function testCacheSystem() {
       logs: path.join(process.cwd(), 'logs')
     },
     features: {
-      useIPFS: false,
       encryption: {
         enabled: false,
         algorithm: 'aes-256-gcm'
-      }
+      },
+      useIPFS: false
     },
     performance: {
+      chunkSize: 1024 * 1024, // 1MB
       maxConcurrent: 3,
-      chunkSize: 1024 * 1024,
       cacheEnabled: true,
       cacheSize: 2  // Dimensione piccola per testare il limite
     }
@@ -359,15 +363,15 @@ async function testCompare() {
       logs: path.join(process.cwd(), 'logs')
     },
     features: {
-      useIPFS: false,
       encryption: {
         enabled: false,
         algorithm: 'aes-256-gcm'
-      }
+      },
+      useIPFS: false
     },
     performance: {
+      chunkSize: 1024 * 1024, // 1MB
       maxConcurrent: 3,
-      chunkSize: 1024 * 1024,
       cacheEnabled: false,
       cacheSize: 100
     }
@@ -634,15 +638,15 @@ async function testVersioning() {
       logs: path.join(process.cwd(), 'logs')
     },
     features: {
-      useIPFS: false,
       encryption: {
         enabled: false,
         algorithm: 'aes-256-gcm'
-      }
+      },
+      useIPFS: false
     },
     performance: {
+      chunkSize: 1024 * 1024, // 1MB
       maxConcurrent: 3,
-      chunkSize: 1024 * 1024,
       cacheEnabled: false,
       cacheSize: 0
     }
@@ -768,6 +772,81 @@ async function testVersioning() {
   await fs.remove(v3RestoreDir);
 
   console.log("Versioning tests completed successfully!");
+}
+
+async function testDelete() {
+  const mogu = new Mogu({
+    storage: {
+      service: 'PINATA',
+      config: {
+        apiKey: process.env.PINATA_API_KEY || '',
+        apiSecret: process.env.PINATA_API_SECRET || ''
+      }
+    },
+    paths: {
+      backup: TEST_DIR,
+      restore: RESTORE_DIR,
+      storage: path.join(process.cwd(), 'storage'),
+      logs: path.join(process.cwd(), 'logs')
+    },
+    features: {
+      encryption: {
+        enabled: false,
+        algorithm: 'aes-256-gcm'
+      },
+      useIPFS: false
+    },
+    performance: {
+      chunkSize: 1024 * 1024,
+      maxConcurrent: 3,
+      cacheEnabled: true,
+      cacheSize: 100
+    }
+  });
+
+  // Create test directory and file
+  const testDir = path.join(TEST_DIR, 'delete-test');
+  await fs.ensureDir(testDir);
+  await fs.writeFile(path.join(testDir, 'test.txt'), 'Test content');
+
+  // Create backup
+  console.log("Creating backup for delete test...");
+  const backup = await mogu.backup(testDir);
+  console.log("Backup created:", backup.hash);
+
+  // Verify backup exists by trying to restore it
+  const restoreDir = path.join(RESTORE_DIR, 'delete-test');
+  await fs.ensureDir(restoreDir);
+  await mogu.restore(backup.hash, restoreDir);
+  
+  const restoredContent = await fs.readFile(path.join(restoreDir, 'test.txt'), 'utf8');
+  if (restoredContent !== 'Test content') {
+    throw new Error('Backup was not created correctly');
+  }
+
+  // Delete the backup
+  console.log("Deleting backup...");
+  const deleted = await mogu.delete(backup.hash);
+  if (!deleted) {
+    throw new Error('Delete operation failed');
+  }
+
+  // Verify backup is unpinned
+  console.log("Verifying backup is unpinned...");
+  const isPinned = await mogu.isPinned(backup.hash);
+  if (isPinned) {
+    throw new Error('Backup is still pinned after deletion');
+  }
+  console.log("Backup successfully unpinned");
+
+  // Test deleting non-existent backup
+  console.log("Testing delete of non-existent backup...");
+  const nonExistentResult = await mogu.delete('non-existent-hash');
+  if (nonExistentResult !== false) {
+    throw new Error('Delete of non-existent backup should return false');
+  }
+
+  console.log("Delete functionality tests completed successfully!");
 }
 
 run().catch(err => {

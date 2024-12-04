@@ -17,7 +17,7 @@
     "@helia/strings": "^1.0.0",
     "@helia/unixfs": "^4.0.1",
     "@lighthouse-web3/sdk": "^0.1.6",
-    "@pinata/sdk": "^1.1.26",
+    "@pinata/sdk": "^1.2.1",
     "@types/mime-types": "^2.1.1",
     "arweave": "^1.11.6",
     "arweave-stream-tx": "^1.1.0",

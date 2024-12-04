@@ -1,14 +1,6 @@
-import { Stats } from 'fs';
-import fs from 'fs-extra';
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
-import { sha3_256 } from 'js-sha3';
-import path from 'path';
-import type { FileChecksum, RemoteChecksums } from './types/mogu';
-
-// Configura il plugin duration
-dayjs.extend(duration);
-
+/**
+ * Information about a specific version of a backup
+ */
 export interface VersionInfo {
   hash: string;
   timestamp: number;
@@ -20,16 +12,9 @@ export interface VersionInfo {
   };
 }
 
-export interface VersionComparison {
-  isEqual: boolean;
-  isNewer: boolean;
-  localVersion: VersionInfo;
-  remoteVersion: VersionInfo;
-  timeDiff: number;
-  formattedDiff: string;
-  differences?: FileDiff[];
-}
-
+/**
+ * Represents a difference in a file between versions
+ */
 export interface FileDiff {
   path: string;
   type: 'added' | 'modified' | 'deleted';
@@ -41,6 +26,21 @@ export interface FileDiff {
   };
 }
 
+/**
+ * Basic version comparison result
+ */
+export interface VersionComparison {
+  isEqual: boolean;
+  isNewer: boolean;
+  localVersion: VersionInfo;
+  remoteVersion: VersionInfo;
+  timeDiff: number;
+  formattedDiff: string;
+}
+
+/**
+ * Detailed version comparison result including file differences
+ */
 export interface DetailedComparison extends VersionComparison {
   differences: FileDiff[];
   totalChanges: {
@@ -50,154 +50,72 @@ export interface DetailedComparison extends VersionComparison {
   };
 }
 
+/**
+ * Manages version information and comparisons
+ */
 export class VersionManager {
-  constructor(private radataPath: string) {}
+  constructor(private basePath: string) {}
 
+  /**
+   * Creates version information for a data buffer
+   */
   async createVersionInfo(data: Buffer): Promise<VersionInfo> {
-    let stats;
-    try {
-      stats = await fs.stat(this.radataPath);
-    } catch (error) {
-      // Se il path non esiste, usa valori di default
-      stats = {
-        size: data.length,
-        birthtime: new Date(),
-        mtime: new Date()
-      };
-    }
-    
-    const checksum = sha3_256(data);
-    
+    const now = Date.now();
     return {
-      hash: checksum,
-      timestamp: Date.now(),
-      size: data.length, // Usa la dimensione del buffer invece di stats.size
+      hash: this.calculateHash(data),
+      timestamp: now,
+      size: data.length,
       metadata: {
-        createdAt: stats.birthtime.toISOString(),
-        modifiedAt: stats.mtime.toISOString(),
-        checksum: checksum
-      }
+        createdAt: new Date(now).toISOString(),
+        modifiedAt: new Date(now).toISOString(),
+        checksum: this.calculateChecksum(data),
+      },
     };
   }
 
-  formatTimeDifference(timestamp1: number, timestamp2: number): string {
-    const diff = dayjs(timestamp1).diff(timestamp2);
-    const duration = dayjs.duration(diff);
-
-    if (duration.asDays() >= 1) return `${Math.floor(duration.asDays())} giorni`;
-    if (duration.asHours() >= 1) return `${Math.floor(duration.asHours())} ore`;
-    if (duration.asMinutes() >= 1) return `${Math.floor(duration.asMinutes())} minuti`;
-    return "meno di un minuto";
-  }
-
-  async compareVersions(localData: Buffer, remoteVersion: VersionInfo): Promise<VersionComparison> {
-    const localVersion = await this.createVersionInfo(localData);
-    
-    // Confronta solo i checksum dei dati effettivi
-    const isEqual = localVersion.metadata.checksum === remoteVersion.metadata.checksum;
-    
-    return {
-      isEqual,
-      isNewer: localVersion.timestamp > remoteVersion.timestamp,
-      localVersion,
-      remoteVersion,
-      timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
-      formattedDiff: this.formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp)
-    };
-  }
-
-  async getFileChecksums(directory: string): Promise<Map<string, FileChecksum>> {
-    const checksums = new Map<string, FileChecksum>();
-    const files = await fs.readdir(directory);
-
-    for (const file of files) {
-      const filePath = path.join(directory, file);
-      const content = await fs.readFile(filePath);
-      checksums.set(file, {
-        checksum: sha3_256(content),
-        size: content.length
-      });
-    }
-
-    return checksums;
-  }
-
-  async compareDetailedVersions(localData: Buffer, remoteData: Buffer): Promise<DetailedComparison> {
-    const localVersion = await this.createVersionInfo(localData);
-    const remoteVersion = await this.createVersionInfo(remoteData);
-
-    const localChecksums = await this.getFileChecksums(this.radataPath);
-    
-    // Gestisci il caso in cui remoteData non sia nel formato atteso
-    let remoteChecksums = new Map<string, FileChecksum>();
-    try {
-      const remoteObj = JSON.parse(remoteData.toString());
-      // Verifica se l'oggetto ha la struttura attesa
-      if (remoteObj && typeof remoteObj === 'object') {
-        for (const [key, value] of Object.entries(remoteObj)) {
-          const content = Buffer.from(JSON.stringify(value));
-          remoteChecksums.set(key, {
-            checksum: sha3_256(content),
-            size: content.length
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Errore nel parsing dei dati remoti:', error);
-    }
-
-    const differences: FileDiff[] = [];
-    const totalChanges = { added: 0, modified: 0, deleted: 0 };
-
-    // Trova file modificati e aggiunti
-    for (const [filePath, localInfo] of localChecksums.entries()) {
-      const remoteInfo = remoteChecksums.get(filePath) as FileChecksum | undefined;
-
-      if (!remoteInfo) {
-        differences.push({
-          path: filePath,
-          type: 'added',
-          newChecksum: localInfo.checksum,
-          size: { new: localInfo.size }
-        });
-        totalChanges.added++;
-      } else if (localInfo.checksum !== remoteInfo.checksum) {
-        differences.push({
-          path: filePath,
-          type: 'modified',
-          oldChecksum: remoteInfo.checksum,
-          newChecksum: localInfo.checksum,
-          size: {
-            old: remoteInfo.size,
-            new: localInfo.size
-          }
-        });
-        totalChanges.modified++;
-      }
-    }
-
-    // Trova file eliminati
-    for (const [filePath, remoteInfo] of remoteChecksums.entries()) {
-      if (!localChecksums.has(filePath)) {
-        differences.push({
-          path: filePath,
-          type: 'deleted',
-          oldChecksum: remoteInfo.checksum,
-          size: { old: remoteInfo.size }
-        });
-        totalChanges.deleted++;
-      }
-    }
-
-    return {
-      isEqual: differences.length === 0,
+  /**
+   * Compares two versions of data
+   */
+  compareVersions(localData: Buffer, remoteVersion: VersionInfo): Promise<VersionComparison> {
+    return this.createVersionInfo(localData).then(localVersion => ({
+      isEqual: this.calculateChecksum(localData) === remoteVersion.metadata.checksum,
       isNewer: localVersion.timestamp > remoteVersion.timestamp,
       localVersion,
       remoteVersion,
       timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
       formattedDiff: this.formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp),
-      differences,
-      totalChanges
-    };
+    }));
+  }
+
+  /**
+   * Formats the time difference between two timestamps
+   */
+  formatTimeDifference(timestamp1: number, timestamp2: number): string {
+    const diff = Math.abs(timestamp1 - timestamp2);
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} days`;
+    if (hours > 0) return `${hours} hours`;
+    if (minutes > 0) return `${minutes} minutes`;
+    return `${seconds} seconds`;
+  }
+
+  /**
+   * Calculates a hash for a data buffer
+   */
+  private calculateHash(data: Buffer): string {
+    const crypto = require('crypto');
+    return crypto.createHash('sha256').update(data).digest('hex');
+  }
+
+  /**
+   * Calculates a checksum for a data buffer
+   */
+  private calculateChecksum(data: Buffer): string {
+    const crypto = require('crypto');
+    return crypto.createHash('md5').update(data).digest('hex');
   }
 } 

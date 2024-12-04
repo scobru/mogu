@@ -75,8 +75,32 @@ export class PinataService extends StorageService {
     return "https://gateway.pinata.cloud/ipfs/";
   }
 
-  public async unpin(hash: string) {
-    await this.serviceInstance.unpin(hash);
+  public async unpin(hash: string): Promise<void> {
+    try {
+      if (!hash || typeof hash !== 'string') {
+        throw new Error('Hash non valido');
+      }
+      console.log(`Tentativo di unpin per l'hash: ${hash}`);
+      await this.serviceInstance.unpin(hash);
+      
+      // Verifica che l'unpin sia stato effettivo
+      let attempts = 0;
+      const maxAttempts = 3;
+      while (attempts < maxAttempts) {
+        const isPinned = await this.isPinned(hash);
+        if (!isPinned) {
+          console.log(`Unpin confermato per l'hash: ${hash}`);
+          return;
+        }
+        console.log(`Attesa conferma unpin, tentativo ${attempts + 1}/${maxAttempts}`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi 1 secondo
+        attempts++;
+      }
+      throw new Error(`Impossibile confermare l'unpin dopo ${maxAttempts} tentativi`);
+    } catch (error) {
+      console.error('Errore durante unpin da Pinata:', error);
+      throw new Error(`Failed to unpin hash ${hash}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   public async uploadJson(jsonData: Record<string, unknown>, options?: PinataUploadOptions): Promise<UploadOutput> {
@@ -91,6 +115,9 @@ export class PinataService extends StorageService {
       return {
         id: response.IpfsHash,
         metadata: {
+          timestamp: Date.now(),
+          size: JSON.stringify(jsonData).length,
+          type: 'json',
           ...response,
           data: jsonData
         },
@@ -146,5 +173,25 @@ export class PinataService extends StorageService {
   public async uploadFileFromStream(readableStream: any, options?: any): Promise<UploadOutput> {
     const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
     return { id: response.IpfsHash, metadata: { ...response } };
+  }
+
+  public async isPinned(hash: string): Promise<boolean> {
+    try {
+      if (!hash || typeof hash !== 'string') {
+        throw new Error('Hash non valido');
+      }
+      console.log(`Verifica pin per l'hash: ${hash}`);
+      const pinList = await this.serviceInstance.pinList({
+        hashContains: hash
+      });
+      
+      const isPinned = pinList.rows && pinList.rows.length > 0 && 
+                      pinList.rows.some(row => row.ipfs_pin_hash === hash);
+      console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
+      return isPinned;
+    } catch (error) {
+      console.error('Errore durante la verifica del pin:', error);
+      return false;
+    }
   }
 }

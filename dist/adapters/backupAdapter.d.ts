@@ -1,7 +1,7 @@
 import { StorageService } from '../web3stash/services/base-storage';
 import type { VersionInfo } from '../versioning';
 import type { BackupMetadata, BackupData } from '../types/mogu';
-import { Web3StashServices } from '../web3stash/types';
+import { UploadOutput, Web3StashServices } from '../web3stash/types';
 export interface BackupOptions {
     name?: string;
     description?: string;
@@ -35,5 +35,6 @@ export declare abstract class BackupAdapter {
     abstract restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
     get(hash: string): Promise<BackupData>;
     getMetadata(hash: string): Promise<BackupMetadata>;
-    delete(hash: string): Promise<void>;
+    abstract delete(hash: string): Promise<boolean>;
+    abstract upload(data: any, options?: BackupOptions): Promise<UploadOutput>;
 }

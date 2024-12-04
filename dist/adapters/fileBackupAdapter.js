@@ -11,14 +11,40 @@ const js_sha3_1 = require("js-sha3");
 const web3stash_1 = require("../web3stash");
 const encryption_1 = require("../utils/encryption");
 class FileBackupAdapter {
-    constructor(storageService, storageConfig) {
-        this.storage = (0, web3stash_1.Web3Stash)(storageService, storageConfig);
+    constructor(storageService, storageConfig, options = {}) {
+        this.options = options;
+        const storage = (0, web3stash_1.Web3Stash)(storageService, storageConfig);
+        this.storage = {
+            ...storage,
+            get: async (hash) => {
+                if (!storage.get) {
+                    throw new Error('Storage service does not support get operation');
+                }
+                const result = await storage.get(hash);
+                if (!result?.data || !result?.metadata) {
+                    throw new Error('Invalid backup format');
+                }
+                return result;
+            }
+        };
     }
     isBinaryFile(filename) {
         const binaryExtensions = [
-            '.png', '.jpg', '.jpeg', '.gif', '.bmp',
-            '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-            '.zip', '.rar', '.7z', '.tar', '.gz'
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".bmp",
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx",
+            ".zip",
+            ".rar",
+            ".7z",
+            ".tar",
+            ".gz",
         ];
         const ext = path_1.default.extname(filename).toLowerCase();
         return binaryExtensions.includes(ext);
@@ -26,29 +52,86 @@ class FileBackupAdapter {
     getMimeType(filename) {
         const ext = path_1.default.extname(filename).toLowerCase();
         const mimeTypes = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.bmp': 'image/bmp',
-            '.pdf': 'application/pdf'
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".bmp": "image/bmp",
+            ".pdf": "application/pdf",
         };
-        return mimeTypes[ext] || 'application/octet-stream';
+        return mimeTypes[ext] || "application/octet-stream";
     }
-    async remove(hash) {
+    generateBackupName(metadata) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").replace("Z", "");
+        const type = metadata?.type || "backup";
+        const size = metadata?.versionInfo?.size || 0;
+        // Formatta la dimensione
+        const sizeFormatted = this.formatSize(size);
+        // Aggiungi tag personalizzati se presenti
+        const tags = this.options.tags ? `-${this.options.tags.join("-")}` : "";
+        return `mogu-${type}-${sizeFormatted}${tags}-${timestamp}`;
+    }
+    formatSize(bytes) {
+        if (bytes < 1024)
+            return `${bytes}B`;
+        if (bytes < 1024 * 1024)
+            return `${(bytes / 1024).toFixed(1)}KB`;
+        if (bytes < 1024 * 1024 * 1024)
+            return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+        return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
+    }
+    serializeMetadata(metadata) {
+        const serialized = {};
+        const serialize = (obj) => {
+            if (typeof obj === "string" || typeof obj === "number" || typeof obj === "boolean") {
+                return obj;
+            }
+            if (obj instanceof Date) {
+                return obj.toISOString();
+            }
+            return JSON.stringify(obj);
+        };
+        if (metadata && typeof metadata === "object") {
+            for (const [key, value] of Object.entries(metadata)) {
+                serialized[key] = serialize(value);
+            }
+        }
+        return serialized;
+    }
+    async createBackupMetadata(data, options, name) {
+        const now = Date.now();
+        return {
+            timestamp: options?.timestamp || now,
+            type: options?.type || "backup",
+            name: name || this.generateBackupName({ type: options?.type }),
+            description: options?.description,
+            metadata: options?.metadata,
+            versionInfo: {
+                hash: "",
+                timestamp: now,
+                size: Buffer.from(JSON.stringify(data)).length,
+                metadata: {
+                    createdAt: new Date(now).toISOString(),
+                    modifiedAt: new Date(now).toISOString(),
+                    checksum: "",
+                },
+            },
+        };
+    }
+    async delete(hash) {
         const result = await this.storage?.unpin?.(hash);
         return result === undefined ? false : true;
     }
     async backup(sourcePath, options) {
         const backupData = {};
         // Funzione ricorsiva per processare le directory
-        const processDirectory = async (dirPath, baseDir = '') => {
+        const processDirectory = async (dirPath, baseDir = "") => {
             const files = await fs_extra_1.default.readdir(dirPath, { withFileTypes: true });
             for (const file of files) {
                 if (options?.excludePatterns?.some((pattern) => file.name.match(pattern)))
                     continue;
                 const fullPath = path_1.default.join(dirPath, file.name);
-                const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, '/');
+                const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, "/");
                 if (file.isDirectory()) {
                     await processDirectory(fullPath, relativePath);
                     continue;
@@ -64,16 +147,16 @@ class FileBackupAdapter {
                     const { encrypted, iv } = encryption.encrypt(content);
                     fileData = {
                         isEncrypted: true,
-                        encrypted: encrypted.toString('base64'),
-                        iv: iv.toString('base64'),
-                        mimeType: this.getMimeType(file.name)
+                        encrypted: encrypted.toString("base64"),
+                        iv: iv.toString("base64"),
+                        mimeType: this.getMimeType(file.name),
                     };
                 }
                 else {
                     fileData = {
-                        type: isBinary ? 'binary' : 'text',
-                        content: isBinary ? content.toString('base64') : content.toString('utf8'),
-                        mimeType: this.getMimeType(file.name)
+                        type: isBinary ? "binary" : "text",
+                        content: isBinary ? content.toString("base64") : content.toString("utf8"),
+                        mimeType: this.getMimeType(file.name),
                     };
                 }
                 backupData[relativePath] = fileData;
@@ -84,34 +167,37 @@ class FileBackupAdapter {
         const versionInfo = await versionManager.createVersionInfo(Buffer.from(JSON.stringify(backupData)));
         const metadata = {
             timestamp: Date.now(),
-            type: 'file-backup',
-            versionInfo
+            type: "file-backup",
+            versionInfo,
         };
         const uploadData = {
             data: backupData,
-            metadata
+            metadata,
         };
+        if (!this.storage.uploadJson) {
+            throw new Error('Storage service does not support uploadJson operation');
+        }
         const result = await this.storage.uploadJson(uploadData, {
             pinataMetadata: {
-                name: path_1.default.basename(sourcePath)
-            }
+                name: path_1.default.basename(sourcePath),
+            },
         });
         if (!result || !result.id) {
-            throw new Error('Storage service did not return a valid hash');
+            throw new Error("Storage service did not return a valid hash");
         }
         return {
             hash: result.id,
             versionInfo,
-            name: path_1.default.basename(sourcePath)
+            name: path_1.default.basename(sourcePath),
         };
     }
     async restore(hash, targetPath, options) {
         const backup = await this.get(hash);
         if (!backup?.data)
-            throw new Error('Invalid backup data');
-        const encryption = options?.encryption?.enabled ?
-            new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm) :
-            null;
+            throw new Error("Invalid backup data");
+        const encryption = options?.encryption?.enabled
+            ? new encryption_1.Encryption(options.encryption.key, options.encryption.algorithm)
+            : null;
         // Assicurati che la directory principale esista
         await fs_extra_1.default.ensureDir(targetPath);
         for (const [fileName, fileData] of Object.entries(backup.data)) {
@@ -120,14 +206,14 @@ class FileBackupAdapter {
             await fs_extra_1.default.ensureDir(path_1.default.dirname(filePath));
             if (fileData.isEncrypted && encryption && fileData.encrypted && fileData.iv) {
                 // Decripta il contenuto
-                const encrypted = Buffer.from(fileData.encrypted, 'base64');
-                const iv = Buffer.from(fileData.iv, 'base64');
+                const encrypted = Buffer.from(fileData.encrypted, "base64");
+                const iv = Buffer.from(fileData.iv, "base64");
                 const decrypted = encryption.decrypt(encrypted, iv);
                 await fs_extra_1.default.writeFile(filePath, decrypted);
             }
-            else if (fileData.type === 'binary' && fileData.content) {
+            else if (fileData.type === "binary" && fileData.content) {
                 // File binario non criptato
-                await fs_extra_1.default.writeFile(filePath, Buffer.from(fileData.content, 'base64'));
+                await fs_extra_1.default.writeFile(filePath, Buffer.from(fileData.content, "base64"));
             }
             else if (fileData.content) {
                 // File di testo non criptato
@@ -140,22 +226,29 @@ class FileBackupAdapter {
         return true;
     }
     async get(hash) {
-        return this.storage.get?.(hash) ?? Promise.reject(new Error('Get not supported by storage service'));
+        if (!this.storage.get) {
+            throw new Error('Storage service does not support get operation');
+        }
+        const result = await this.storage.get(hash);
+        if (!result?.data || !result?.metadata) {
+            throw new Error('Invalid backup format');
+        }
+        return result;
     }
     async compare(hash, sourcePath) {
         try {
             // Recupera il backup
             const backup = await this.get(hash);
             if (!backup?.data || !backup?.metadata?.versionInfo) {
-                throw new Error('Invalid backup: missing metadata');
+                throw new Error("Invalid backup: missing metadata");
             }
             // Prepara i dati locali nello stesso formato del backup
             const localData = {};
-            const processDirectory = async (dirPath, baseDir = '') => {
+            const processDirectory = async (dirPath, baseDir = "") => {
                 const files = await fs_extra_1.default.readdir(dirPath, { withFileTypes: true });
                 for (const file of files) {
                     const fullPath = path_1.default.join(dirPath, file.name);
-                    const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, '/');
+                    const relativePath = path_1.default.join(baseDir, file.name).replace(/\\/g, "/");
                     if (file.isDirectory()) {
                         await processDirectory(fullPath, relativePath);
                         continue;
@@ -163,9 +256,9 @@ class FileBackupAdapter {
                     const content = await fs_extra_1.default.readFile(fullPath);
                     const isBinary = this.isBinaryFile(file.name);
                     localData[relativePath] = {
-                        type: isBinary ? 'binary' : 'text',
-                        content: isBinary ? content.toString('base64') : content.toString('utf8'),
-                        mimeType: this.getMimeType(file.name)
+                        type: isBinary ? "binary" : "text",
+                        content: isBinary ? content.toString("base64") : content.toString("utf8"),
+                        mimeType: this.getMimeType(file.name),
                     };
                 }
             };
@@ -178,7 +271,7 @@ class FileBackupAdapter {
             return versionManager.compareVersions(localBuffer, backup.metadata.versionInfo);
         }
         catch (error) {
-            console.error('Error during comparison:', error);
+            console.error("Error during comparison:", error);
             throw error;
         }
     }
@@ -194,14 +287,14 @@ class FileBackupAdapter {
                     continue;
                 const content = await fs_extra_1.default.readFile(filePath);
                 localData[file] = {
-                    type: this.isBinaryFile(file) ? 'binary' : 'text',
-                    content: content.toString('base64')
+                    type: this.isBinaryFile(file) ? "binary" : "text",
+                    content: content.toString("base64"),
                 };
             }
             // Recupera il backup
             const backup = await this.get(hash);
             if (!backup?.data) {
-                throw new Error('Invalid backup: missing data');
+                throw new Error("Invalid backup: missing data");
             }
             const differences = [];
             const totalChanges = { added: 0, modified: 0, deleted: 0 };
@@ -214,9 +307,9 @@ class FileBackupAdapter {
                 if (!remoteContent) {
                     differences.push({
                         path: filePath,
-                        type: 'added',
+                        type: "added",
                         newChecksum: calculateChecksum(localContent),
-                        size: { new: getFileSize(localContent) }
+                        size: { new: getFileSize(localContent) },
                     });
                     totalChanges.added++;
                 }
@@ -226,13 +319,13 @@ class FileBackupAdapter {
                     if (localChecksum !== remoteChecksum) {
                         differences.push({
                             path: filePath,
-                            type: 'modified',
+                            type: "modified",
                             oldChecksum: remoteChecksum,
                             newChecksum: localChecksum,
                             size: {
                                 old: getFileSize(remoteContent),
-                                new: getFileSize(localContent)
-                            }
+                                new: getFileSize(localContent),
+                            },
                         });
                         totalChanges.modified++;
                     }
@@ -243,9 +336,9 @@ class FileBackupAdapter {
                 if (!localData[filePath]) {
                     differences.push({
                         path: filePath,
-                        type: 'deleted',
+                        type: "deleted",
                         oldChecksum: calculateChecksum(backup.data[filePath]),
-                        size: { old: getFileSize(backup.data[filePath]) }
+                        size: { old: getFileSize(backup.data[filePath]) },
                     });
                     totalChanges.deleted++;
                 }
@@ -262,13 +355,19 @@ class FileBackupAdapter {
                 timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
                 formattedDiff: new versioning_1.VersionManager(sourcePath).formatTimeDifference(localVersion.timestamp, remoteVersion.timestamp),
                 differences,
-                totalChanges
+                totalChanges,
             };
         }
         catch (error) {
-            console.error('Error during detailed comparison:', error);
+            console.error("Error during detailed comparison:", error);
             throw error;
         }
+    }
+    async upload(data, options) {
+        if (!this.storage.uploadJson) {
+            throw new Error('Storage service does not support uploadJson operation');
+        }
+        return this.storage.uploadJson(data, options);
     }
 }
 exports.FileBackupAdapter = FileBackupAdapter;

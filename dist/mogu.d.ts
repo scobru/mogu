@@ -3,11 +3,11 @@ import { defaultConfig } from './config';
 import { VersionComparison, DetailedComparison } from './versioning';
 type MoguConfig = typeof defaultConfig;
 /**
- * Mogu - Sistema di backup decentralizzato
+ * Mogu - Modern Decentralized Backup System
  * @class
  * @description
- * Mogu è un sistema di backup decentralizzato.
- * Fornisce funzionalità di backup criptato, versionamento e ripristino.
+ * Mogu is a decentralized backup system.
+ * It provides encrypted backup, versioning, and restore capabilities.
  *
  * @example
  * ```typescript
@@ -21,56 +21,68 @@ type MoguConfig = typeof defaultConfig;
  *   }
  * });
  *
- * // Backup di file
+ * // Create a backup
  * const backup = await mogu.backup('./data');
  *
- * // Ripristino
+ * // Restore from backup
  * await mogu.restore(backup.hash, './restore');
+ *
+ * // Compare versions
+ * const changes = await mogu.compare(backup.hash, './data');
+ *
+ * // Delete a backup when no longer needed
+ * const deleted = await mogu.delete(backup.hash);
  * ```
  */
 export declare class Mogu {
     private config;
     private fileBackup;
     /**
-     * Crea una nuova istanza di Mogu
-     * @param {MoguConfig} config - Configurazione
-     * @throws {Error} Se la configurazione non è valida
+     * Creates a new instance of Mogu
+     * @param {MoguConfig} config - Configuration object
+     * @throws {Error} If the configuration is invalid
      */
     constructor(config: MoguConfig);
     /**
-     * Esegue il backup di una directory
-     * @param {string} sourcePath - Percorso della directory da backuppare
-     * @param {BackupOptions} [options] - Opzioni di backup
-     * @returns {Promise<BackupResult>} Risultato del backup
-     * @throws {Error} Se il backup fallisce
-     */
-    backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;
-    /**
-     * Ripristina un backup
-     * @param {string} hash - Hash del backup da ripristinare
-     * @param {string} targetPath - Percorso dove ripristinare
-     * @param {BackupOptions} [options] - Opzioni di ripristino
-     * @returns {Promise<boolean>} true se il ripristino è riuscito
-     * @throws {Error} Se il ripristino fallisce
-     */
-    restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
-    /**
-     * Confronta una directory locale con un backup esistente
-     * @param {string} hash - Hash del backup da confrontare
-     * @param {string} sourcePath - Percorso della directory locale
-     * @returns {Promise<VersionComparison>} Risultato del confronto
-     * @throws {Error} Se il confronto fallisce
+     * Compare a local directory with an existing backup
+     * @param {string} hash - Hash of the backup to compare
+     * @param {string} sourcePath - Path of the local directory
+     * @returns {Promise<VersionComparison>} Comparison result
+     * @throws {Error} If comparison fails
      */
     compare(hash: string, sourcePath: string): Promise<VersionComparison>;
     /**
-     * Confronta in dettaglio una directory locale con un backup esistente
-     * @param {string} hash - Hash del backup da confrontare
-     * @param {string} sourcePath - Percorso della directory locale
-     * @returns {Promise<DetailedComparison>} Risultato dettagliato del confronto
-     * @throws {Error} Se il confronto fallisce
+     * Compare a local directory with an existing backup in detail
+     * @param {string} hash - Hash of the backup to compare
+     * @param {string} sourcePath - Path of the local directory
+     * @returns {Promise<DetailedComparison>} Detailed comparison result
+     * @throws {Error} If comparison fails
      */
     compareDetailed(hash: string, sourcePath: string): Promise<DetailedComparison>;
-    remove(hash: string): Promise<boolean>;
+    /**
+     * Delete an existing backup
+     * @param {string} hash - Hash of the backup to delete
+     * @returns {Promise<boolean>} true if deletion was successful
+     * @throws {Error} If deletion fails
+     */
+    delete(hash: string): Promise<boolean>;
+    /**
+     * Create a backup of a directory
+     * @param {string} sourcePath - Path of the directory to backup
+     * @param {BackupOptions} [options] - Backup options
+     * @returns {Promise<BackupResult>} Backup result
+     * @throws {Error} If backup fails
+     */
+    backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;
+    /**
+     * Restore a backup
+     * @param {string} hash - Hash of the backup to restore
+     * @param {string} targetPath - Path where to restore
+     * @param {BackupOptions} [options] - Restore options
+     * @returns {Promise<boolean>} true if restore was successful
+     * @throws {Error} If restore fails
+     */
+    restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
     backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }

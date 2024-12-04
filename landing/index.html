@@ -135,8 +135,21 @@ const backup = await mogu.backup('./data');
 // Restore
 await mogu.restore(backup.hash, './restore');
 
-// Remove backup
-await mogu.remove(backup.hash);</code></pre>
+// Delete backup
+await mogu.delete(backup.hash);
+
+// Compare with local files
+const changes = await mogu.compare(backup.hash, './data');
+if (!changes.isEqual) {
+  console.log('Changes detected:', changes.formattedDiff);
+}
+
+// Delete backup when no longer needed
+const deleted = await mogu.delete(backup.hash);
+if (deleted) {
+  console.log('Backup successfully deleted');
+}
+</code></pre>
                 </div>
             </div>
         </div>

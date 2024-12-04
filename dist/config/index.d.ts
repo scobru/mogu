@@ -36,13 +36,13 @@ export declare const configSchema: z.ZodObject<{
         storage: z.ZodOptional<z.ZodString>;
         logs: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        storage?: string | undefined;
         backup?: string | undefined;
+        storage?: string | undefined;
         restore?: string | undefined;
         logs?: string | undefined;
     }, {
-        storage?: string | undefined;
         backup?: string | undefined;
+        storage?: string | undefined;
         restore?: string | undefined;
         logs?: string | undefined;
     }>;
@@ -97,8 +97,8 @@ export declare const configSchema: z.ZodObject<{
         };
     };
     paths: {
-        storage?: string | undefined;
         backup?: string | undefined;
+        storage?: string | undefined;
         restore?: string | undefined;
         logs?: string | undefined;
     };
@@ -125,8 +125,8 @@ export declare const configSchema: z.ZodObject<{
         };
     };
     paths: {
-        storage?: string | undefined;
         backup?: string | undefined;
+        storage?: string | undefined;
         restore?: string | undefined;
         logs?: string | undefined;
     };

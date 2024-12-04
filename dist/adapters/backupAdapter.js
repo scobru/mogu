@@ -95,11 +95,5 @@ class BackupAdapter {
         const backup = await this.get(hash);
         return backup.metadata;
     }
-    async delete(hash) {
-        if (!this.storage.unpin) {
-            throw new Error('Storage service does not support delete operation');
-        }
-        return this.storage.unpin(hash);
-    }
 }
 exports.BackupAdapter = BackupAdapter;
