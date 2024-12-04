@@ -1,11 +1,14 @@
 import { IBackupAdapter, BackupResult, BackupOptions } from "../types/backup";
 import { VersionComparison, DetailedComparison } from "../versioning";
 import type { BackupMetadata, BackupData } from "../types/mogu";
-import { UploadOutput, Web3StashConfig, Web3StashServices } from "../web3stash/types";
+import { UploadOutput } from "../web3stash/types/index";
+import { StorageService } from "../web3stash/services/base-storage";
 export declare class FileBackupAdapter implements IBackupAdapter {
     protected options: BackupOptions;
     private storage;
-    constructor(storageService: Web3StashServices, storageConfig: Web3StashConfig, options?: BackupOptions);
+    private originalStorage;
+    constructor(storage: StorageService, options?: BackupOptions);
+    getStorage(): StorageService;
     private isBinaryFile;
     private getMimeType;
     protected generateBackupName(metadata: BackupMetadata): string;

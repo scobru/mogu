@@ -8,14 +8,23 @@ const versioning_1 = require("../versioning");
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 const js_sha3_1 = require("js-sha3");
-const web3stash_1 = require("../web3stash");
 const encryption_1 = require("../utils/encryption");
 class FileBackupAdapter {
-    constructor(storageService, storageConfig, options = {}) {
+    constructor(storage, options = {}) {
         this.options = options;
-        const storage = (0, web3stash_1.Web3Stash)(storageService, storageConfig);
+        if (!storage.uploadJson) {
+            throw new Error('Storage service must support uploadJson operation');
+        }
+        this.originalStorage = storage;
         this.storage = {
             ...storage,
+            uploadJson: async (jsonData, options) => {
+                const result = await storage.uploadJson(jsonData, options);
+                return {
+                    id: result.id,
+                    metadata: result.metadata || {}
+                };
+            },
             get: async (hash) => {
                 if (!storage.get) {
                     throw new Error('Storage service does not support get operation');
@@ -25,8 +34,17 @@ class FileBackupAdapter {
                     throw new Error('Invalid backup format');
                 }
                 return result;
+            },
+            unpin: async (hash) => {
+                if (!storage.unpin) {
+                    throw new Error('Storage service does not support unpin operation');
+                }
+                await storage.unpin(hash);
             }
         };
+    }
+    getStorage() {
+        return this.originalStorage;
     }
     isBinaryFile(filename) {
         const binaryExtensions = [
@@ -119,8 +137,17 @@ class FileBackupAdapter {
         };
     }
     async delete(hash) {
-        const result = await this.storage?.unpin?.(hash);
-        return result === undefined ? false : true;
+        if (!this.storage.unpin) {
+            throw new Error('Storage service does not support delete operation');
+        }
+        try {
+            await this.storage.unpin(hash);
+            return true;
+        }
+        catch (error) {
+            console.error('Delete operation failed:', error);
+            return false;
+        }
     }
     async backup(sourcePath, options) {
         const backupData = {};
@@ -174,9 +201,6 @@ class FileBackupAdapter {
             data: backupData,
             metadata,
         };
-        if (!this.storage.uploadJson) {
-            throw new Error('Storage service does not support uploadJson operation');
-        }
         const result = await this.storage.uploadJson(uploadData, {
             pinataMetadata: {
                 name: path_1.default.basename(sourcePath),

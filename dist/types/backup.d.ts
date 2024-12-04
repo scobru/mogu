@@ -1,7 +1,5 @@
-import type { StorageService } from '../web3stash/services/base-storage';
 import type { VersionInfo } from '../versioning';
 import type { BackupData as MoguBackupData } from './mogu';
-import type { UploadOutput } from '../web3stash/types';
 export interface BackupOptions {
     encryption?: {
         enabled: boolean;
@@ -43,9 +41,14 @@ export interface FileData {
 export interface BackupData extends MoguBackupData {
     data: Record<string, FileData>;
 }
-export interface StorageServiceWithMetadata extends Partial<StorageService> {
+export interface StorageServiceWithMetadata {
     get(hash: string): Promise<MoguBackupData>;
-    uploadJson?(jsonData: Record<string, unknown>, options?: any): Promise<UploadOutput>;
+    getMetadata?(hash: string): Promise<any>;
+    uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<{
+        id: string;
+        metadata: Record<string, unknown>;
+    }>;
+    unpin?(hash: string): Promise<void>;
 }
 export interface IBackupAdapter {
     backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;

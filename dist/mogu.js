@@ -4,6 +4,7 @@ exports.Mogu = void 0;
 const fileBackupAdapter_1 = require("./adapters/fileBackupAdapter");
 const logger_1 = require("./utils/logger");
 const cache_1 = require("./utils/cache");
+const pinata_1 = require("./web3stash/services/pinata");
 /**
  * Mogu - Modern Decentralized Backup System
  * @class
@@ -37,6 +38,15 @@ const cache_1 = require("./utils/cache");
  * ```
  */
 class Mogu {
+    createStorageService(config) {
+        switch (config.storage.service) {
+            case 'PINATA':
+                return new pinata_1.PinataService(config.storage.config.apiKey, config.storage.config.apiSecret);
+            // Altri servizi verranno aggiunti qui
+            default:
+                throw new Error(`Servizio di storage non supportato: ${config.storage.service}`);
+        }
+    }
     /**
      * Creates a new instance of Mogu
      * @param {MoguConfig} config - Configuration object
@@ -47,10 +57,13 @@ class Mogu {
         this.backupFiles = this.backup;
         this.restoreFiles = this.restore;
         this.config = config;
-        this.fileBackup = new fileBackupAdapter_1.FileBackupAdapter(config.storage.service, {
-            apiKey: config.storage.config.apiKey,
-            apiSecret: config.storage.config.apiSecret,
-            endpoint: config.storage.config.endpoint
+        this.storage = this.createStorageService(config);
+        this.fileBackup = new fileBackupAdapter_1.FileBackupAdapter(this.storage, {
+            encryption: {
+                enabled: config.features.encryption.enabled,
+                algorithm: config.features.encryption.algorithm,
+                key: ''
+            }
         });
         logger_1.logger.info('Mogu initialized', { config: this.config });
     }
@@ -156,6 +169,63 @@ class Mogu {
             logger_1.logger.error('Restore failed', error, { operationId });
             throw error;
         }
+    }
+    /**
+     * Get the storage service instance
+     * @returns {StorageService} The storage service instance
+     */
+    getStorage() {
+        return this.storage;
+    }
+    /**
+     * Upload JSON data directly to storage
+     * @param {Record<string, unknown>} jsonData - The JSON data to upload
+     * @param {any} options - Upload options
+     * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
+     */
+    async uploadJson(jsonData, options) {
+        return this.storage.uploadJson(jsonData, options);
+    }
+    /**
+     * Upload a file directly to storage
+     * @param {string} path - Path to the file
+     * @param {any} options - Upload options
+     * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
+     */
+    async uploadFile(path, options) {
+        return this.storage.uploadFile(path, options);
+    }
+    /**
+     * Get data from storage by hash
+     * @param {string} hash - The hash to retrieve
+     * @returns {Promise<any>} The retrieved data
+     */
+    async getData(hash) {
+        return this.storage.get(hash);
+    }
+    /**
+     * Get metadata from storage by hash
+     * @param {string} hash - The hash to get metadata for
+     * @returns {Promise<any>} The metadata
+     */
+    async getMetadata(hash) {
+        return this.storage.getMetadata(hash);
+    }
+    /**
+     * Check if a hash is pinned in storage
+     * @param {string} hash - The hash to check
+     * @returns {Promise<boolean>} True if pinned, false otherwise
+     */
+    async isPinned(hash) {
+        return this.storage.isPinned(hash);
+    }
+    /**
+     * Unpin a hash from storage
+     * @param {string} hash - The hash to unpin
+     * @returns {Promise<void>}
+     */
+    async unpin(hash) {
+        return this.storage.unpin(hash);
     }
 }
 exports.Mogu = Mogu;

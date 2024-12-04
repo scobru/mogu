@@ -1,63 +1,30 @@
 import { StorageService } from "./base-storage";
 import type { UploadOutput } from "../types";
-import type { PinataClient, PinataPinOptions } from "@pinata/sdk";
-import pinataSDK from "@pinata/sdk";
+import { PinataSDK } from "pinata-web3";
 import axios from "axios";
 import { BackupData } from '../../types/mogu';
+import fs from 'fs';
 
-// Definiamo i tipi esatti come richiesto da Pinata
-type PinataMetadataValue = string | number | null;
-
-interface PinataMetadata {
-  name?: string;
-  keyvalues?: Record<string, PinataMetadataValue>;
-}
-
-// Non estendiamo PinataPinOptions, ma creiamo un tipo separato
-interface PinataUploadOptions {
-  pinataMetadata?: Record<string, PinataMetadataValue>;
-  pinataOptions?: {
-    cidVersion?: 0 | 1;
-    wrapWithDirectory?: boolean;
-    customPinPolicy?: {
-      regions: Array<{
-        id: string;
-        desiredReplicationCount: number;
-      }>;
-    };
+interface PinataOptions {
+  pinataMetadata?: {
+    name?: string;
+    keyvalues?: Record<string, string | number | null>;
   };
 }
 
 export class PinataService extends StorageService {
   public serviceBaseUrl = "ipfs://";
-  public readonly serviceInstance: PinataClient;
+  public readonly serviceInstance: PinataSDK;
 
-  constructor(pinataApiKey: string, pinataApiSecret: string) {
+  constructor(apiKey: string, apiSecret: string) {
     super();
-    this.serviceInstance = pinataSDK(pinataApiKey, pinataApiSecret);
+    this.serviceInstance = new PinataSDK({
+      pinataJwt: apiKey,
+      pinataGateway: "gateway.pinata.cloud"
+    });
   }
 
-  private formatPinataMetadata(metadata?: PinataMetadata): Record<string, PinataMetadataValue> {
-    if (!metadata) return {};
-
-    const result: Record<string, PinataMetadataValue> = {};
-    
-    if (metadata.name) {
-      result.name = metadata.name;
-    }
-
-    if (metadata.keyvalues) {
-      Object.entries(metadata.keyvalues).forEach(([key, value]) => {
-        if (value !== undefined) {
-          result[key] = value;
-        }
-      });
-    }
-
-    return result;
-  }
-
-  public async get(hash: string) {
+  public async get(hash: string): Promise<BackupData> {
     try {
       if (!hash || typeof hash !== 'string') {
         throw new Error('Hash non valido');
@@ -71,7 +38,7 @@ export class PinataService extends StorageService {
     }
   }
 
-  public getEndpoint() {
+  public getEndpoint(): string {
     return "https://gateway.pinata.cloud/ipfs/";
   }
 
@@ -90,29 +57,26 @@ export class PinataService extends StorageService {
       }
 
       // Esegui l'unpin
-      await this.serviceInstance.unpin(hash);
+      await this.serviceInstance.unpin([hash]);
       console.log(`Comando unpin eseguito per l'hash: ${hash}`);
-
-      // Non aspettiamo la conferma immediata, l'operazione potrebbe richiedere tempo
-      // per propagarsi attraverso la rete IPFS
     } catch (error) {
       if (error instanceof Error && error.message.includes('is not pinned')) {
         console.log(`L'hash ${hash} non è pinnato nel servizio`);
         return;
       }
       console.error('Errore durante unpin da Pinata:', error);
-      throw new Error(`Failed to unpin hash ${hash}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 
-  public async uploadJson(jsonData: Record<string, unknown>, options?: PinataUploadOptions): Promise<UploadOutput> {
+  public async uploadJson(jsonData: Record<string, unknown>, options?: PinataOptions): Promise<UploadOutput> {
     try {
-      const pinataOptions: PinataPinOptions = {
-        pinataMetadata: this.formatPinataMetadata(options?.pinataMetadata as PinataMetadata),
-        pinataOptions: options?.pinataOptions
-      };
-
-      const response = await this.serviceInstance.pinJSONToIPFS(jsonData, pinataOptions);
+      const blob = new Blob([JSON.stringify(jsonData)], { type: 'application/json' });
+      const file = new File([blob], 'data.json', { type: 'application/json' });
+      
+      const response = await this.serviceInstance.upload.file(file, {
+        metadata: options?.pinataMetadata
+      });
       
       return {
         id: response.IpfsHash,
@@ -120,9 +84,33 @@ export class PinataService extends StorageService {
           timestamp: Date.now(),
           size: JSON.stringify(jsonData).length,
           type: 'json',
-          ...response,
-          data: jsonData
-        },
+          ...response
+        }
+      };
+    } catch (error) {
+      console.error("Errore con Pinata:", error);
+      throw error;
+    }
+  }
+
+  public async uploadFile(path: string, options?: PinataOptions): Promise<UploadOutput> {
+    try {
+      const fileContent = await fs.promises.readFile(path);
+      const file = new File([fileContent], path.split('/').pop() || 'file', {
+        type: 'application/octet-stream'
+      });
+      
+      const response = await this.serviceInstance.upload.file(file, {
+        metadata: options?.pinataMetadata
+      });
+      
+      return {
+        id: response.IpfsHash,
+        metadata: {
+          timestamp: Date.now(),
+          type: 'file',
+          ...response
+        }
       };
     } catch (error) {
       console.error("Errore con Pinata:", error);
@@ -132,49 +120,18 @@ export class PinataService extends StorageService {
 
   public async getMetadata(hash: string): Promise<any> {
     try {
-      const pinList = await this.serviceInstance.pinList({
-        hashContains: hash
+      const response = await this.serviceInstance.query.files({
+        hashContains: hash,
+        limit: 1
       });
-
-      if (pinList.rows && pinList.rows.length > 0) {
-        return pinList.rows[0].metadata;
+      if (response.items.length > 0) {
+        return response.items[0];
       }
-      
       return null;
     } catch (error) {
       console.error('Errore nel recupero dei metadata:', error);
       throw error;
     }
-  }
-
-  public async uploadImage(path: string, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFromFS(path, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
-  }
-
-  public async uploadVideo(path: string, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFromFS(path, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
-  }
-
-  public async uploadFile(path: string, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFromFS(path, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
-  }
-
-  public async uploadImageFromStream(readableStream: any, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
-  }
-
-  public async uploadVideoFromStream(readableStream: any, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
-  }
-
-  public async uploadFileFromStream(readableStream: any, options?: any): Promise<UploadOutput> {
-    const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-    return { id: response.IpfsHash, metadata: { ...response } };
   }
 
   public async isPinned(hash: string): Promise<boolean> {
@@ -183,17 +140,25 @@ export class PinataService extends StorageService {
         throw new Error('Hash non valido');
       }
       console.log(`Verifica pin per l'hash: ${hash}`);
-      const pinList = await this.serviceInstance.pinList({
-        hashContains: hash
+      const response = await this.serviceInstance.query.files({
+        hashContains: hash,
+        limit: 1
       });
-      
-      const isPinned = pinList.rows && pinList.rows.length > 0 && 
-                      pinList.rows.some(row => row.ipfs_pin_hash === hash);
+      const isPinned = response.items.length > 0;
       console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
       return isPinned;
     } catch (error) {
       console.error('Errore durante la verifica del pin:', error);
       return false;
     }
+  }
+
+  // Metodi non utilizzati ma richiesti dall'interfaccia
+  public async uploadImage(path: string, options?: any): Promise<UploadOutput> {
+    return this.uploadFile(path, options);
+  }
+
+  public async uploadVideo(path: string, options?: any): Promise<UploadOutput> {
+    return this.uploadFile(path, options);
   }
 }

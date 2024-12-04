@@ -1,6 +1,7 @@
 import { BackupOptions, BackupResult } from './types/backup';
 import { defaultConfig } from './config';
 import { VersionComparison, DetailedComparison } from './versioning';
+import { StorageService } from './web3stash/services/base-storage';
 type MoguConfig = typeof defaultConfig;
 /**
  * Mogu - Modern Decentralized Backup System
@@ -37,6 +38,8 @@ type MoguConfig = typeof defaultConfig;
 export declare class Mogu {
     private config;
     private fileBackup;
+    private storage;
+    private createStorageService;
     /**
      * Creates a new instance of Mogu
      * @param {MoguConfig} config - Configuration object
@@ -83,6 +86,49 @@ export declare class Mogu {
      * @throws {Error} If restore fails
      */
     restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
+    /**
+     * Get the storage service instance
+     * @returns {StorageService} The storage service instance
+     */
+    getStorage(): StorageService;
+    /**
+     * Upload JSON data directly to storage
+     * @param {Record<string, unknown>} jsonData - The JSON data to upload
+     * @param {any} options - Upload options
+     * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
+     */
+    uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<import("./web3stash/types").UploadOutput>;
+    /**
+     * Upload a file directly to storage
+     * @param {string} path - Path to the file
+     * @param {any} options - Upload options
+     * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
+     */
+    uploadFile(path: string, options?: any): Promise<import("./web3stash/types").UploadOutput>;
+    /**
+     * Get data from storage by hash
+     * @param {string} hash - The hash to retrieve
+     * @returns {Promise<any>} The retrieved data
+     */
+    getData(hash: string): Promise<import(".").BackupData>;
+    /**
+     * Get metadata from storage by hash
+     * @param {string} hash - The hash to get metadata for
+     * @returns {Promise<any>} The metadata
+     */
+    getMetadata(hash: string): Promise<any>;
+    /**
+     * Check if a hash is pinned in storage
+     * @param {string} hash - The hash to check
+     * @returns {Promise<boolean>} True if pinned, false otherwise
+     */
+    isPinned(hash: string): Promise<boolean>;
+    /**
+     * Unpin a hash from storage
+     * @param {string} hash - The hash to unpin
+     * @returns {Promise<void>}
+     */
+    unpin(hash: string): Promise<void>;
     backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }

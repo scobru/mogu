@@ -1,35 +1,25 @@
 import { StorageService } from "./base-storage";
 import type { UploadOutput } from "../types";
-import type { PinataClient } from "@pinata/sdk";
-type PinataMetadataValue = string | number | null;
-interface PinataUploadOptions {
-    pinataMetadata?: Record<string, PinataMetadataValue>;
-    pinataOptions?: {
-        cidVersion?: 0 | 1;
-        wrapWithDirectory?: boolean;
-        customPinPolicy?: {
-            regions: Array<{
-                id: string;
-                desiredReplicationCount: number;
-            }>;
-        };
+import { PinataSDK } from "pinata-web3";
+import { BackupData } from '../../types/mogu';
+interface PinataOptions {
+    pinataMetadata?: {
+        name?: string;
+        keyvalues?: Record<string, string | number | null>;
     };
 }
 export declare class PinataService extends StorageService {
     serviceBaseUrl: string;
-    readonly serviceInstance: PinataClient;
-    constructor(pinataApiKey: string, pinataApiSecret: string);
-    private formatPinataMetadata;
-    get(hash: string): Promise<any>;
+    readonly serviceInstance: PinataSDK;
+    constructor(apiKey: string, apiSecret: string);
+    get(hash: string): Promise<BackupData>;
     getEndpoint(): string;
     unpin(hash: string): Promise<void>;
-    uploadJson(jsonData: Record<string, unknown>, options?: PinataUploadOptions): Promise<UploadOutput>;
+    uploadJson(jsonData: Record<string, unknown>, options?: PinataOptions): Promise<UploadOutput>;
+    uploadFile(path: string, options?: PinataOptions): Promise<UploadOutput>;
     getMetadata(hash: string): Promise<any>;
+    isPinned(hash: string): Promise<boolean>;
     uploadImage(path: string, options?: any): Promise<UploadOutput>;
     uploadVideo(path: string, options?: any): Promise<UploadOutput>;
-    uploadFile(path: string, options?: any): Promise<UploadOutput>;
-    uploadImageFromStream(readableStream: any, options?: any): Promise<UploadOutput>;
-    uploadVideoFromStream(readableStream: any, options?: any): Promise<UploadOutput>;
-    uploadFileFromStream(readableStream: any, options?: any): Promise<UploadOutput>;
 }
 export {};

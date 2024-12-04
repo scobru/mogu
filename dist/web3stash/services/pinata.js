@@ -5,29 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PinataService = void 0;
 const base_storage_1 = require("./base-storage");
-const sdk_1 = __importDefault(require("@pinata/sdk"));
+const pinata_web3_1 = require("pinata-web3");
 const axios_1 = __importDefault(require("axios"));
+const fs_1 = __importDefault(require("fs"));
 class PinataService extends base_storage_1.StorageService {
-    constructor(pinataApiKey, pinataApiSecret) {
+    constructor(apiKey, apiSecret) {
         super();
         this.serviceBaseUrl = "ipfs://";
-        this.serviceInstance = (0, sdk_1.default)(pinataApiKey, pinataApiSecret);
-    }
-    formatPinataMetadata(metadata) {
-        if (!metadata)
-            return {};
-        const result = {};
-        if (metadata.name) {
-            result.name = metadata.name;
-        }
-        if (metadata.keyvalues) {
-            Object.entries(metadata.keyvalues).forEach(([key, value]) => {
-                if (value !== undefined) {
-                    result[key] = value;
-                }
-            });
-        }
-        return result;
+        this.serviceInstance = new pinata_web3_1.PinataSDK({
+            pinataJwt: apiKey,
+            pinataGateway: "gateway.pinata.cloud"
+        });
     }
     async get(hash) {
         try {
@@ -46,21 +34,68 @@ class PinataService extends base_storage_1.StorageService {
         return "https://gateway.pinata.cloud/ipfs/";
     }
     async unpin(hash) {
-        await this.serviceInstance.unpin(hash);
+        try {
+            if (!hash || typeof hash !== 'string') {
+                throw new Error('Hash non valido');
+            }
+            console.log(`Tentativo di unpin per l'hash: ${hash}`);
+            // Prima verifica se è già unpinnato
+            const isPinnedBefore = await this.isPinned(hash);
+            if (!isPinnedBefore) {
+                console.log(`L'hash ${hash} è già unpinnato`);
+                return;
+            }
+            // Esegui l'unpin
+            await this.serviceInstance.unpin([hash]);
+            console.log(`Comando unpin eseguito per l'hash: ${hash}`);
+        }
+        catch (error) {
+            if (error instanceof Error && error.message.includes('is not pinned')) {
+                console.log(`L'hash ${hash} non è pinnato nel servizio`);
+                return;
+            }
+            console.error('Errore durante unpin da Pinata:', error);
+            throw error;
+        }
     }
     async uploadJson(jsonData, options) {
         try {
-            const pinataOptions = {
-                pinataMetadata: this.formatPinataMetadata(options?.pinataMetadata),
-                pinataOptions: options?.pinataOptions
-            };
-            const response = await this.serviceInstance.pinJSONToIPFS(jsonData, pinataOptions);
+            const blob = new Blob([JSON.stringify(jsonData)], { type: 'application/json' });
+            const file = new File([blob], 'data.json', { type: 'application/json' });
+            const response = await this.serviceInstance.upload.file(file, {
+                metadata: options?.pinataMetadata
+            });
             return {
                 id: response.IpfsHash,
                 metadata: {
-                    ...response,
-                    data: jsonData
-                },
+                    timestamp: Date.now(),
+                    size: JSON.stringify(jsonData).length,
+                    type: 'json',
+                    ...response
+                }
+            };
+        }
+        catch (error) {
+            console.error("Errore con Pinata:", error);
+            throw error;
+        }
+    }
+    async uploadFile(path, options) {
+        try {
+            const fileContent = await fs_1.default.promises.readFile(path);
+            const file = new File([fileContent], path.split('/').pop() || 'file', {
+                type: 'application/octet-stream'
+            });
+            const response = await this.serviceInstance.upload.file(file, {
+                metadata: options?.pinataMetadata
+            });
+            return {
+                id: response.IpfsHash,
+                metadata: {
+                    timestamp: Date.now(),
+                    type: 'file',
+                    ...response
+                }
             };
         }
         catch (error) {
@@ -70,11 +105,12 @@ class PinataService extends base_storage_1.StorageService {
     }
     async getMetadata(hash) {
         try {
-            const pinList = await this.serviceInstance.pinList({
-                hashContains: hash
+            const response = await this.serviceInstance.query.files({
+                hashContains: hash,
+                limit: 1
             });
-            if (pinList.rows && pinList.rows.length > 0) {
-                return pinList.rows[0].metadata;
+            if (response.items.length > 0) {
+                return response.items[0];
             }
             return null;
         }
@@ -83,29 +119,31 @@ class PinataService extends base_storage_1.StorageService {
             throw error;
         }
     }
+    async isPinned(hash) {
+        try {
+            if (!hash || typeof hash !== 'string') {
+                throw new Error('Hash non valido');
+            }
+            console.log(`Verifica pin per l'hash: ${hash}`);
+            const response = await this.serviceInstance.query.files({
+                hashContains: hash,
+                limit: 1
+            });
+            const isPinned = response.items.length > 0;
+            console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
+            return isPinned;
+        }
+        catch (error) {
+            console.error('Errore durante la verifica del pin:', error);
+            return false;
+        }
+    }
+    // Metodi non utilizzati ma richiesti dall'interfaccia
     async uploadImage(path, options) {
-        const response = await this.serviceInstance.pinFromFS(path, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
+        return this.uploadFile(path, options);
     }
     async uploadVideo(path, options) {
-        const response = await this.serviceInstance.pinFromFS(path, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
-    }
-    async uploadFile(path, options) {
-        const response = await this.serviceInstance.pinFromFS(path, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
-    }
-    async uploadImageFromStream(readableStream, options) {
-        const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
-    }
-    async uploadVideoFromStream(readableStream, options) {
-        const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
-    }
-    async uploadFileFromStream(readableStream, options) {
-        const response = await this.serviceInstance.pinFileToIPFS(readableStream, options);
-        return { id: response.IpfsHash, metadata: { ...response } };
+        return this.uploadFile(path, options);
     }
 }
 exports.PinataService = PinataService;
