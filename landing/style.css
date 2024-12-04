@@ -1,0 +1,122 @@
+:root {
+    --primary: #6366f1;
+    --secondary: #4f46e5;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: #374151;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #4b5563;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* Code blocks */
+pre {
+    overflow-x: auto;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #1a1a1a !important;
+    color: #e5e7eb !important;
+}
+
+.dark pre {
+    background: #111827 !important;
+}
+
+code {
+    font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* Custom transitions */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+/* Feature cards hover effect */
+.hover\:shadow-lg:hover {
+    transform: translateY(-2px);
+}
+
+/* Dark mode specific styles */
+.dark .bg-white {
+    background-color: #1f2937;
+}
+
+.dark .text-gray-800 {
+    color: #f3f4f6;
+}
+
+.dark .border-gray-300 {
+    border-color: #4b5563;
+}
+
+/* Custom button styles */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark .btn:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+}
+
+/* Logo styles */
+.logo-container {
+    position: relative;
+    display: inline-block;
+}
+
+.logo-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, rgba(0,0,0,0) 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.logo-container:hover::after {
+    opacity: 1;
+} 
