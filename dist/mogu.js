@@ -133,5 +133,18 @@ class Mogu {
             throw error;
         }
     }
+    // use unping to create a "remove" method
+    async remove(hash) {
+        const operationId = logger_1.logger.startOperation('remove');
+        try {
+            const result = await this.fileBackup.remove(hash);
+            logger_1.logger.endOperation(operationId, 'remove');
+            return result;
+        }
+        catch (error) {
+            logger_1.logger.error('Remove failed', error, { operationId });
+            throw error;
+        }
+    }
 }
 exports.Mogu = Mogu;

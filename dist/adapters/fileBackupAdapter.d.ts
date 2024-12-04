@@ -7,6 +7,7 @@ export declare class FileBackupAdapter implements IBackupAdapter {
     constructor(storageService: Web3StashServices, storageConfig: any);
     private isBinaryFile;
     private getMimeType;
+    remove(hash: string): Promise<boolean>;
     backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;
     restore(hash: string, targetPath: string, options?: BackupOptions): Promise<boolean>;
     get(hash: string): Promise<BackupData>;

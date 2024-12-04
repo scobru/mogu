@@ -53,6 +53,11 @@ export class FileBackupAdapter implements IBackupAdapter {
     };
     return mimeTypes[ext] || 'application/octet-stream';
   }
+  
+  async remove(hash: string): Promise<boolean> {
+    const result = await this.storage?.unpin?.(hash);
+    return result === undefined ? false : true;
+  }
 
   async backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult> {
     const backupData: Record<string, any> = {};

@@ -133,24 +133,27 @@ const mogu = new Mogu({
 const backup = await mogu.backup('./data');
 
 // Restore
-await mogu.restore(backup.hash, './restore');</code></pre>
+await mogu.restore(backup.hash, './restore');
+
+// Remove backup
+await mogu.remove(backup.hash);</code></pre>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Documentation -->
-    <section id="docs" class="py-16 bg-white">
+    <section id="docs" class="py-16 bg-white dark:bg-gray-900">
         <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-12">Documentation</h2>
+            <h2 class="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-white">Documentation</h2>
             
             <!-- Advanced Usage -->
             <div class="max-w-4xl mx-auto mb-16">
-                <h3 class="text-2xl font-semibold mb-6">Advanced Usage</h3>
+                <h3 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">Advanced Usage</h3>
                 
                 <!-- Encrypted Backup -->
                 <div class="mb-8">
-                    <h4 class="text-xl font-semibold mb-4">Encrypted Backup</h4>
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Encrypted Backup</h4>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code>// Backup with encryption
 const backup = await mogu.backup('./data', {
@@ -172,7 +175,7 @@ await mogu.restore(backup.hash, './restore', {
 
                 <!-- Backup Options -->
                 <div class="mb-8">
-                    <h4 class="text-xl font-semibold mb-4">Backup Options</h4>
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Backup Options</h4>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code>const backup = await mogu.backup('./data', {
   // Exclude patterns
@@ -195,8 +198,8 @@ await mogu.restore(backup.hash, './restore', {
 
                 <!-- Caching System -->
                 <div class="mb-8">
-                    <h4 class="text-xl font-semibold mb-4">Caching System</h4>
-                    <p class="text-gray-600 mb-4">Mogu includes a smart caching system for faster operations:</p>
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Caching System</h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-4">Mogu includes a smart caching system for faster operations:</p>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code>// Cache is automatically used for faster operations
 const backup1 = await mogu.backup('./data');
@@ -209,7 +212,7 @@ await mogu.restore(backup1.hash, './restore');</code></pre>
 
                 <!-- Configuration -->
                 <div class="mb-8">
-                    <h4 class="text-xl font-semibold mb-4">Full Configuration</h4>
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Full Configuration</h4>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code>const mogu = new Mogu({
   // Storage configuration
@@ -250,7 +253,7 @@ await mogu.restore(backup1.hash, './restore');</code></pre>
 
                 <!-- File Comparison -->
                 <div class="mb-8">
-                    <h4 class="text-xl font-semibold mb-4">File Comparison</h4>
+                    <h4 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">File Comparison</h4>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code>// Detailed file comparison
 const details = await mogu.compareDetailed(backup.hash, './data');
@@ -268,7 +271,7 @@ details.differences.forEach(diff => {
   }
 });</code></pre>
                     </div>
-                    <p class="text-gray-600 mt-4">
+                    <p class="text-gray-600 dark:text-gray-300 mt-4">
                         The comparison system supports recursive directory structures and provides 
                         detailed change information, including checksums and file sizes.
                     </p>
@@ -278,8 +281,8 @@ details.differences.forEach(diff => {
             <!-- Storage & Features Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div>
-                    <h3 class="text-xl font-semibold mb-4">Storage Providers</h3>
-                    <ul class="space-y-2 text-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Storage Providers</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300">
                         <li><i class="fas fa-check text-green-500 mr-2"></i>PINATA - Managed IPFS storage</li>
                         <li><i class="fas fa-check text-green-500 mr-2"></i>IPFS-CLIENT - Local IPFS node</li>
                         <li><i class="fas fa-check text-green-500 mr-2"></i>BUNDLR - Arweave storage</li>
@@ -290,7 +293,7 @@ details.differences.forEach(diff => {
                     </ul>
                 </div>
                 <div>
-                    <h3 class="text-xl font-semibold mb-4">Development</h3>
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Development</h3>
                     <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
                         <pre class="text-green-400"><code># Install dependencies
 yarn install
@@ -330,7 +333,7 @@ yarn build</code></pre>
                 </div>
             </div>
             <div class="mt-8 text-center text-gray-400">
-                <p>MIT © Mogu</p>
+                <p>MIT © Scobru</p>
             </div>
         </div>
     </footer>

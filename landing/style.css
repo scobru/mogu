@@ -53,10 +53,16 @@ pre {
 
 .dark pre {
     background: #111827 !important;
+    border: 1px solid #374151;
 }
 
 code {
     font-family: 'Fira Code', 'Consolas', monospace;
+    color: #10b981;
+}
+
+.dark code {
+    color: #34d399;
 }
 
 /* Custom transitions */
@@ -80,6 +86,10 @@ code {
     color: #f3f4f6;
 }
 
+.dark .text-gray-600 {
+    color: #d1d5db;
+}
+
 .dark .border-gray-300 {
     border-color: #4b5563;
 }
@@ -94,8 +104,13 @@ code {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+.dark .btn {
+    background-color: #4b5563;
+    color: #f3f4f6;
+}
+
 .dark .btn:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+    background-color: #6b7280;
 }
 
 /* Logo styles */

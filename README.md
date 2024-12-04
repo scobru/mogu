@@ -64,6 +64,10 @@ console.log(`Files deleted: ${details.totalChanges.deleted}`);
 
 // Restore from backup
 await mogu.restore(backup.hash, "./restored");
+
+// Remove a backup
+const removed = await mogu.remove(backup.hash);
+console.log("Backup removed:", removed);
 ```
 
 ## Configuration
@@ -104,6 +108,31 @@ const mogu = new Mogu({
   },
 });
 ```
+
+## Landing Page
+
+Mogu include una landing page moderna e reattiva con supporto per il tema chiaro/scuro. Per utilizzarla:
+
+1. Copia la directory `landing/` nel tuo progetto
+2. Personalizza i contenuti in `index.html`
+3. Modifica gli stili in `style.css`
+
+Caratteristiche della landing page:
+- 🌓 Tema chiaro/scuro automatico
+- 📱 Design completamente responsive
+- ⚡ Animazioni fluide
+- 🎨 Stili personalizzabili con Tailwind CSS
+- 📚 Documentazione integrata
+- 🔗 Collegamenti ai social media
+
+### Personalizzazione
+
+Puoi personalizzare la landing page modificando:
+- Logo e immagini
+- Colori e temi
+- Contenuti e sezioni
+- Link ai social media
+- Configurazione di Tailwind CSS
 
 ## Version Comparison
 

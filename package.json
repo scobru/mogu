@@ -1,6 +1,6 @@
 {
   "name": "@scobru/mogu",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "commonjs",

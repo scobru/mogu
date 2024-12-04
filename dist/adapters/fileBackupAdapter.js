@@ -35,6 +35,10 @@ class FileBackupAdapter {
         };
         return mimeTypes[ext] || 'application/octet-stream';
     }
+    async remove(hash) {
+        const result = await this.storage?.unpin?.(hash);
+        return result === undefined ? false : true;
+    }
     async backup(sourcePath, options) {
         const backupData = {};
         // Funzione ricorsiva per processare le directory

@@ -139,6 +139,19 @@ export class Mogu {
     }
   }
 
+  // use unping to create a "remove" method
+  public async remove(hash: string): Promise<boolean> {
+    const operationId = logger.startOperation('remove');
+    try {
+      const result = await this.fileBackup.remove(hash);
+      logger.endOperation(operationId, 'remove');
+      return result;
+    } catch (error) {
+      logger.error('Remove failed', error as Error, { operationId });
+      throw error;
+    }
+  }
+
   // Alias per compatibilità
   public backupFiles = this.backup;
   public restoreFiles = this.restore;

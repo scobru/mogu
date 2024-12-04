@@ -70,6 +70,7 @@ export declare class Mogu {
      * @throws {Error} Se il confronto fallisce
      */
     compareDetailed(hash: string, sourcePath: string): Promise<DetailedComparison>;
+    remove(hash: string): Promise<boolean>;
     backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }
