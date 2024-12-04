@@ -211,6 +211,10 @@ yarn test
 yarn build
 ```
 
+## Related Projects
+
+Mogu builds upon the existing work of [Web3Stash](https://github.com/mbcse/web3stash), a standard library for connecting to multiple decentralized storage providers.
+
 ## License
 
 MIT License
@@ -234,3 +238,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
