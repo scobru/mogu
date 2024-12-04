@@ -21,49 +21,49 @@ yarn add mogu
 ```
 
 ```typescript
-import { Mogu } from 'mogu';
+import { Mogu } from "mogu";
 
 // Initialize Mogu
 const mogu = new Mogu({
   storage: {
-    service: 'PINATA',
+    service: "PINATA",
     config: {
-      apiKey: 'your-api-key',
-      apiSecret: 'your-secret'
-    }
+      apiKey: "your-api-key",
+      apiSecret: "your-secret",
+    },
   },
   features: {
     encryption: {
       enabled: true,
-      algorithm: 'aes-256-gcm'
-    }
+      algorithm: "aes-256-gcm",
+    },
   },
   performance: {
     maxConcurrent: 3,
     chunkSize: 1024 * 1024,
-    cacheEnabled: true
-  }
+    cacheEnabled: true,
+  },
 });
 
 // Create a backup
-const backup = await mogu.backup('./data');
-console.log('Backup created:', backup.hash);
+const backup = await mogu.backup("./data");
+console.log("Backup created:", backup.hash);
 
 // Compare changes
-const comparison = await mogu.compare(backup.hash, './data');
+const comparison = await mogu.compare(backup.hash, "./data");
 if (!comparison.isEqual) {
-  console.log('Changes detected!');
+  console.log("Changes detected!");
   console.log(`Time since backup: ${comparison.formattedDiff}`);
 }
 
 // Get detailed changes
-const details = await mogu.compareDetailed(backup.hash, './data');
+const details = await mogu.compareDetailed(backup.hash, "./data");
 console.log(`Files added: ${details.totalChanges.added}`);
 console.log(`Files modified: ${details.totalChanges.modified}`);
 console.log(`Files deleted: ${details.totalChanges.deleted}`);
 
 // Restore from backup
-await mogu.restore(backup.hash, './restored');
+await mogu.restore(backup.hash, "./restored");
 ```
 
 ## Configuration
@@ -72,36 +72,36 @@ await mogu.restore(backup.hash, './restored');
 const mogu = new Mogu({
   // Storage configuration
   storage: {
-    service: 'PINATA',  // IPFS storage provider
+    service: "PINATA", // IPFS storage provider
     config: {
-      apiKey: 'your-api-key',
-      apiSecret: 'your-secret'
-    }
+      apiKey: "your-api-key",
+      apiSecret: "your-secret",
+    },
   },
-  
+
   // File paths
   paths: {
-    backup: './backup',    // Source directory
-    restore: './restore',  // Restore directory
-    storage: './storage',  // Local storage
-    logs: './logs'        // Log files
+    backup: "./backup", // Source directory
+    restore: "./restore", // Restore directory
+    storage: "./storage", // Local storage
+    logs: "./logs", // Log files
   },
-  
+
   // Features
   features: {
     encryption: {
       enabled: true,
-      algorithm: 'aes-256-gcm'
-    }
+      algorithm: "aes-256-gcm",
+    },
   },
-  
+
   // Performance tuning
   performance: {
-    maxConcurrent: 3,        // Concurrent operations
-    chunkSize: 1024 * 1024,  // 1MB chunks
-    cacheEnabled: true,      // Enable caching
-    cacheSize: 100          // Cache size
-  }
+    maxConcurrent: 3, // Concurrent operations
+    chunkSize: 1024 * 1024, // 1MB chunks
+    cacheEnabled: true, // Enable caching
+    cacheSize: 100, // Cache size
+  },
 });
 ```
 
@@ -111,35 +111,37 @@ Mogu provides powerful comparison features to track changes between your local f
 
 ```typescript
 // Basic comparison
-const comparison = await mogu.compare(backup.hash, './data');
-console.log('Files changed:', !comparison.isEqual);
-console.log('Local version is newer:', comparison.isNewer);
-console.log('Time difference:', comparison.formattedDiff);
+const comparison = await mogu.compare(backup.hash, "./data");
+console.log("Files changed:", !comparison.isEqual);
+console.log("Local version is newer:", comparison.isNewer);
+console.log("Time difference:", comparison.formattedDiff);
 
 // Detailed comparison
-const details = await mogu.compareDetailed(backup.hash, './data');
-console.log('Added files:', details.totalChanges.added);
-console.log('Modified files:', details.totalChanges.modified);
-console.log('Deleted files:', details.totalChanges.deleted);
+const details = await mogu.compareDetailed(backup.hash, "./data");
+console.log("Added files:", details.totalChanges.added);
+console.log("Modified files:", details.totalChanges.modified);
+console.log("Deleted files:", details.totalChanges.deleted);
 
 // Inspect specific changes
 details.differences.forEach(diff => {
   console.log(`File: ${diff.path}`);
   console.log(`Change type: ${diff.type}`); // 'added', 'modified', or 'deleted'
-  if (diff.type === 'modified') {
-    console.log(`Old size: ${diff.size.old}`);
+  if (diff.type === "modified") {
+    console.log(`Previous size: ${diff.size.old}`);
     console.log(`New size: ${diff.size.new}`);
+    console.log(`Previous checksum: ${diff.oldChecksum}`);
+    console.log(`New checksum: ${diff.newChecksum}`);
   }
 });
-
-// Compare specific versions
-const versionInfo = {
-  localVersion: details.localVersion,
-  remoteVersion: details.remoteVersion,
-  timeDiff: details.timeDiff,
-  formattedDiff: details.formattedDiff
-};
 ```
+
+The comparison system:
+
+- Supports recursive directory structures
+- Compares actual file contents
+- Provides detailed change information
+- Calculates checksums for each file
+- Tracks file sizes
 
 ## Storage Providers
 
@@ -159,40 +161,40 @@ Choose your preferred storage:
 
 ```typescript
 // Backup with encryption
-const backup = await mogu.backup('./data', {
+const backup = await mogu.backup("./data", {
   encryption: {
     enabled: true,
-    key: 'your-encryption-key'
-  }
+    key: "your-encryption-key",
+  },
 });
 
 // Restore encrypted backup
-await mogu.restore(backup.hash, './restore', {
+await mogu.restore(backup.hash, "./restore", {
   encryption: {
     enabled: true,
-    key: 'your-encryption-key'
-  }
+    key: "your-encryption-key",
+  },
 });
 ```
 
 ### Backup Options
 
 ```typescript
-const backup = await mogu.backup('./data', {
+const backup = await mogu.backup("./data", {
   // Exclude patterns
-  excludePatterns: ['*.log', '.DS_Store'],
-  
+  excludePatterns: ["*.log", ".DS_Store"],
+
   // File size limits
   maxFileSize: 100 * 1024 * 1024, // 100MB
-  
+
   // Recursive backup
   recursive: true,
-  
+
   // Custom metadata
   metadata: {
-    description: 'Daily backup',
-    tags: ['prod', 'db']
-  }
+    description: "Daily backup",
+    tags: ["prod", "db"],
+  },
 });
 ```
 
@@ -211,4 +213,24 @@ yarn build
 
 ## License
 
-MIT © [@scobru/mogu](https://github.com/scobru/mogu)
+MIT License
+
+Copyright (c) 2024 scobru
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -226,6 +226,32 @@ await mogu.restore(backup1.hash, './restore');</code></pre>
 });</code></pre>
                     </div>
                 </div>
+
+                <!-- File Comparison -->
+                <div class="mb-8">
+                    <h4 class="text-xl font-semibold mb-4">File Comparison</h4>
+                    <div class="bg-gray-800 dark:bg-black rounded-lg p-6">
+                        <pre class="text-green-400"><code>// Detailed file comparison
+const details = await mogu.compareDetailed(backup.hash, './data');
+
+// Analyze changes
+details.differences.forEach(diff => {
+  console.log(`File: ${diff.path}`);
+  console.log(`Change type: ${diff.type}`);
+  
+  if (diff.type === 'modified') {
+    console.log(`Previous size: ${diff.size.old}`);
+    console.log(`New size: ${diff.size.new}`);
+    console.log(`Previous checksum: ${diff.oldChecksum}`);
+    console.log(`New checksum: ${diff.newChecksum}`);
+  }
+});</code></pre>
+                    </div>
+                    <p class="text-gray-600 mt-4">
+                        The comparison system supports recursive directory structures and provides 
+                        detailed change information, including checksums and file sizes.
+                    </p>
+                </div>
             </div>
 
             <!-- Storage & Features Grid -->

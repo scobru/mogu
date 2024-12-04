@@ -59,26 +59,24 @@ export class FileBackupAdapter implements IBackupAdapter {
     
     // Funzione ricorsiva per processare le directory
     const processDirectory = async (dirPath: string, baseDir: string = '') => {
-      const files = await fs.readdir(dirPath);
+      const files = await fs.readdir(dirPath, { withFileTypes: true });
       
       for (const file of files) {
-        if (options?.excludePatterns?.some((pattern: string) => file.match(pattern))) continue;
+        if (options?.excludePatterns?.some((pattern: string) => file.name.match(pattern))) continue;
         
-        const fullPath = path.join(dirPath, file);
-        const relativePath = path.join(baseDir, file).replace(/\\/g, '/');
-        const stats = await fs.stat(fullPath);
+        const fullPath = path.join(dirPath, file.name);
+        const relativePath = path.join(baseDir, file.name).replace(/\\/g, '/');
         
-        if (stats.isDirectory()) {
-          if (options?.recursive) {
-            await processDirectory(fullPath, relativePath);
-          }
+        if (file.isDirectory()) {
+          await processDirectory(fullPath, relativePath);
           continue;
         }
   
+        const stats = await fs.stat(fullPath);
         if (options?.maxFileSize && stats.size > options.maxFileSize) continue;
   
         const content = await fs.readFile(fullPath);
-        const isBinary = this.isBinaryFile(file);
+        const isBinary = this.isBinaryFile(file.name);
         
         let fileData: FileData;
         
@@ -89,13 +87,13 @@ export class FileBackupAdapter implements IBackupAdapter {
             isEncrypted: true,
             encrypted: encrypted.toString('base64'),
             iv: iv.toString('base64'),
-            mimeType: this.getMimeType(file)
+            mimeType: this.getMimeType(file.name)
           };
         } else {
           fileData = {
             type: isBinary ? 'binary' : 'text',
             content: isBinary ? content.toString('base64') : content.toString('utf8'),
-            mimeType: this.getMimeType(file)
+            mimeType: this.getMimeType(file.name)
           };
         }
         
@@ -146,10 +144,14 @@ export class FileBackupAdapter implements IBackupAdapter {
       new Encryption(options.encryption.key, options.encryption.algorithm) : 
       null;
 
+    // Assicurati che la directory principale esista
     await fs.ensureDir(targetPath);
     
     for (const [fileName, fileData] of Object.entries<FileData>(backup.data)) {
       const filePath = path.join(targetPath, fileName);
+      
+      // Assicurati che la directory del file esista
+      await fs.ensureDir(path.dirname(filePath));
       
       if (fileData.isEncrypted && encryption && fileData.encrypted && fileData.iv) {
         // Decripta il contenuto
@@ -177,70 +179,47 @@ export class FileBackupAdapter implements IBackupAdapter {
 
   async compare(hash: string, sourcePath: string): Promise<VersionComparison> {
     try {
-      // Leggi i file locali
-      const files = await fs.readdir(sourcePath);
-      const localData: Record<string, any> = {};
-
-      for (const file of files) {
-        const filePath = path.join(sourcePath, file);
-        const stats = await fs.stat(filePath);
-        
-        if (stats.isDirectory()) continue;
-        
-        const content = await fs.readFile(filePath);
-        localData[file] = {
-          type: this.isBinaryFile(file) ? 'binary' : 'text',
-          content: content.toString('base64')
-        };
-      }
-
       // Recupera il backup
       const backup = await this.get(hash);
       if (!backup?.data || !backup?.metadata?.versionInfo) {
         throw new Error('Invalid backup: missing metadata');
       }
 
-      // Calcola checksum
-      const localDataStr = JSON.stringify(localData);
-      const remoteDataStr = JSON.stringify(backup.data);
-      const localChecksum = sha3_256(Buffer.from(localDataStr));
-      const remoteChecksum = sha3_256(Buffer.from(remoteDataStr));
+      // Prepara i dati locali nello stesso formato del backup
+      const localData: Record<string, any> = {};
+      const processDirectory = async (dirPath: string, baseDir: string = '') => {
+        const files = await fs.readdir(dirPath, { withFileTypes: true });
+        
+        for (const file of files) {
+          const fullPath = path.join(dirPath, file.name);
+          const relativePath = path.join(baseDir, file.name).replace(/\\/g, '/');
+          
+          if (file.isDirectory()) {
+            await processDirectory(fullPath, relativePath);
+            continue;
+          }
 
-      const localVersion: VersionInfo = {
-        hash: localChecksum,
-        timestamp: Date.now(),
-        size: Buffer.from(localDataStr).length,
-        metadata: {
-          createdAt: new Date().toISOString(),
-          modifiedAt: new Date().toISOString(),
-          checksum: localChecksum
+          const content = await fs.readFile(fullPath);
+          const isBinary = this.isBinaryFile(file.name);
+          
+          localData[relativePath] = {
+            type: isBinary ? 'binary' : 'text',
+            content: isBinary ? content.toString('base64') : content.toString('utf8'),
+            mimeType: this.getMimeType(file.name)
+          };
         }
       };
 
-      const remoteVersion = backup.metadata.versionInfo;
+      await processDirectory(sourcePath);
 
-      if (localChecksum === remoteChecksum) {
-        return {
-          isEqual: true,
-          isNewer: false,
-          localVersion: remoteVersion,
-          remoteVersion,
-          timeDiff: 0,
-          formattedDiff: "less than a minute"
-        };
-      }
+      // Crea buffer dei dati nello stesso formato
+      const localBuffer = Buffer.from(JSON.stringify(localData));
+      const remoteBuffer = Buffer.from(JSON.stringify(backup.data));
 
-      return {
-        isEqual: false,
-        isNewer: localVersion.timestamp > remoteVersion.timestamp,
-        localVersion,
-        remoteVersion,
-        timeDiff: Math.abs(localVersion.timestamp - remoteVersion.timestamp),
-        formattedDiff: new VersionManager(sourcePath).formatTimeDifference(
-          localVersion.timestamp,
-          remoteVersion.timestamp
-        )
-      };
+      // Usa VersionManager per confrontare
+      const versionManager = new VersionManager(sourcePath);
+      return versionManager.compareVersions(localBuffer, backup.metadata.versionInfo);
+
     } catch (error) {
       console.error('Error during comparison:', error);
       throw error;

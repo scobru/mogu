@@ -54,16 +54,28 @@ export class VersionManager {
   constructor(private radataPath: string) {}
 
   async createVersionInfo(data: Buffer): Promise<VersionInfo> {
-    const stats = await fs.stat(this.radataPath);
+    let stats;
+    try {
+      stats = await fs.stat(this.radataPath);
+    } catch (error) {
+      // Se il path non esiste, usa valori di default
+      stats = {
+        size: data.length,
+        birthtime: new Date(),
+        mtime: new Date()
+      };
+    }
+    
+    const checksum = sha3_256(data);
     
     return {
-      hash: sha3_256(data),
+      hash: checksum,
       timestamp: Date.now(),
-      size: stats.size,
+      size: data.length, // Usa la dimensione del buffer invece di stats.size
       metadata: {
         createdAt: stats.birthtime.toISOString(),
         modifiedAt: stats.mtime.toISOString(),
-        checksum: sha3_256(data)
+        checksum: checksum
       }
     };
   }
@@ -81,8 +93,11 @@ export class VersionManager {
   async compareVersions(localData: Buffer, remoteVersion: VersionInfo): Promise<VersionComparison> {
     const localVersion = await this.createVersionInfo(localData);
     
+    // Confronta solo i checksum dei dati effettivi
+    const isEqual = localVersion.metadata.checksum === remoteVersion.metadata.checksum;
+    
     return {
-      isEqual: localVersion.metadata.checksum === remoteVersion.metadata.checksum,
+      isEqual,
       isNewer: localVersion.timestamp > remoteVersion.timestamp,
       localVersion,
       remoteVersion,
