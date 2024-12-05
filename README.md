@@ -67,7 +67,11 @@ await mogu.restore(backup.hash, "./restored");
 
 // Delete a backup
 const deleted = await mogu.delete(backup.hash);
-console.log("Backup deleted:", deleted);
+if (deleted) {
+  console.log("Backup deleted successfully");
+} else {
+  console.log("Backup not found or deletion failed");
+}
 ```
 
 ## Configuration
@@ -187,7 +191,7 @@ The versioning tests verify Mogu's ability to handle different file versions and
 
 Choose your preferred storage:
 
-- **PINATA**: Managed IPFS storage
+- **PINATA**: Managed IPFS storage with automatic hash validation and error handling
 - **IPFS-CLIENT**: Local IPFS node
 - **BUNDLR**: Arweave storage
 - **NFT.STORAGE**: Free IPFS storage
