@@ -52,10 +52,8 @@ export class PinataService extends StorageService {
         throw new Error('Hash non valido');
       }
 
-      console.log('Recupero dati da Pinata per hash:', hash);
       const response = await this.serviceInstance.gateways.get(hash);
-      console.log('Risposta ricevuta da Pinata:', JSON.stringify(response, null, 2));
-
+      
       if (!response || typeof response !== 'object') {
         throw new Error('Risposta non valida da Pinata');
       }
@@ -65,7 +63,6 @@ export class PinataService extends StorageService {
       if (typeof response === 'string') {
         try {
           parsedResponse = JSON.parse(response);
-          console.log('Risposta parsata:', JSON.stringify(parsedResponse, null, 2));
         } catch (e) {
           throw new Error('Dati non validi ricevuti da Pinata');
         }
@@ -73,7 +70,6 @@ export class PinataService extends StorageService {
 
       // Verifichiamo che la risposta abbia la struttura corretta
       const responseData = parsedResponse as { data?: { data?: unknown; metadata?: unknown } };
-      console.log('Dati di backup:', JSON.stringify(responseData, null, 2));
 
       if (!responseData.data?.data) {
         throw new Error('Struttura dati non valida nel backup');
@@ -91,16 +87,29 @@ export class PinataService extends StorageService {
 
       // Verifichiamo che i dati dei file abbiano la struttura corretta
       const fileData = backupData.data as Record<string, any>;
+      
       for (const [path, data] of Object.entries(fileData)) {
-        if (!data.type || !data.content) {
-          throw new Error(`Dati non validi per il file: ${path}`);
+        if (typeof data !== 'object' || data === null) {
+          throw new Error(`Dati non validi per il file ${path}: i dati devono essere un oggetto`);
+        }
+        
+        // Se i dati sono crittografati, hanno una struttura diversa
+        if (data.iv && data.mimeType) {
+          data.type = data.mimeType;
+          data.content = data;
+          continue;
+        }
+        
+        if (!data.type) {
+          throw new Error(`Dati non validi per il file ${path}: manca il campo 'type'`);
+        }
+        if (!data.content) {
+          throw new Error(`Dati non validi per il file ${path}: manca il campo 'content'`);
         }
       }
 
-      //console.log('Dati di backup formattati:', JSON.stringify(backupData, null, 2));
       return backupData as BackupData;
     } catch (error) {
-      console.error('Errore nel recupero da Pinata:', error);
       throw error;
     }
   }
@@ -109,34 +118,30 @@ export class PinataService extends StorageService {
     return `https://${this.gateway}/ipfs/`;
   }
 
-  public async unpin(hash: string): Promise<void> {
+  public async unpin(hash: string): Promise<boolean> {
     try {
-      if (!hash || typeof hash !== 'string') {
-        throw new Error('Hash non valido');
+      if (!hash || typeof hash !== 'string' || !/^[a-zA-Z0-9]{46,59}$/.test(hash)) {
+        return false;
       }
-      console.log(`Tentativo di unpin per l'hash: ${hash}`);
       
-      // Prima verifica se è già unpinnato
       const isPinnedBefore = await this.isPinned(hash);
       if (!isPinnedBefore) {
-        console.log(`L'hash ${hash} è già unpinnato`);
-        return;
+        return false;
       }
 
-      // Esegui l'unpin
       await this.serviceInstance.unpin([hash]);
-      console.log(`Comando unpin eseguito per l'hash: ${hash}`);
+      return true;
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('is not pinned') || error.message.includes('NOT_FOUND')) {
-          console.log(`L'hash ${hash} non è pinnato nel servizio`);
-          return;
+        if (error.message.includes('is not pinned') || 
+            error.message.includes('NOT_FOUND') ||
+            error.message.includes('url does not contain CID')) {
+          return false;
         }
         if (error.message.includes('INVALID_CREDENTIALS')) {
           throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
         }
       }
-      console.error('Errore durante unpin da Pinata:', error);
       throw error;
     }
   }
@@ -161,7 +166,6 @@ export class PinataService extends StorageService {
       if (error instanceof Error && error.message.includes('INVALID_CREDENTIALS')) {
         throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
       }
-      console.error("Errore con Pinata:", error);
       throw error;
     }
   }
@@ -185,7 +189,6 @@ export class PinataService extends StorageService {
         }
       };
     } catch (error) {
-      console.error("Errore con Pinata:", error);
       throw error;
     }
   }
@@ -198,25 +201,23 @@ export class PinataService extends StorageService {
       const response = await this.serviceInstance.gateways.get(hash);
       return response;
     } catch (error) {
-      console.error('Errore nel recupero dei metadata:', error);
       throw error;
     }
   }
 
   public async isPinned(hash: string): Promise<boolean> {
     try {
-      if (!hash || typeof hash !== 'string') {
-        throw new Error('Hash non valido');
+      if (!hash || typeof hash !== 'string' || !/^[a-zA-Z0-9]{46,59}$/.test(hash)) {
+        return false;
       }
-      console.log(`Verifica pin per l'hash: ${hash}`);
-      
+
       try {
         const response = await this.serviceInstance.gateways.get(hash);
-        const isPinned = !!response;
-        console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
-        return isPinned;
+        return !!response;
       } catch (error) {
-        if (error instanceof Error && error.message.includes('NOT_FOUND')) {
+        if (error instanceof Error && 
+           (error.message.includes('NOT_FOUND') || 
+            error.message.includes('url does not contain CID'))) {
           return false;
         }
         throw error;
@@ -225,7 +226,6 @@ export class PinataService extends StorageService {
       if (error instanceof Error && error.message.includes('INVALID_CREDENTIALS')) {
         throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
       }
-      console.error('Errore durante la verifica del pin:', error);
       return false;
     }
   }

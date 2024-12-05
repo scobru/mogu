@@ -241,9 +241,9 @@ export class Mogu {
   /**
    * Unpin a hash from storage
    * @param {string} hash - The hash to unpin
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} - Returns true if the hash was unpinned, false otherwise
    */
-  public async unpin(hash: string): Promise<void> {
+  public async unpin(hash: string): Promise<boolean> {
     return this.storage.unpin(hash);
   }
 

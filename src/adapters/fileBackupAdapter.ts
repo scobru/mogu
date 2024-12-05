@@ -44,7 +44,7 @@ export class FileBackupAdapter implements IBackupAdapter {
         if (!storage.unpin) {
           throw new Error('Storage service does not support unpin operation');
         }
-        await storage.unpin(hash);
+        return storage.unpin(hash);
       }
     };
   }
@@ -159,6 +159,13 @@ export class FileBackupAdapter implements IBackupAdapter {
     }
     
     try {
+      // Verifica se il backup esiste usando isPinned
+      const exists = await this.originalStorage.isPinned(hash);
+      if (!exists) {
+        return false;
+      }
+
+      // Se il backup esiste, procedi con l'eliminazione
       await this.storage.unpin(hash);
       return true;
     } catch (error) {
