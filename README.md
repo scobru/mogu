@@ -28,8 +28,8 @@ const mogu = new Mogu({
   storage: {
     service: "PINATA",
     config: {
-      apiKey: "your-api-key",
-      apiSecret: "your-secret",
+      pinataJwt: "your-pinata-jwt",
+      pinataGateway: "gateway.pinata.cloud"
     },
   },
   features: {
@@ -82,8 +82,8 @@ const mogu = new Mogu({
   storage: {
     service: "PINATA", // IPFS storage provider
     config: {
-      apiKey: "your-api-key",
-      apiSecret: "your-secret",
+      pinataJwt: "your-pinata-jwt",
+      pinataGateway: "gateway.pinata.cloud"
     },
   },
 
@@ -254,10 +254,6 @@ yarn test
 # Build
 yarn build
 ```
-
-## Related Projects
-
-Mogu builds upon the existing work of [Web3Stash](https://github.com/mbcse/web3stash), a standard library for connecting to multiple decentralized storage providers.
 
 ## License
 
