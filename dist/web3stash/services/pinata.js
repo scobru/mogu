@@ -12,11 +12,14 @@ class PinataService extends base_storage_1.StorageService {
     constructor(config) {
         super();
         this.serviceBaseUrl = "ipfs://";
+        if (!config.pinataJwt) {
+            throw new Error('JWT Pinata non valido o mancante');
+        }
         this.serviceInstance = new pinata_web3_1.PinataSDK({
-            pinataJwt: config.jwt,
-            pinataGateway: config.gateway || "gateway.pinata.cloud"
+            pinataJwt: config.pinataJwt,
+            pinataGateway: config.pinataGateway || "gateway.pinata.cloud"
         });
-        this.gateway = config.gateway || "gateway.pinata.cloud";
+        this.gateway = config.pinataGateway || "gateway.pinata.cloud";
     }
     createVersionInfo(data) {
         const now = Date.now();
@@ -38,18 +41,55 @@ class PinataService extends base_storage_1.StorageService {
                 throw new Error('Hash non valido');
             }
             const response = await this.serviceInstance.gateways.get(hash);
-            const versionInfo = this.createVersionInfo(response);
-            return {
-                data: response,
-                metadata: {
+            if (!response || typeof response !== 'object') {
+                throw new Error('Risposta non valida da Pinata');
+            }
+            // Se la risposta è una stringa JSON, proviamo a parsarla
+            let parsedResponse = response;
+            if (typeof response === 'string') {
+                try {
+                    parsedResponse = JSON.parse(response);
+                }
+                catch (e) {
+                    throw new Error('Dati non validi ricevuti da Pinata');
+                }
+            }
+            // Verifichiamo che la risposta abbia la struttura corretta
+            const responseData = parsedResponse;
+            if (!responseData.data?.data) {
+                throw new Error('Struttura dati non valida nel backup');
+            }
+            // Estraiamo i dati dalla struttura nidificata
+            const backupData = {
+                data: responseData.data.data,
+                metadata: responseData.data.metadata || {
                     timestamp: Date.now(),
                     type: 'json',
-                    versionInfo
+                    versionInfo: this.createVersionInfo(responseData.data.data)
                 }
             };
+            // Verifichiamo che i dati dei file abbiano la struttura corretta
+            const fileData = backupData.data;
+            for (const [path, data] of Object.entries(fileData)) {
+                if (typeof data !== 'object' || data === null) {
+                    throw new Error(`Dati non validi per il file ${path}: i dati devono essere un oggetto`);
+                }
+                // Se i dati sono crittografati, hanno una struttura diversa
+                if (data.iv && data.mimeType) {
+                    data.type = data.mimeType;
+                    data.content = data;
+                    continue;
+                }
+                if (!data.type) {
+                    throw new Error(`Dati non validi per il file ${path}: manca il campo 'type'`);
+                }
+                if (!data.content) {
+                    throw new Error(`Dati non validi per il file ${path}: manca il campo 'content'`);
+                }
+            }
+            return backupData;
         }
         catch (error) {
-            console.error('Errore nel recupero da Pinata:', error);
             throw error;
         }
     }
@@ -58,34 +98,34 @@ class PinataService extends base_storage_1.StorageService {
     }
     async unpin(hash) {
         try {
-            if (!hash || typeof hash !== 'string') {
-                throw new Error('Hash non valido');
+            if (!hash || typeof hash !== 'string' || !/^[a-zA-Z0-9]{46,59}$/.test(hash)) {
+                return false;
             }
-            console.log(`Tentativo di unpin per l'hash: ${hash}`);
-            // Prima verifica se è già unpinnato
             const isPinnedBefore = await this.isPinned(hash);
             if (!isPinnedBefore) {
-                console.log(`L'hash ${hash} è già unpinnato`);
-                return;
+                return false;
             }
-            // Esegui l'unpin
             await this.serviceInstance.unpin([hash]);
-            console.log(`Comando unpin eseguito per l'hash: ${hash}`);
+            return true;
         }
         catch (error) {
-            if (error instanceof Error && error.message.includes('is not pinned')) {
-                console.log(`L'hash ${hash} non è pinnato nel servizio`);
-                return;
+            if (error instanceof Error) {
+                if (error.message.includes('is not pinned') ||
+                    error.message.includes('NOT_FOUND') ||
+                    error.message.includes('url does not contain CID')) {
+                    return false;
+                }
+                if (error.message.includes('INVALID_CREDENTIALS')) {
+                    throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
+                }
             }
-            console.error('Errore durante unpin da Pinata:', error);
             throw error;
         }
     }
     async uploadJson(jsonData, options) {
         try {
             const content = JSON.stringify(jsonData);
-            const file = new File([content], 'data.json', { type: 'application/json' });
-            const response = await this.serviceInstance.upload.file(file, {
+            const response = await this.serviceInstance.upload.json(jsonData, {
                 metadata: options?.pinataMetadata
             });
             return {
@@ -99,7 +139,9 @@ class PinataService extends base_storage_1.StorageService {
             };
         }
         catch (error) {
-            console.error("Errore con Pinata:", error);
+            if (error instanceof Error && error.message.includes('INVALID_CREDENTIALS')) {
+                throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
+            }
             throw error;
         }
     }
@@ -121,7 +163,6 @@ class PinataService extends base_storage_1.StorageService {
             };
         }
         catch (error) {
-            console.error("Errore con Pinata:", error);
             throw error;
         }
     }
@@ -134,23 +175,31 @@ class PinataService extends base_storage_1.StorageService {
             return response;
         }
         catch (error) {
-            console.error('Errore nel recupero dei metadata:', error);
             throw error;
         }
     }
     async isPinned(hash) {
         try {
-            if (!hash || typeof hash !== 'string') {
-                throw new Error('Hash non valido');
+            if (!hash || typeof hash !== 'string' || !/^[a-zA-Z0-9]{46,59}$/.test(hash)) {
+                return false;
             }
-            console.log(`Verifica pin per l'hash: ${hash}`);
-            const response = await this.serviceInstance.gateways.get(hash);
-            const isPinned = !!response;
-            console.log(`Stato pin per l'hash ${hash}: ${isPinned ? 'pinnato' : 'non pinnato'}`);
-            return isPinned;
+            try {
+                const response = await this.serviceInstance.gateways.get(hash);
+                return !!response;
+            }
+            catch (error) {
+                if (error instanceof Error &&
+                    (error.message.includes('NOT_FOUND') ||
+                        error.message.includes('url does not contain CID'))) {
+                    return false;
+                }
+                throw error;
+            }
         }
         catch (error) {
-            console.error('Errore durante la verifica del pin:', error);
+            if (error instanceof Error && error.message.includes('INVALID_CREDENTIALS')) {
+                throw new Error('Errore di autenticazione con Pinata: verifica il JWT');
+            }
             return false;
         }
     }

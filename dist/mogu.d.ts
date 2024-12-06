@@ -1,8 +1,7 @@
-import { BackupOptions, BackupResult } from './types/backup';
-import { defaultConfig } from './config';
-import { VersionComparison, DetailedComparison } from './versioning';
+import type { MoguConfig } from './types/mogu';
+import type { BackupOptions, BackupResult } from './types/backup';
+import type { VersionComparison, DetailedComparison } from './versioning';
 import { StorageService } from './web3stash/services/base-storage';
-type MoguConfig = typeof defaultConfig;
 /**
  * Mogu - Modern Decentralized Backup System
  * @class
@@ -16,8 +15,14 @@ type MoguConfig = typeof defaultConfig;
  *   storage: {
  *     service: 'PINATA',
  *     config: {
- *       apiKey: 'your-api-key',
- *       apiSecret: 'your-secret'
+ *       pinataJwt: 'your-jwt-token',
+ *       pinataGateway: 'your-gateway'
+ *     }
+ *   },
+ *   features: {
+ *     encryption: {
+ *       enabled: true,
+ *       algorithm: 'aes-256-gcm'
  *     }
  *   }
  * });
@@ -110,7 +115,7 @@ export declare class Mogu {
      * @param {string} hash - The hash to retrieve
      * @returns {Promise<any>} The retrieved data
      */
-    getData(hash: string): Promise<import(".").BackupData>;
+    getData(hash: string): Promise<import("./types/mogu").BackupData>;
     /**
      * Get metadata from storage by hash
      * @param {string} hash - The hash to get metadata for
@@ -126,10 +131,9 @@ export declare class Mogu {
     /**
      * Unpin a hash from storage
      * @param {string} hash - The hash to unpin
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} - Returns true if the hash was unpinned, false otherwise
      */
-    unpin(hash: string): Promise<void>;
+    unpin(hash: string): Promise<boolean>;
     backupFiles: (sourcePath: string, options?: BackupOptions) => Promise<BackupResult>;
     restoreFiles: (hash: string, targetPath: string, options?: BackupOptions) => Promise<boolean>;
 }
-export {};

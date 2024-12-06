@@ -1,6 +1,9 @@
 :root {
-    --primary: #6366f1;
-    --secondary: #4f46e5;
+    --primary: #00c2ff;
+    --secondary: #ffd700;
+    --background: #0a192f;
+    --text: #0e1216;
+    --accent: #00ff9c;
 }
 
 @keyframes fadeIn {
@@ -45,10 +48,12 @@
 /* Code blocks */
 pre {
     overflow-x: auto;
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 0.5rem;
-    background: #1a1a1a !important;
-    color: #e5e7eb !important;
+    background: var(--background) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(0, 194, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 194, 255, 0.1);
 }
 
 .dark pre {
@@ -58,12 +63,22 @@ pre {
 
 code {
     font-family: 'Fira Code', 'Consolas', monospace;
-    color: #10b981;
+    color: var(--accent);
 }
 
 .dark code {
     color: #34d399;
 }
+
+/* Syntax highlighting */
+.code-comment { color: #7f849c; }
+.code-keyword { color: #ff79c6; }
+.code-string { color: var(--secondary); }
+.code-variable { color: var(--primary); }
+.code-property { color: var(--accent); }
+.code-function { color: #50fa7b; }
+.code-operator { color: #ff79c6; }
+.code-punctuation { color: #f8f8f2; }
 
 /* Custom transitions */
 .transition-all {
@@ -97,11 +112,14 @@ code {
 /* Custom button styles */
 .btn {
     transition: all 0.3s ease;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    color: var(--text);
 }
 
 .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(0, 194, 255, 0.4);
 }
 
 .dark .btn {
@@ -127,11 +145,30 @@ code {
     width: 120%;
     height: 120%;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, rgba(0,0,0,0) 70%);
+    background: radial-gradient(circle, rgba(0, 194, 255, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 .logo-container:hover::after {
     opacity: 1;
+}
+
+/* Hero section gradient */
+.hero-gradient {
+    background: linear-gradient(135deg, var(--background), #1a365d);
+}
+
+/* Feature cards */
+.feature-card {
+    background: rgba(10, 25, 47, 0.7);
+    border: 1px solid rgba(0, 194, 255, 0.1);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 30px rgba(0, 194, 255, 0.2);
+    border-color: rgba(0, 194, 255, 0.3);
 } 

@@ -2,9 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Mogu = void 0;
 const fileBackupAdapter_1 = require("./adapters/fileBackupAdapter");
+const pinata_1 = require("./web3stash/services/pinata");
+const ipfs_http_client_1 = require("./web3stash/services/ipfs-http-client");
 const logger_1 = require("./utils/logger");
 const cache_1 = require("./utils/cache");
-const pinata_1 = require("./web3stash/services/pinata");
 /**
  * Mogu - Modern Decentralized Backup System
  * @class
@@ -18,8 +19,14 @@ const pinata_1 = require("./web3stash/services/pinata");
  *   storage: {
  *     service: 'PINATA',
  *     config: {
- *       apiKey: 'your-api-key',
- *       apiSecret: 'your-secret'
+ *       pinataJwt: 'your-jwt-token',
+ *       pinataGateway: 'your-gateway'
+ *     }
+ *   },
+ *   features: {
+ *     encryption: {
+ *       enabled: true,
+ *       algorithm: 'aes-256-gcm'
  *     }
  *   }
  * });
@@ -40,12 +47,19 @@ const pinata_1 = require("./web3stash/services/pinata");
 class Mogu {
     createStorageService(config) {
         switch (config.storage.service) {
-            case 'PINATA':
+            case 'PINATA': {
+                const pinataConfig = config.storage.config;
                 return new pinata_1.PinataService({
-                    jwt: config.storage.config.apiKey,
-                    gateway: config.storage.config.endpoint
+                    pinataJwt: pinataConfig.pinataJwt,
+                    pinataGateway: pinataConfig.pinataGateway
                 });
-            // Altri servizi verranno aggiunti qui
+            }
+            case 'IPFS-CLIENT': {
+                const ipfsConfig = config.storage.config;
+                return new ipfs_http_client_1.IpfsService({
+                    url: ipfsConfig.url
+                });
+            }
             default:
                 throw new Error(`Servizio di storage non supportato: ${config.storage.service}`);
         }
@@ -59,12 +73,55 @@ class Mogu {
         // Compatibility aliases
         this.backupFiles = this.backup;
         this.restoreFiles = this.restore;
-        this.config = config;
-        this.storage = this.createStorageService(config);
+        // Definisco la configurazione di default completa
+        const defaultConfig = {
+            storage: config.storage, // Questo deve essere fornito dall'utente
+            features: {
+                encryption: {
+                    enabled: false,
+                    algorithm: 'aes-256-gcm'
+                },
+                useIPFS: false
+            },
+            paths: {
+                backup: './backup',
+                restore: './restore',
+                storage: './storage',
+                logs: './logs'
+            },
+            performance: {
+                chunkSize: 1024 * 1024,
+                maxConcurrent: 3,
+                cacheEnabled: true,
+                cacheSize: 100
+            }
+        };
+        // Merge della configurazione utente con i default
+        this.config = {
+            storage: config.storage,
+            features: {
+                encryption: {
+                    ...defaultConfig.features.encryption,
+                    ...(config.features?.encryption || {})
+                },
+                useIPFS: config.features?.useIPFS ?? defaultConfig.features.useIPFS
+            },
+            paths: {
+                ...defaultConfig.paths,
+                ...(config.paths || {})
+            },
+            performance: {
+                ...defaultConfig.performance,
+                ...(config.performance || {})
+            }
+        };
+        this.storage = this.createStorageService(this.config);
+        // Ora this.config.features.encryption è garantito avere tutti i campi necessari
+        const encryptionConfig = this.config.features.encryption;
         this.fileBackup = new fileBackupAdapter_1.FileBackupAdapter(this.storage, {
             encryption: {
-                enabled: config.features.encryption.enabled,
-                algorithm: config.features.encryption.algorithm,
+                enabled: encryptionConfig.enabled,
+                algorithm: encryptionConfig.algorithm,
                 key: ''
             }
         });
@@ -225,7 +282,7 @@ class Mogu {
     /**
      * Unpin a hash from storage
      * @param {string} hash - The hash to unpin
-     * @returns {Promise<void>}
+     * @returns {Promise<boolean>} - Returns true if the hash was unpinned, false otherwise
      */
     async unpin(hash) {
         return this.storage.unpin(hash);

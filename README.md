@@ -2,13 +2,17 @@
 
 <img src="https://github.com/scobru/mogu/raw/7588270975ff5f8b7e8c13db86b28ea5fc3fe7f8/mogu.png" width="300" height="auto" alt="Mogu Logo">
 
-A modern decentralized backup system with encryption and versioning.
+🔐 Mogu is a modern backup system that solves data security and reliability challenges by combining end-to-end encryption with decentralized IPFS storage.
+
+🌐 Unlike traditional cloud backup services, Mogu ensures your data remains under your control, encrypted before leaving your system, and securely distributed across the IPFS network.
+
+🚀 With advanced features like automatic versioning, smart caching, and detailed version comparison, Mogu is the perfect choice for developers and teams who need a robust, secure, and easy-to-integrate backup system.
 
 ## Features
 
 - 🚀 **Simple to Use**: Just a few lines of code to backup and restore
 - 🔒 **End-to-End Encryption**: Your data is always secure
-- 📦 **IPFS Storage**: Decentralized and reliable
+- 📦 **IPFS Storage**: Decentralized and reliable through Pinata
 - 🔄 **Automatic Versioning**: Track changes over time
 - 💾 **Smart Caching**: Fast operations with intelligent caching
 - 📝 **Structured Logging**: Detailed operation tracking
@@ -17,8 +21,15 @@ A modern decentralized backup system with encryption and versioning.
 ## Quick Start
 
 ```bash
-yarn add mogu
+yarn add @scobru/mogu
 ```
+
+or
+
+```bash
+npm install @scobru/mogu
+```
+
 
 ```typescript
 import { Mogu } from "mogu";
@@ -26,11 +37,11 @@ import { Mogu } from "mogu";
 // Initialize Mogu
 const mogu = new Mogu({
   storage: {
-    service: "PINATA",
+    service: 'PINATA' as const,
     config: {
-      pinataJwt: "your-pinata-jwt",
-      pinataGateway: "gateway.pinata.cloud"
-    },
+      pinataJwt: process.env.PINATA_JWT || '',
+      pinataGateway: process.env.PINATA_GATEWAY || ''
+    }
   },
   features: {
     encryption: {
@@ -77,40 +88,29 @@ if (deleted) {
 ## Configuration
 
 ```typescript
-const mogu = new Mogu({
-  // Storage configuration
+const baseConfig = {
   storage: {
-    service: "PINATA", // IPFS storage provider
+    service: 'PINATA' as const,
     config: {
-      pinataJwt: "your-pinata-jwt",
-      pinataGateway: "gateway.pinata.cloud"
-    },
+      pinataJwt: process.env.PINATA_JWT || '',
+      pinataGateway: process.env.PINATA_GATEWAY || ''
+    }
   },
-
-  // File paths
   paths: {
-    backup: "./backup", // Source directory
-    restore: "./restore", // Restore directory
-    storage: "./storage", // Local storage
-    logs: "./logs", // Log files
+    backup: './backup',    // Source directory
+    restore: './restore',  // Restore directory
+    storage: './storage', // Local storage
+    logs: path.join(process.cwd(), 'logs')
   },
-
-  // Features
   features: {
     encryption: {
       enabled: true,
-      algorithm: "aes-256-gcm",
-    },
-  },
+      algorithm: 'aes-256-gcm'
+    }
+  }
+};
 
-  // Performance tuning
-  performance: {
-    maxConcurrent: 3, // Concurrent operations
-    chunkSize: 1024 * 1024, // 1MB chunks
-    cacheEnabled: true, // Enable caching
-    cacheSize: 100, // Cache size
-  },
-});
+const mogu = new Mogu(baseConfig);
 ```
 
 ## Version Comparison
@@ -189,15 +189,9 @@ The versioning tests verify Mogu's ability to handle different file versions and
 
 ## Storage Providers
 
-Choose your preferred storage:
+Currently supported:
 
-- **PINATA**: Managed IPFS storage with automatic hash validation and error handling
-- **IPFS-CLIENT**: Local IPFS node
-- **BUNDLR**: Arweave storage
-- **NFT.STORAGE**: Free IPFS storage
-- **WEB3.STORAGE**: Decentralized IPFS
-- **ARWEAVE**: Permanent storage
-- **LIGHTHOUSE**: Decentralized storage
+- **PINATA**: Managed IPFS storage with automatic hash validation and error handling. Requires a Pinata JWT token.
 
 ## Advanced Usage
 

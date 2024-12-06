@@ -1,24 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {StorageService} from './base-storage';
-import type {UploadOutput} from '../types';
-import type {Options as IpfsOptions} from 'ipfs-http-client';
-import {create} from 'ipfs-http-client';
+import type {UploadOutput, IpfsServiceConfig} from '../types';
 import {BackupData} from '../../types/mogu';
+import { create as ipfsHttpClient } from 'ipfs-http-client';
 
 export class IpfsService extends StorageService {
 	public serviceBaseUrl = 'ipfs://';
 	public readonly serviceInstance: any;
 
-	constructor(options: IpfsOptions) {
+	constructor(config: IpfsServiceConfig) {
 		super();
-		this.serviceInstance = create(options);
+		if (!config.url) {
+			throw new Error('URL IPFS richiesto');
+		}
+		this.serviceInstance = ipfsHttpClient({
+			url: config.url
+		});
 	}
 
 	public async get(hash: string): Promise<BackupData> {
 		const chunks = [];
 		for await (const chunk of this.serviceInstance.cat(hash)) {
-			chunks.push(chunk);
+				chunks.push(chunk);
 		}
 		const content = Buffer.concat(chunks).toString();
 		return JSON.parse(content);
@@ -55,8 +59,13 @@ export class IpfsService extends StorageService {
 		return this.uploadFile(path);
 	}
 
-	public async unpin(hash: string): Promise<void> {
-		await this.serviceInstance.pin.rm(hash);
+	public async unpin(hash: string): Promise<boolean> {
+		try {
+			await this.serviceInstance.pin.rm(hash);
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	public async getMetadata(hash: string): Promise<any> {

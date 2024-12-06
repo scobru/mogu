@@ -1,33 +1,28 @@
 import { z } from 'zod';
 export declare const configSchema: z.ZodObject<{
     storage: z.ZodObject<{
-        service: z.ZodEnum<["PINATA", "BUNDLR", "NFT.STORAGE", "WEB3.STORAGE", "ARWEAVE", "IPFS-CLIENT", "LIGHTHOUSE"]>;
+        service: z.ZodEnum<["PINATA", "IPFS-CLIENT"]>;
         config: z.ZodObject<{
-            apiKey: z.ZodString;
-            apiSecret: z.ZodString;
-            endpoint: z.ZodOptional<z.ZodString>;
+            pinataJwt: z.ZodString;
+            pinataGateway: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         }, {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         }>;
     }, "strip", z.ZodTypeAny, {
-        service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
+        service: "PINATA" | "IPFS-CLIENT";
         config: {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         };
     }, {
-        service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
+        service: "PINATA" | "IPFS-CLIENT";
         config: {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         };
     }>;
     paths: z.ZodObject<{
@@ -37,14 +32,14 @@ export declare const configSchema: z.ZodObject<{
         logs: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
         backup?: string | undefined;
+        logs?: string | undefined;
         storage?: string | undefined;
         restore?: string | undefined;
-        logs?: string | undefined;
     }, {
         backup?: string | undefined;
+        logs?: string | undefined;
         storage?: string | undefined;
         restore?: string | undefined;
-        logs?: string | undefined;
     }>;
     features: z.ZodObject<{
         useIPFS: z.ZodBoolean;
@@ -89,18 +84,17 @@ export declare const configSchema: z.ZodObject<{
     }>;
 }, "strip", z.ZodTypeAny, {
     storage: {
-        service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
+        service: "PINATA" | "IPFS-CLIENT";
         config: {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         };
     };
     paths: {
         backup?: string | undefined;
+        logs?: string | undefined;
         storage?: string | undefined;
         restore?: string | undefined;
-        logs?: string | undefined;
     };
     features: {
         encryption: {
@@ -117,18 +111,17 @@ export declare const configSchema: z.ZodObject<{
     };
 }, {
     storage: {
-        service: "PINATA" | "BUNDLR" | "NFT.STORAGE" | "WEB3.STORAGE" | "ARWEAVE" | "IPFS-CLIENT" | "LIGHTHOUSE";
+        service: "PINATA" | "IPFS-CLIENT";
         config: {
-            apiKey: string;
-            apiSecret: string;
-            endpoint?: string | undefined;
+            pinataJwt: string;
+            pinataGateway?: string | undefined;
         };
     };
     paths: {
         backup?: string | undefined;
+        logs?: string | undefined;
         storage?: string | undefined;
         restore?: string | undefined;
-        logs?: string | undefined;
     };
     features: {
         encryption: {

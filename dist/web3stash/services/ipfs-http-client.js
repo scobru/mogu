@@ -6,10 +6,15 @@ exports.IpfsService = void 0;
 const base_storage_1 = require("./base-storage");
 const ipfs_http_client_1 = require("ipfs-http-client");
 class IpfsService extends base_storage_1.StorageService {
-    constructor(options) {
+    constructor(config) {
         super();
         this.serviceBaseUrl = 'ipfs://';
-        this.serviceInstance = (0, ipfs_http_client_1.create)(options);
+        if (!config.url) {
+            throw new Error('URL IPFS richiesto');
+        }
+        this.serviceInstance = (0, ipfs_http_client_1.create)({
+            url: config.url
+        });
     }
     async get(hash) {
         const chunks = [];
@@ -47,7 +52,13 @@ class IpfsService extends base_storage_1.StorageService {
         return this.uploadFile(path);
     }
     async unpin(hash) {
-        await this.serviceInstance.pin.rm(hash);
+        try {
+            await this.serviceInstance.pin.rm(hash);
+            return true;
+        }
+        catch {
+            return false;
+        }
     }
     async getMetadata(hash) {
         const stat = await this.serviceInstance.files.stat(`/ipfs/${hash}`);

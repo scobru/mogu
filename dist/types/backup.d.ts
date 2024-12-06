@@ -48,7 +48,7 @@ export interface StorageServiceWithMetadata {
         id: string;
         metadata: Record<string, unknown>;
     }>;
-    unpin?(hash: string): Promise<void>;
+    unpin?(hash: string): Promise<boolean>;
 }
 export interface IBackupAdapter {
     backup(sourcePath: string, options?: BackupOptions): Promise<BackupResult>;

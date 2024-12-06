@@ -1,12 +1,27 @@
-import type { Web3StashServices, Web3StashConfig } from "../web3stash/types";
-import type { VersionInfo, VersionComparison, DetailedComparison } from "../versioning";
+import type { Web3StashConfig } from "../web3stash/types";
+import type { VersionInfo } from "../versioning";
 
 export interface MoguConfig {
-  storageService: Web3StashServices;
-  storageConfig: Web3StashConfig;
-  storagePath?: string;
-  backupPath?: string;
-  restorePath?: string;
+  storage: Web3StashConfig;
+  paths?: {
+    backup?: string;
+    restore?: string;
+    storage?: string;
+    logs?: string;
+  };
+  features: {
+    encryption: {
+      enabled: boolean;
+      algorithm: string;
+    };
+    useIPFS?: boolean;
+  };
+  performance?: {
+    chunkSize?: number;
+    maxConcurrent?: number;
+    cacheEnabled?: boolean;
+    cacheSize?: number;
+  };
 }
 
 export interface BackupFileData {

@@ -6,17 +6,11 @@ exports.configSchema = zod_1.z.object({
     storage: zod_1.z.object({
         service: zod_1.z.enum([
             'PINATA',
-            'BUNDLR',
-            'NFT.STORAGE',
-            'WEB3.STORAGE',
-            'ARWEAVE',
             'IPFS-CLIENT',
-            'LIGHTHOUSE'
         ]),
         config: zod_1.z.object({
-            apiKey: zod_1.z.string(),
-            apiSecret: zod_1.z.string(),
-            endpoint: zod_1.z.string().optional()
+            pinataJwt: zod_1.z.string(),
+            pinataGateway: zod_1.z.string().optional()
         })
     }),
     paths: zod_1.z.object({
@@ -43,8 +37,8 @@ exports.defaultConfig = {
     storage: {
         service: 'PINATA',
         config: {
-            apiKey: process.env.PINATA_API_KEY || '',
-            apiSecret: process.env.PINATA_API_SECRET || ''
+            pinataJwt: process.env.PINATA_JWT || '',
+            pinataGateway: process.env.PINATA_GATEWAY || ''
         }
     },
     paths: {

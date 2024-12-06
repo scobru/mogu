@@ -1,14 +1,13 @@
 import { FileBackupAdapter } from './adapters/fileBackupAdapter';
-import { BackupOptions, BackupResult } from './types/backup';
-import { defaultConfig } from './config';
-import { logger } from './utils/logger';
-import { backupCache } from './utils/cache';
-import { VersionComparison, DetailedComparison } from './versioning';
+import type { MoguConfig } from './types/mogu';
+import type { BackupOptions, BackupResult } from './types/backup';
+import type { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
 import { StorageService } from './web3stash/services/base-storage';
 import { PinataService } from './web3stash/services/pinata';
-import { Web3StashServices } from './web3stash/types';
-
-type MoguConfig = typeof defaultConfig;
+import { IpfsService } from './web3stash/services/ipfs-http-client';
+import type { Web3StashServices, IpfsServiceConfig, PinataServiceConfig } from './web3stash/types';
+import { logger } from './utils/logger';
+import { backupCache } from './utils/cache';
 
 /**
  * Mogu - Modern Decentralized Backup System
@@ -23,8 +22,14 @@ type MoguConfig = typeof defaultConfig;
  *   storage: {
  *     service: 'PINATA',
  *     config: {
- *       apiKey: 'your-api-key',
- *       apiSecret: 'your-secret'
+ *       pinataJwt: 'your-jwt-token',
+ *       pinataGateway: 'your-gateway'
+ *     }
+ *   },
+ *   features: {
+ *     encryption: {
+ *       enabled: true,
+ *       algorithm: 'aes-256-gcm'
  *     }
  *   }
  * });
@@ -48,13 +53,20 @@ export class Mogu {
   private storage: StorageService;
 
   private createStorageService(config: MoguConfig): StorageService {
-    switch (config.storage.service as Web3StashServices) {
-      case 'PINATA':
+    switch (config.storage.service) {
+      case 'PINATA': {
+        const pinataConfig = config.storage.config as PinataServiceConfig;
         return new PinataService({
-          pinataJwt: config.storage.config.pinataJwt,
-          pinataGateway: config.storage.config.pinataGateway
+          pinataJwt: pinataConfig.pinataJwt,
+          pinataGateway: pinataConfig.pinataGateway
         });
-      // Altri servizi verranno aggiunti qui
+      }
+      case 'IPFS-CLIENT': {
+        const ipfsConfig = config.storage.config as IpfsServiceConfig;
+        return new IpfsService({
+          url: ipfsConfig.url
+        });
+      }
       default:
         throw new Error(`Servizio di storage non supportato: ${config.storage.service}`);
     }
@@ -66,15 +78,62 @@ export class Mogu {
    * @throws {Error} If the configuration is invalid
    */
   constructor(config: MoguConfig) {
-    this.config = config;
-    this.storage = this.createStorageService(config);
+    // Definisco la configurazione di default completa
+    const defaultConfig: Required<MoguConfig> = {
+      storage: config.storage, // Questo deve essere fornito dall'utente
+      features: {
+        encryption: {
+          enabled: false,
+          algorithm: 'aes-256-gcm'
+        },
+        useIPFS: false
+      },
+      paths: {
+        backup: './backup',
+        restore: './restore',
+        storage: './storage',
+        logs: './logs'
+      },
+      performance: {
+        chunkSize: 1024 * 1024,
+        maxConcurrent: 3,
+        cacheEnabled: true,
+        cacheSize: 100
+      }
+    };
+
+    // Merge della configurazione utente con i default
+    this.config = {
+      storage: config.storage,
+      features: {
+        encryption: {
+          ...defaultConfig.features.encryption,
+          ...(config.features?.encryption || {})
+        },
+        useIPFS: config.features?.useIPFS ?? defaultConfig.features.useIPFS
+      },
+      paths: {
+        ...defaultConfig.paths,
+        ...(config.paths || {})
+      },
+      performance: {
+        ...defaultConfig.performance,
+        ...(config.performance || {})
+      }
+    };
+
+    this.storage = this.createStorageService(this.config);
+    
+    // Ora this.config.features.encryption è garantito avere tutti i campi necessari
+    const encryptionConfig = this.config.features.encryption;
     this.fileBackup = new FileBackupAdapter(this.storage, {
       encryption: {
-        enabled: config.features.encryption.enabled,
-        algorithm: config.features.encryption.algorithm,
+        enabled: encryptionConfig.enabled,
+        algorithm: encryptionConfig.algorithm,
         key: ''
       }
     });
+    
     logger.info('Mogu initialized', { config: this.config });
   }
 

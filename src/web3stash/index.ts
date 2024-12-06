@@ -2,7 +2,6 @@ import { Web3StashServices, Web3StashConfig, PinataServiceConfig, IpfsServiceCon
 import { PinataService } from "./services/pinata";
 import { IpfsService } from "./services/ipfs-http-client";
 import { StorageService } from './services/base-storage';
-import type { Options as IpfsOptions } from 'ipfs-http-client';
 
 export function Web3Stash(service: Web3StashServices, config: Web3StashConfig): StorageService {
   switch (service) {
@@ -19,10 +18,7 @@ export function Web3Stash(service: Web3StashServices, config: Web3StashConfig): 
       if (!ipfsConfig.url) {
         throw new Error('Configurazione IPFS non valida: richiesto url');
       }
-      const options: IpfsOptions = {
-        url: ipfsConfig.url
-      };
-      return new IpfsService(options);
+      return new IpfsService(ipfsConfig);
     }
 
     default:

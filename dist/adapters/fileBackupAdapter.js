@@ -39,7 +39,7 @@ class FileBackupAdapter {
                 if (!storage.unpin) {
                     throw new Error('Storage service does not support unpin operation');
                 }
-                await storage.unpin(hash);
+                return storage.unpin(hash);
             }
         };
     }
@@ -141,6 +141,12 @@ class FileBackupAdapter {
             throw new Error('Storage service does not support delete operation');
         }
         try {
+            // Verifica se il backup esiste usando isPinned
+            const exists = await this.originalStorage.isPinned(hash);
+            if (!exists) {
+                return false;
+            }
+            // Se il backup esiste, procedi con l'eliminazione
             await this.storage.unpin(hash);
             return true;
         }
