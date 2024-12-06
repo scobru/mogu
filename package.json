@@ -1,6 +1,6 @@
 {
   "name": "@scobru/mogu",
-  "version": "4.0.0",
+  "version": "4.0.2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "commonjs",
@@ -17,9 +17,7 @@
     "axios": "^1.6.2",
     "dayjs": "^1.11.13",
     "dotenv": "^16.3.1",
-    "ethers": "^5.7.2",
     "fs-extra": "^11.2.0",
-    "ipfs-core": "^0.18.1",
     "ipfs-http-client": "56.0.3",
     "js-sha3": "^0.9.3",
     "jsonwebtoken": "^9.0.2",

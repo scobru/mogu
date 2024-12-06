@@ -4,5 +4,6 @@ radata
 logs/*
 test-files/*
 test-radata/*
-restored-files/*    
+restored-files/*   
+test-restored/*
 landing/*
