@@ -194,38 +194,121 @@
             <h2 class="section-title text-3xl font-bold text-center mb-12 text-text">🤖 LLM Integration</h2>
             
             <div class="integration-overview max-w-4xl mx-auto">
-                <div class="overview-section mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">Example LLM Prompts</h3>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <p class="text-primary font-semibold">Configuration Help:</p>
-                        <p class="text-text/80">"Using the Mogu backup system, show me the configuration for encrypted backup with Pinata storage"</p>
+                <!-- Documentation Link -->
+                <div class="overview-section mb-12 text-center">
+                    <a href="https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt" 
+                       target="_blank" 
+                       class="btn btn-primary mb-8">
+                       📚 View Complete LLM Documentation
+                    </a>
+                    <p class="text-text/80 mb-8">
+                        Access our comprehensive LLM documentation for detailed integration guides, examples, and best practices.
+                    </p>
+                </div>
+
+                <!-- Documentation Structure -->
+                <div class="feature-grid grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-4">System Overview</h3>
+                        <p>General understanding of Mogu's architecture and features</p>
+                        <ul class="list-disc list-inside mt-4 text-text/80">
+                            <li>Decentralized backup system</li>
+                            <li>End-to-end encryption</li>
+                            <li>IPFS storage integration</li>
+                        </ul>
                     </div>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <p class="text-primary font-semibold">Operation Guidance:</p>
-                        <p class="text-text/80">"How do I compare two versions of a backup in Mogu?"</p>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-4">Core Components</h3>
+                        <p>Technical details and implementations</p>
+                        <ul class="list-disc list-inside mt-4 text-text/80">
+                            <li>Storage Services (PINATA, IPFS)</li>
+                            <li>Encryption System</li>
+                            <li>Backup Management</li>
+                        </ul>
                     </div>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <p class="text-primary font-semibold">Error Handling:</p>
-                        <p class="text-text/80">"What are the best practices for handling encryption errors in Mogu?"</p>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-4">Main Operations</h3>
+                        <p>API usage and examples</p>
+                        <ul class="list-disc list-inside mt-4 text-text/80">
+                            <li>Backup & Restore</li>
+                            <li>Version Comparison</li>
+                            <li>File Management</li>
+                        </ul>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-4">Best Practices</h3>
+                        <p>Optimization and security tips</p>
+                        <ul class="list-disc list-inside mt-4 text-text/80">
+                            <li>Encryption Guidelines</li>
+                            <li>Backup Strategies</li>
+                            <li>Error Handling</li>
+                        </ul>
                     </div>
                 </div>
 
-                <div class="feature-grid grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <h3>System Overview</h3>
-                        <p>General understanding and architecture</p>
+                <!-- Example Queries -->
+                <div class="overview-section mb-12">
+                    <h3 class="text-2xl font-semibold mb-6 text-center">Example LLM Queries</h3>
+                    <div class="space-y-4">
+                        <div class="feature-card">
+                            <p class="text-primary font-semibold">Configuration Setup:</p>
+                            <p class="text-text/80">"How do I configure Mogu with Pinata storage and encryption enabled?"</p>
+                            <pre class="mt-4 bg-background/20 p-4 rounded"><code>const mogu = new Mogu({
+  storage: {
+    service: 'PINATA',
+    config: {
+      pinataJwt: process.env.PINATA_JWT
+    }
+  },
+  features: {
+    encryption: {
+      enabled: true
+    }
+  }
+});</code></pre>
+                        </div>
+                        <div class="feature-card">
+                            <p class="text-primary font-semibold">Version Management:</p>
+                            <p class="text-text/80">"Show me how to compare two versions of a backup and handle the differences"</p>
+                            <pre class="mt-4 bg-background/20 p-4 rounded"><code>const comparison = await mogu.compareDetailed(hash, './data');
+if (comparison.totalChanges.modified > 0) {
+  // Handle changes
+}</code></pre>
+                        </div>
+                        <div class="feature-card">
+                            <p class="text-primary font-semibold">Error Handling:</p>
+                            <p class="text-text/80">"What's the best way to handle encryption and storage errors in Mogu?"</p>
+                            <pre class="mt-4 bg-background/20 p-4 rounded"><code>try {
+  const backup = await mogu.backup('./data');
+  if (!backup) throw new Error('Backup failed');
+} catch (error) {
+  console.error('Backup error:', error);
+  // Handle specific error types
+}</code></pre>
+                        </div>
                     </div>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <h3>Core Components</h3>
-                        <p>Technical details and implementations</p>
-                    </div>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <h3>Main Operations</h3>
-                        <p>API usage and examples</p>
-                    </div>
-                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
-                        <h3>Best Practices</h3>
-                        <p>Optimization and security tips</p>
+                </div>
+
+                <!-- API Patterns -->
+                <div class="overview-section">
+                    <h3 class="text-2xl font-semibold mb-6 text-center">Common Integration Patterns</h3>
+                    <div class="feature-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="feature-card">
+                            <h4 class="text-lg font-semibold mb-2">Initialization</h4>
+                            <p class="text-text/80">Standard setup pattern with environment variables</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4 class="text-lg font-semibold mb-2">Error Handling</h4>
+                            <p class="text-text/80">Comprehensive error management patterns</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4 class="text-lg font-semibold mb-2">Version Control</h4>
+                            <p class="text-text/80">Backup comparison and management patterns</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4 class="text-lg font-semibold mb-2">Security</h4>
+                            <p class="text-text/80">Encryption and key management patterns</p>
+                        </div>
                     </div>
                 </div>
             </div>
