@@ -27,41 +27,41 @@
 </head>
 <body class="bg-background text-text">
     <!-- Navigation -->
-    <nav class="fixed w-full bg-background/90 backdrop-blur-sm z-50 py-4 border-b border-primary/10">
-        <div class="container mx-auto px-6 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-primary">Mogu</a>
-            <div class="flex gap-8">
-                <a href="#features" class="text-text hover:text-primary transition-all">Features</a>
-                <a href="#quick-start" class="text-text hover:text-primary transition-all">Quick Start</a>
-                <a href="#docs" class="text-text hover:text-primary transition-all">Documentation</a>
-                <a href="https://github.com/scobru/mogu" target="_blank" class="text-text hover:text-primary transition-all">GitHub</a>
+    <nav class="nav fixed w-full bg-background/90 backdrop-blur-sm z-50 py-4 border-b border-primary/10">
+        <div class="nav-content container mx-auto px-6 flex justify-between items-center">
+            <a href="#" class="nav-logo text-2xl font-bold text-primary">Mogu</a>
+            <div class="nav-links flex gap-8">
+                <a href="#features" class="nav-link text-text hover:text-primary transition-all">Features</a>
+                <a href="#quick-start" class="nav-link text-text hover:text-primary transition-all">Quick Start</a>
+                <a href="#docs" class="nav-link text-text hover:text-primary transition-all">Documentation</a>
+                <a href="https://github.com/scobru/mogu" target="_blank" class="nav-link text-text hover:text-primary transition-all">GitHub</a>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-gradient min-h-screen flex items-center pt-20">
-        <div class="container mx-auto px-6 py-24">
+    <section class="hero hero-gradient min-h-screen flex items-center pt-20">
+        <div class="hero-content container mx-auto px-6 py-24">
             <div class="max-w-4xl mx-auto text-center">
-                <div class="logo-container mb-8">
+                <div class="hero-logo logo-container mb-8">
                     <img src="mogu.png" alt="Mogu Logo" class="w-48 mx-auto">
                 </div>
-                <h1 class="text-5xl font-bold mb-6 text-text">Modern Decentralized Backup System</h1>
-                <p class="text-xl mb-12 text-text/80">Secure, efficient, and reliable backups with encryption and versioning</p>
-                <div class="flex justify-center gap-6">
-                    <a href="#quick-start" class="btn bg-primary hover:bg-primary/90 px-8 py-3 rounded-lg font-semibold text-black">Get Started</a>
-                    <a href="https://github.com/scobru/mogu" target="_blank" class="btn bg-secondary hover:bg-secondary/90 text-background px-8 py-3 rounded-lg font-semibold">View on GitHub</a>
+                <h1 class="hero-title text-5xl font-bold mb-6 text-text">Modern Decentralized Backup System</h1>
+                <p class="hero-subtitle text-xl mb-12 text-text/80">Secure, efficient, and reliable backups with encryption and versioning</p>
+                <div class="hero-buttons flex justify-center gap-6">
+                    <a href="#quick-start" class="btn btn-primary bg-primary hover:bg-primary/90 px-8 py-3 rounded-lg font-semibold text-black">Get Started</a>
+                    <a href="https://github.com/scobru/mogu" target="_blank" class="btn btn-outline bg-secondary hover:bg-secondary/90 text-background px-8 py-3 rounded-lg font-semibold">View on GitHub</a>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Why Mogu? -->
-    <section class="py-16 bg-background/30">
+    <section class="section py-16 bg-background/30">
         <div class="container mx-auto px-6">
-            <div class="max-w-4xl mx-auto text-center">
-                <h2 class="text-3xl font-bold mb-8 text-text">✨ Why Mogu?</h2>
-                <div class="space-y-6 text-lg text-text/80">
+            <div class="integration-overview max-w-4xl mx-auto text-center">
+                <h2 class="section-title text-3xl font-bold mb-8 text-text">✨ Why Mogu?</h2>
+                <div class="overview-section space-y-6 text-lg text-text/80">
                     <p>🔐 Mogu is a modern backup system that solves data security and reliability challenges by combining end-to-end encryption with decentralized IPFS storage.</p>
                     <p>🌐 Unlike traditional cloud backup services, Mogu ensures your data remains under your control, encrypted before leaving your system, and securely distributed across the IPFS network.</p>
                     <p>🚀 With advanced features like automatic versioning, smart caching, and detailed version comparison, Mogu is the perfect choice for developers and teams who need a robust, secure, and easy-to-integrate backup system.</p>
@@ -71,10 +71,10 @@
     </section>
 
     <!-- Features -->
-    <section id="features" class="py-24 bg-background/50">
+    <section id="features" class="features-section py-24 bg-background/50">
         <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-16 text-text">Features</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <h2 class="section-title text-3xl font-bold text-center mb-16 text-text">Features</h2>
+            <div class="feature-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="feature-card p-6 rounded-lg bg-background/40 border border-primary/10 hover:border-primary/30 transition-all">
                     <h3 class="text-xl font-semibold mb-4 text-text">🔒 End-to-End Encryption</h3>
                     <p class="text-text/80">Secure your data with AES-256-GCM encryption before it leaves your system</p>
@@ -104,10 +104,13 @@
     </section>
 
     <!-- Quick Start -->
-    <section id="quick-start" class="py-24">
+    <section id="quick-start" class="section py-24">
         <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-12 text-text">🚀 Quick Start</h2>
-            <div class="max-w-4xl mx-auto">
+            <h2 class="section-title text-3xl font-bold text-center mb-12 text-text">🚀 Quick Start</h2>
+            <div class="code-window max-w-4xl mx-auto">
+                <div class="code-header">
+                    <h4>Installation and Setup</h4>
+                </div>
                 <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment"># Install Mogu</span>
 <span class="code-variable">yarn</span> <span class="code-function">add</span> @scobru/mogu
 
@@ -137,37 +140,43 @@
     </section>
 
     <!-- Documentation -->
-    <section id="docs" class="py-24 bg-background/50">
+    <section id="docs" class="section py-24 bg-background/50">
         <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-12 text-text">📚 Documentation</h2>
-            <div class="max-w-4xl mx-auto">
-                <!-- Encrypted Backup -->
-                <div class="mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">🔐 Encrypted Backup</h3>
-                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Backup with encryption</span>
+            <h2 class="section-title text-3xl font-bold text-center mb-12 text-text">📚 Documentation</h2>
+            
+            <!-- Encrypted Backup -->
+            <div class="code-window mb-12">
+                <div class="code-header">
+                    <h4>🔐 Encrypted Backup</h4>
+                </div>
+                <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Backup with encryption</span>
 <span class="code-keyword">const</span> <span class="code-variable">backup</span> = <span class="code-keyword">await</span> mogu.<span class="code-function">backup</span>(<span class="code-string">'./data'</span>, {
   <span class="code-property">encryption</span>: {
     <span class="code-property">enabled</span>: <span class="code-keyword">true</span>,
     <span class="code-property">key</span>: <span class="code-string">'your-encryption-key'</span>
   }
 });</code></pre>
-                </div>
+            </div>
 
-                <!-- Version Comparison -->
-                <div class="mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">🔄 Version Comparison</h3>
-                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Compare changes</span>
+            <!-- Version Comparison -->
+            <div class="code-window mb-12">
+                <div class="code-header">
+                    <h4>🔄 Version Comparison</h4>
+                </div>
+                <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Compare changes</span>
 <span class="code-keyword">const</span> <span class="code-variable">comparison</span> = <span class="code-keyword">await</span> mogu.<span class="code-function">compare</span>(backup.hash, <span class="code-string">'./data'</span>);
 <span class="code-keyword">if</span> (!comparison.isEqual) {
   console.<span class="code-function">log</span>(<span class="code-string">'Changes detected!'</span>);
   console.<span class="code-function">log</span>(<span class="code-string">`Time since backup: ${</span>comparison.formattedDiff<span class="code-string">}`</span>);
 }</code></pre>
-                </div>
+            </div>
 
-                <!-- Error Handling -->
-                <div class="mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">⚠️ Error Handling</h3>
-                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-keyword">try</span> {
+            <!-- Error Handling -->
+            <div class="code-window mb-12">
+                <div class="code-header">
+                    <h4>⚠️ Error Handling</h4>
+                </div>
+                <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-keyword">try</span> {
   <span class="code-keyword">const</span> <span class="code-variable">deleted</span> = <span class="code-keyword">await</span> mogu.<span class="code-function">delete</span>(<span class="code-string">'non-existent-hash'</span>);
   <span class="code-keyword">if</span> (!deleted) {
     console.<span class="code-function">log</span>(<span class="code-string">'Backup not found or already deleted'</span>);
@@ -175,65 +184,48 @@
 } <span class="code-keyword">catch</span> (error) {
   console.<span class="code-function">error</span>(<span class="code-string">'Operation failed:'</span>, error);
 }</code></pre>
-                </div>
             </div>
         </div>
     </section>
 
     <!-- LLM Integration -->
-    <section class="py-24 bg-background/30">
+    <section class="section py-24 bg-background/30">
         <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-12 text-text">🤖 LLM Integration</h2>
-            <div class="max-w-4xl mx-auto">
-                <div class="mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">Fetch Documentation</h3>
-                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment"># Fetch complete LLM documentation</span>
-curl -L https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt
-
-<span class="code-comment"># Fetch specific sections (e.g., Main Operations)</span>
-curl -L https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt | grep -A 10 "## MAIN OPERATIONS"
-
-<span class="code-comment"># Parse with jq for structured data</span>
-curl -L https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt | jq -R -s 'split("\n")'</code></pre>
-                </div>
-
-                <div class="mb-12">
+            <h2 class="section-title text-3xl font-bold text-center mb-12 text-text">🤖 LLM Integration</h2>
+            
+            <div class="integration-overview max-w-4xl mx-auto">
+                <div class="overview-section mb-12">
                     <h3 class="text-2xl font-semibold mb-6 text-text">Example LLM Prompts</h3>
-                    <div class="space-y-4">
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Configuration Help:</p>
-                            <p class="text-text/80">"Using the Mogu backup system, show me the configuration for encrypted backup with Pinata storage"</p>
-                        </div>
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Operation Guidance:</p>
-                            <p class="text-text/80">"How do I compare two versions of a backup in Mogu?"</p>
-                        </div>
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Error Handling:</p>
-                            <p class="text-text/80">"What are the best practices for handling encryption errors in Mogu?"</p>
-                        </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <p class="text-primary font-semibold">Configuration Help:</p>
+                        <p class="text-text/80">"Using the Mogu backup system, show me the configuration for encrypted backup with Pinata storage"</p>
+                    </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <p class="text-primary font-semibold">Operation Guidance:</p>
+                        <p class="text-text/80">"How do I compare two versions of a backup in Mogu?"</p>
+                    </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <p class="text-primary font-semibold">Error Handling:</p>
+                        <p class="text-text/80">"What are the best practices for handling encryption errors in Mogu?"</p>
                     </div>
                 </div>
 
-                <div class="mb-12">
-                    <h3 class="text-2xl font-semibold mb-6 text-text">Documentation Structure</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">System Overview</p>
-                            <p class="text-text/80">General understanding and architecture</p>
-                        </div>
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Core Components</p>
-                            <p class="text-text/80">Technical details and implementations</p>
-                        </div>
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Main Operations</p>
-                            <p class="text-text/80">API usage and examples</p>
-                        </div>
-                        <div class="p-4 rounded-lg bg-background/40 border border-primary/10">
-                            <p class="text-primary font-semibold">Best Practices</p>
-                            <p class="text-text/80">Optimization and security tips</p>
-                        </div>
+                <div class="feature-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <h3>System Overview</h3>
+                        <p>General understanding and architecture</p>
+                    </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <h3>Core Components</h3>
+                        <p>Technical details and implementations</p>
+                    </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <h3>Main Operations</h3>
+                        <p>API usage and examples</p>
+                    </div>
+                    <div class="feature-card p-4 rounded-lg bg-background/40 border border-primary/10">
+                        <h3>Best Practices</h3>
+                        <p>Optimization and security tips</p>
                     </div>
                 </div>
             </div>
@@ -241,10 +233,413 @@ curl -L https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt | jq -R 
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 border-t border-primary/10">
+    <footer class="footer py-12 border-t border-primary/10">
         <div class="container mx-auto px-6 text-center">
-            <p class="text-text/60">© 2024 Scobru. MIT License.</p>
+            <p class="footer-text text-text/60">© 2024 Scobru. MIT License.</p>
         </div>
     </footer>
+
+    <style>
+        /* Stili base */
+        :root {
+            --primary: #00c2ff;
+            --background: #0a192f;
+            --text: #e2e8f0;
+            --accent: #00fff0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #0a1118 0%, #0d1117 100%);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Container Responsive */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .container {
+                padding: 0 1.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 0 2rem;
+            }
+        }
+
+        /* Navigation Responsive */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(0, 194, 255, 0.1);
+            z-index: 1000;
+            padding: 1rem 0;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: none;
+        }
+
+        .nav-menu-button {
+            display: block;
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .nav-menu-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            height: 100vh;
+            background: var(--background);
+            padding: 2rem;
+            transition: right 0.3s ease;
+            z-index: 999;
+        }
+
+        .mobile-menu.active {
+            right: 0;
+        }
+
+        .mobile-menu-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 4rem;
+        }
+
+        .mobile-menu-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .nav-links {
+                display: flex;
+                gap: 2rem;
+            }
+
+            .nav-menu-button,
+            .mobile-menu {
+                display: none;
+            }
+        }
+
+        /* Hero Section Responsive */
+        .hero {
+            min-height: 100vh;
+            padding: 6rem 0 3rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-content {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 0 1rem;
+        }
+
+        .hero-logo {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        @media (min-width: 640px) {
+            .hero-logo {
+                width: 200px;
+                height: 200px;
+            }
+
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .hero-buttons {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .hero-title {
+                font-size: 3.5rem;
+            }
+        }
+
+        /* Features Section Responsive */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .feature-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .feature-card {
+            background: rgba(10, 25, 47, 0.7);
+            border: 1px solid rgba(0, 194, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(0, 194, 255, 0.1);
+        }
+
+        /* Code Sections Responsive */
+        .code-window {
+            margin: 1.5rem 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            font-size: 0.9rem;
+        }
+
+        .code-header {
+            padding: 0.75rem 1rem;
+        }
+
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (min-width: 768px) {
+            .code-window {
+                margin: 2rem 0;
+                font-size: 1rem;
+            }
+
+            .code-header {
+                padding: 1rem 1.5rem;
+            }
+
+            pre {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Documentation Section Responsive */
+        .doc-section {
+            margin-bottom: 2rem;
+        }
+
+        .doc-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .doc-section {
+                margin-bottom: 3rem;
+            }
+
+            .doc-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Section Titles Responsive */
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .section-title {
+                font-size: 2.5rem;
+                margin-bottom: 3rem;
+            }
+        }
+
+        /* Buttons Responsive */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-align: center;
+        }
+
+        @media (min-width: 640px) {
+            .btn {
+                width: auto;
+            }
+        }
+
+        /* Footer Responsive */
+        .footer {
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .footer {
+                padding: 3rem 0;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .md\:block {
+                display: block;
+            }
+
+            .md\:hidden {
+                display: none;
+            }
+        }
+    </style>
+
+    <!-- Aggiungi il menu mobile -->
+    <div class="mobile-menu" id="mobileMenu">
+        <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <div class="mobile-menu-links">
+            <a href="#features" class="nav-link" onclick="toggleMobileMenu()">Features</a>
+            <a href="#quick-start" class="nav-link" onclick="toggleMobileMenu()">Quick Start</a>
+            <a href="#docs" class="nav-link" onclick="toggleMobileMenu()">Documentation</a>
+            <a href="https://github.com/scobru/mogu" target="_blank" class="nav-link">GitHub</a>
+        </div>
+    </div>
+
+    <!-- Aggiungi il pulsante menu per mobile -->
+    <button class="nav-menu-button md:hidden" onclick="toggleMobileMenu()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <!-- Aggiungi lo script per il menu mobile -->
+    <script>
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('active');
+            document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Chiudi il menu mobile quando si ridimensiona la finestra
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                const mobileMenu = document.getElementById('mobileMenu');
+                mobileMenu.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Gestisci lo scroll smooth
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerOffset = 80;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html> 
