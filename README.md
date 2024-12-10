@@ -192,6 +192,32 @@ The versioning tests verify Mogu's ability to handle different file versions and
 Currently supported:
 
 - **PINATA**: Managed IPFS storage with automatic hash validation and error handling. Requires a Pinata JWT token.
+- **IPFS-CLIENT**: Direct IPFS node connection for decentralized storage. Requires a running IPFS node with its HTTP API endpoint.
+
+### PINATA Configuration
+```typescript
+const config = {
+  storage: {
+    service: 'PINATA' as const,
+    config: {
+      pinataJwt: process.env.PINATA_JWT || '',
+      pinataGateway: process.env.PINATA_GATEWAY || ''
+    }
+  }
+};
+```
+
+### IPFS-CLIENT Configuration
+```typescript
+const config = {
+  storage: {
+    service: 'IPFS-CLIENT' as const,
+    config: {
+      url: 'http://localhost:5001' // Your IPFS node HTTP API endpoint
+    }
+  }
+};
+```
 
 ## Advanced Usage
 
@@ -215,6 +241,54 @@ await mogu.restore(backup.hash, "./restore", {
 });
 ```
 
+### Direct Storage Operations
+
+```typescript
+// Upload JSON data directly
+const jsonResult = await mogu.uploadJson({
+  name: "test",
+  data: { key: "value" }
+});
+console.log("JSON uploaded:", jsonResult.id);
+
+// Upload a single file
+const fileResult = await mogu.uploadFile("./path/to/file.txt");
+console.log("File uploaded:", fileResult.id);
+
+// Get data by hash
+const data = await mogu.getData("QmHash...");
+console.log("Retrieved data:", data);
+
+// Get metadata
+const metadata = await mogu.getMetadata("QmHash...");
+console.log("Content metadata:", metadata);
+
+// Check if content is pinned
+const isPinned = await mogu.isPinned("QmHash...");
+console.log("Is content pinned?", isPinned);
+
+// Unpin content
+const unpinned = await mogu.unpin("QmHash...");
+if (unpinned) {
+  console.log("Content unpinned successfully");
+}
+
+// Get storage service instance
+const storage = mogu.getStorage();
+```
+
+### Storage Service Methods
+
+Mogu fornisce accesso diretto ai metodi del servizio di storage sottostante:
+
+- `uploadJson(jsonData: Record<string, unknown>)`: Carica dati JSON direttamente su IPFS
+- `uploadFile(path: string)`: Carica un singolo file su IPFS
+- `getData(hash: string)`: Recupera dati da un hash IPFS
+- `getMetadata(hash: string)`: Recupera i metadati associati a un hash
+- `isPinned(hash: string)`: Verifica se un contenuto è pinnato
+- `unpin(hash: string)`: Rimuove il pin di un contenuto
+- `getStorage()`: Ottiene l'istanza del servizio di storage
+
 ### Backup Options
 
 ```typescript
@@ -235,6 +309,11 @@ const backup = await mogu.backup("./data", {
   },
 });
 ```
+
+### General Operations
+
+
+
 
 ## Development
 

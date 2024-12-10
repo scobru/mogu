@@ -1,4 +1,4 @@
-import type { Web3StashConfig } from "../web3stash/types";
+import type { Web3StashConfig } from "../ipfs/types";
 import type { VersionInfo } from "../versioning";
 export interface MoguConfig {
     storage: Web3StashConfig;

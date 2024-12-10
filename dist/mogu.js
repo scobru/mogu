@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Mogu = void 0;
 const fileBackupAdapter_1 = require("./adapters/fileBackupAdapter");
-const pinata_1 = require("./web3stash/services/pinata");
-const ipfs_http_client_1 = require("./web3stash/services/ipfs-http-client");
+const pinata_1 = require("./ipfs/services/pinata");
+const ipfs_http_client_1 = require("./ipfs/services/ipfs-http-client");
 const logger_1 = require("./utils/logger");
 const cache_1 = require("./utils/cache");
 /**

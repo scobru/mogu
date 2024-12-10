@@ -1,7 +1,5 @@
-import type { StorageService } from '../web3stash/services/base-storage';
 import type { VersionInfo } from '../versioning';
 import type { BackupData as MoguBackupData } from './mogu';
-import type { UploadOutput } from '../web3stash/types';
 
 export interface BackupOptions {
   encryption?: {

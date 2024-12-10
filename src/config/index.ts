@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Web3StashServices } from '../web3stash/types';
 
 export const configSchema = z.object({
   storage: z.object({

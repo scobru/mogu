@@ -107,7 +107,7 @@
     <section id="quick-start" class="section py-24">
         <div class="container mx-auto px-6">
             <h2 class="section-title text-3xl font-bold text-center mb-12 text-text">🚀 Quick Start</h2>
-            <div class="code-window max-w-4xl mx-auto">
+            <div class="code-window mb-12">
                 <div class="code-header">
                     <h4>Installation and Setup</h4>
                 </div>
@@ -135,6 +135,66 @@
     <span class="code-property">logs</span>: path.join(process.cwd(), <span class="code-string">'logs'</span>)
   }
 };</code></pre>
+
+                <!-- IPFS-CLIENT Configuration -->
+                <div class="code-window mb-12">
+                    <div class="code-header">
+                        <h4>🌐 IPFS-CLIENT Configuration</h4>
+                    </div>
+                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Configure with IPFS-CLIENT</span>
+<span class="code-keyword">const</span> ipfsConfig = {
+  <span class="code-property">storage</span>: {
+    <span class="code-property">service</span>: <span class="code-string">'IPFS-CLIENT'</span> <span class="code-keyword">as const</span>,
+    <span class="code-property">config</span>: {
+      <span class="code-property">url</span>: <span class="code-string">'http://localhost:5001'</span> <span class="code-comment">// Your IPFS node HTTP API endpoint</span>
+    }
+  },
+  <span class="code-property">paths</span>: {
+    <span class="code-property">backup</span>: <span class="code-string">'./backup'</span>,
+    <span class="code-property">restore</span>: <span class="code-string">'./restore'</span>,
+    <span class="code-property">storage</span>: <span class="code-string">'./storage'</span>,
+    <span class="code-property">logs</span>: path.join(process.cwd(), <span class="code-string">'logs'</span>)
+  }
+};</code></pre>
+                </div>
+
+                <!-- Direct Storage Operations -->
+                <div class="code-window mb-12">
+                    <div class="code-header">
+                        <h4>📦 Direct Storage Operations</h4>
+                    </div>
+                    <pre class="rounded-lg bg-background/40 border border-primary/10"><code><span class="code-comment">// Upload JSON data directly</span>
+<span class="code-keyword">const</span> jsonResult = <span class="code-keyword">await</span> mogu.<span class="code-function">uploadJson</span>({
+  name: <span class="code-string">"test"</span>,
+  data: { key: <span class="code-string">"value"</span> }
+});
+console.<span class="code-function">log</span>(<span class="code-string">"JSON uploaded:"</span>, jsonResult.id);
+
+<span class="code-comment">// Upload a single file</span>
+<span class="code-keyword">const</span> fileResult = <span class="code-keyword">await</span> mogu.<span class="code-function">uploadFile</span>(<span class="code-string">"./path/to/file.txt"</span>);
+console.<span class="code-function">log</span>(<span class="code-string">"File uploaded:"</span>, fileResult.id);
+
+<span class="code-comment">// Get data by hash</span>
+<span class="code-keyword">const</span> data = <span class="code-keyword">await</span> mogu.<span class="code-function">getData</span>(<span class="code-string">"QmHash..."</span>);
+console.<span class="code-function">log</span>(<span class="code-string">"Retrieved data:"</span>, data);
+
+<span class="code-comment">// Get metadata</span>
+<span class="code-keyword">const</span> metadata = <span class="code-keyword">await</span> mogu.<span class="code-function">getMetadata</span>(<span class="code-string">"QmHash..."</span>);
+console.<span class="code-function">log</span>(<span class="code-string">"Content metadata:"</span>, metadata);
+
+<span class="code-comment">// Check if content is pinned</span>
+<span class="code-keyword">const</span> isPinned = <span class="code-keyword">await</span> mogu.<span class="code-function">isPinned</span>(<span class="code-string">"QmHash..."</span>);
+console.<span class="code-function">log</span>(<span class="code-string">"Is content pinned?"</span>, isPinned);
+
+<span class="code-comment">// Unpin content</span>
+<span class="code-keyword">const</span> unpinned = <span class="code-keyword">await</span> mogu.<span class="code-function">unpin</span>(<span class="code-string">"QmHash..."</span>);
+<span class="code-keyword">if</span> (unpinned) {
+  console.<span class="code-function">log</span>(<span class="code-string">"Content unpinned successfully"</span>);
+}
+
+<span class="code-comment">// Get storage service instance</span>
+<span class="code-keyword">const</span> storage = mogu.<span class="code-function">getStorage</span>();</code></pre>
+                </div>
             </div>
         </div>
     </section>
@@ -199,9 +259,9 @@
                     Check out the detailed documentation to implement the features in your project.
                 </p>
                 
-                <a href="https://raw.githubusercontent.com/scobru/mogu/main/DOCS_LLM.txt" 
+                <a href="https://raw.githubusercontent.com/plancia/mogu/main/DOCS_LLM.txt" 
                    target="_blank" 
-                   class="btn btn-primary">
+                   class="btn btn-primary text-black">
                    📚 View Complete LLM Documentation
                 </a>
             </div>
@@ -211,7 +271,7 @@
     <!-- Footer -->
     <footer class="footer py-12 border-t border-primary/10">
         <div class="container mx-auto px-6 text-center">
-            <p class="footer-text text-text/60">© 2024 Scobru. MIT License.</p>
+            <p class="footer-text text-text/60">© 2024 Plancia. MIT License.</p>
         </div>
     </footer>
 

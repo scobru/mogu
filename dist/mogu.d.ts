@@ -1,7 +1,7 @@
 import type { MoguConfig } from './types/mogu';
 import type { BackupOptions, BackupResult } from './types/backup';
 import type { VersionComparison, DetailedComparison } from './versioning';
-import { StorageService } from './web3stash/services/base-storage';
+import { StorageService } from './ipfs/services/base-storage';
 /**
  * Mogu - Modern Decentralized Backup System
  * @class
@@ -102,14 +102,14 @@ export declare class Mogu {
      * @param {any} options - Upload options
      * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
      */
-    uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<import("./web3stash/types").UploadOutput>;
+    uploadJson(jsonData: Record<string, unknown>, options?: any): Promise<import("./ipfs/types").UploadOutput>;
     /**
      * Upload a file directly to storage
      * @param {string} path - Path to the file
      * @param {any} options - Upload options
      * @returns {Promise<{ id: string; metadata: Record<string, unknown> }>} Upload result
      */
-    uploadFile(path: string, options?: any): Promise<import("./web3stash/types").UploadOutput>;
+    uploadFile(path: string, options?: any): Promise<import("./ipfs/types").UploadOutput>;
     /**
      * Get data from storage by hash
      * @param {string} hash - The hash to retrieve

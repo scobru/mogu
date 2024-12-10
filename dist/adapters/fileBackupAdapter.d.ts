@@ -1,8 +1,8 @@
 import { IBackupAdapter, BackupResult, BackupOptions } from "../types/backup";
 import { VersionComparison, DetailedComparison } from "../versioning";
 import type { BackupMetadata, BackupData } from "../types/mogu";
-import { UploadOutput } from "../web3stash/types";
-import { StorageService } from "../web3stash/services/base-storage";
+import { UploadOutput } from "../ipfs/types";
+import { StorageService } from "../ipfs/services/base-storage";
 export declare class FileBackupAdapter implements IBackupAdapter {
     protected options: BackupOptions;
     private storage;

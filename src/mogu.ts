@@ -2,10 +2,10 @@ import { FileBackupAdapter } from './adapters/fileBackupAdapter';
 import type { MoguConfig } from './types/mogu';
 import type { BackupOptions, BackupResult } from './types/backup';
 import type { VersionInfo, VersionComparison, DetailedComparison } from './versioning';
-import { StorageService } from './web3stash/services/base-storage';
-import { PinataService } from './web3stash/services/pinata';
-import { IpfsService } from './web3stash/services/ipfs-http-client';
-import type { Web3StashServices, IpfsServiceConfig, PinataServiceConfig } from './web3stash/types';
+import { StorageService } from './ipfs/services/base-storage';
+import { PinataService } from './ipfs/services/pinata';
+import { IpfsService } from './ipfs/services/ipfs-http-client';
+import type {  IpfsServiceConfig, PinataServiceConfig } from './ipfs/types';
 import { logger } from './utils/logger';
 import { backupCache } from './utils/cache';
 

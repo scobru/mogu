@@ -4,8 +4,8 @@ import type { BackupMetadata, BackupData } from "../types/mogu";
 import fs from "fs-extra";
 import path from "path";
 import { sha3_256 } from "js-sha3";
-import { UploadOutput } from "../web3stash/types";
-import { StorageService } from "../web3stash/services/base-storage";
+import { UploadOutput } from "../ipfs/types";
+import { StorageService } from "../ipfs/services/base-storage";
 import { Encryption } from "../utils/encryption";
 
 export class FileBackupAdapter implements IBackupAdapter {
